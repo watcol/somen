@@ -1,26 +1,26 @@
-/// Derived from unstable `core::iter::Step`.
-pub trait Step: Clone + PartialOrd + Sized {
-    fn steps_between(start: &Self, end: &Self) -> Option<usize>;
-    fn forward(start: Self, count: usize) -> Option<Self>;
-    fn backward(start: Self, count: usize) -> Option<Self>;
+use core::future::Future;
+use core::pin::Pin;
+use core::task::{Context, Poll};
+
+pub trait Positioned {
+    type Position: Clone;
+    fn poll_position(self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Position>;
+
+    #[inline]
+    fn position(&mut self) -> PositionFuture<'_, Self> {
+        PositionFuture(self)
+    }
 }
 
-#[derive(Debug, Clone, PartialEq, PartialOrd)]
-pub struct NopPosition;
+pub struct PositionFuture<'a, P: ?Sized>(&'a mut P);
 
-impl Step for NopPosition {
-    #[inline]
-    fn steps_between(_: &Self, _: &Self) -> Option<usize> {
-        Some(0)
-    }
+impl<P: ?Sized + Unpin> Unpin for PositionFuture<'_, P> {}
+
+impl<P: Positioned + ?Sized + Unpin> Future for PositionFuture<'_, P> {
+    type Output = P::Position;
 
     #[inline]
-    fn forward(_: Self, _: usize) -> Option<Self> {
-        Some(NopPosition)
-    }
-
-    #[inline]
-    fn backward(_: Self, _: usize) -> Option<Self> {
-        Some(NopPosition)
+    fn poll(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {
+        Pin::new(&mut *self.0).poll_position(cx)
     }
 }

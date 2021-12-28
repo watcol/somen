@@ -1,18 +1,14 @@
-use crate::position::{NopPosition, Step};
 use core::{convert::Infallible, fmt, ops::Range};
 
 #[cfg(feature = "alloc")]
 use alloc::{boxed::Box, string::String};
 
-#[cfg(feature = "std")]
 #[derive(Debug)]
-pub struct Error<P: Step = NopPosition, S: std::error::Error = Infallible> {
-    pub range: Range<P>,
-    pub kind: ErrorKind<S>,
-}
-
-#[cfg(not(feature = "std"))]
-pub struct Error<P: Step = NopPosition, S: fmt::Display = Infallible> {
+pub struct Error<
+    P: PartialOrd + Clone = (),
+    #[cfg(feature = "std")] S: std::error::Error = Infallible,
+    #[cfg(not(feature = "std"))] S: fmt::Display = Infallible,
+> {
     pub range: Range<P>,
     pub kind: ErrorKind<S>,
 }
@@ -26,28 +22,25 @@ impl fmt::Display for Error {
 
 #[cfg(feature = "std")]
 impl std::error::Error for Error {
+    #[inline]
     fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
         Some(&self.kind)
     }
 }
 
-#[cfg(feature = "std")]
 #[derive(Debug)]
-pub enum ErrorKind<S: std::error::Error = Infallible> {
-    Expected { expected: String },
-    Conversion { inner: Box<dyn std::error::Error> },
-    Streaming { inner: S },
-}
-
-#[cfg(not(feature = "std"))]
-#[derive(Debug)]
-pub enum ErrorKind<S: fmt::Display = Infallible> {
+pub enum ErrorKind<
+    #[cfg(feature = "std")] S: std::error::Error = Infallible,
+    #[cfg(not(feature = "std"))] S: fmt::Display = Infallible,
+> {
     Expected {
         #[cfg(feature = "alloc")]
         expected: String,
     },
     Conversion {
-        #[cfg(feature = "alloc")]
+        #[cfg(feature = "std")]
+        inner: Box<dyn std::error::Error>,
+        #[cfg(all(not(feature = "std"), feature = "alloc"))]
         inner: Box<dyn fmt::Display>,
     },
     Streaming {
