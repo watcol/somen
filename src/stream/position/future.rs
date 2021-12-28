@@ -1,20 +1,18 @@
+use super::Positioned;
 use core::future::Future;
 use core::pin::Pin;
 use core::task::{Context, Poll};
 
-pub trait Positioned {
-    type Position: Clone;
-    fn poll_position(self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Position>;
-
-    #[inline]
-    fn position(&mut self) -> PositionFuture<'_, Self> {
-        PositionFuture(self)
-    }
-}
-
 pub struct PositionFuture<'a, P: ?Sized>(&'a mut P);
 
 impl<P: ?Sized + Unpin> Unpin for PositionFuture<'_, P> {}
+
+impl<'a, P: ?Sized> PositionFuture<'a, P> {
+    #[inline]
+    pub(super) fn new(inner: &'a mut P) -> Self {
+        Self(inner)
+    }
+}
 
 impl<P: Positioned + ?Sized + Unpin> Future for PositionFuture<'_, P> {
     type Output = P::Position;

@@ -8,4 +8,4 @@
 extern crate alloc;
 
 pub mod error;
-pub mod position;
+pub mod stream;
