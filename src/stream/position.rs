@@ -10,7 +10,10 @@ pub trait Positioned {
     fn poll_position(self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Position>;
 
     #[inline]
-    fn position(&mut self) -> PositionFuture<'_, Self> {
+    fn position(&mut self) -> PositionFuture<'_, Self>
+    where
+        Self: Unpin,
+    {
         PositionFuture::new(self)
     }
 }
