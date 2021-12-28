@@ -15,7 +15,7 @@ impl<'a, P: ?Sized> MarkFuture<'a, P> {
 impl<P: ?Sized + Unpin> Unpin for MarkFuture<'_, P> {}
 
 impl<'a, P: Reset + ?Sized + Unpin> Future for MarkFuture<'a, P> {
-    type Output = P::Marker;
+    type Output = Result<P::Marker, P::Error>;
 
     #[inline]
     fn poll(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {
@@ -38,7 +38,7 @@ impl<'a, P: Reset + ?Sized + Unpin> Future for ResetFuture<'a, P>
 where
     P::Marker: Clone,
 {
-    type Output = ();
+    type Output = Result<(), P::Error>;
 
     #[inline]
     fn poll(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {

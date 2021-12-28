@@ -15,7 +15,7 @@ impl<'a, P: ?Sized> PositionFuture<'a, P> {
 }
 
 impl<P: Positioned + ?Sized + Unpin> Future for PositionFuture<'_, P> {
-    type Output = P::Position;
+    type Output = Result<P::Position, P::Error>;
 
     #[inline]
     fn poll(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {

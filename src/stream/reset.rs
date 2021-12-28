@@ -1,13 +1,21 @@
-use core::pin::Pin;
-use core::task::{Context, Poll};
-
 mod future;
 use future::{MarkFuture, ResetFuture};
 
-pub trait Reset {
+use core::pin::Pin;
+use core::task::{Context, Poll};
+use futures_core::TryStream;
+
+pub trait Reset: TryStream {
     type Marker;
-    fn poll_mark(self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Marker>;
-    fn poll_reset(self: Pin<&mut Self>, cx: &mut Context<'_>, marker: Self::Marker) -> Poll<()>;
+    fn poll_mark(
+        self: Pin<&mut Self>,
+        cx: &mut Context<'_>,
+    ) -> Poll<Result<Self::Marker, Self::Error>>;
+    fn poll_reset(
+        self: Pin<&mut Self>,
+        cx: &mut Context<'_>,
+        marker: Self::Marker,
+    ) -> Poll<Result<(), Self::Error>>;
 
     #[inline]
     fn mark(&mut self) -> MarkFuture<'_, Self>
