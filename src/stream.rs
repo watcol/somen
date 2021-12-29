@@ -7,7 +7,7 @@
 //! ## TODO
 //! - [x] UnpositionedStream (TryStream -> TryStream + Positioned)
 //! - [x] InfallibleStream (Stream -> TryStream)
-//! - [ ] IteratorStream (Iterator -> Stream)
+//! - [x] IteratorStream (Iterator -> Stream)
 //! - [ ] PositionedStream (TryStream -> TryStream + Positioned)
 //! - [ ] RecordedStream (TryStream -> TryStream + Rewind) (saving output with `Vec`, using it
 //! to `Rewind`).
@@ -28,6 +28,8 @@ pub use position::{Positioned, Unpositioned};
 pub use rewind::Rewind;
 
 mod infallible;
+mod iterator;
 mod unpositioned;
 pub use infallible::InfallibleStream;
+pub use iterator::IteratorStream;
 pub use unpositioned::UnpositionedStream;
