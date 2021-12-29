@@ -22,7 +22,8 @@ pub trait Positioned: TryStream {
         cx: &mut Context<'_>,
     ) -> Poll<Result<Self::Position, Self::Error>>;
 
-    /// An asynchronous version of `poll_position`, which returns a `Future` object.
+    /// An asynchronous version of [`poll_position`](#tymethod.poll_position), which returns a
+    /// [`Future`](https://doc.rust-lang.org/stable/std/future/trait.Future.html) object.
     #[inline]
     fn position(&mut self) -> PositionFuture<'_, Self>
     where
