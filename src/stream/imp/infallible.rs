@@ -7,12 +7,14 @@ use pin_project_lite::pin_project;
 use super::Unpositioned;
 
 pin_project! {
-    /// Wrapping normal (infallible) [`Stream`], implements [`TryStream`] which returns
-    /// `Result<S::Item, core::convert::Infallible>` and [`Unpositioned`].
+    /// Wrapping normal(infallible) [`Stream`], implements [`TryStream`].
+    ///
+    /// The [`TryStream`] always returns [`Ok`], and the error type is [`Infallible`].
     ///
     /// [`Stream`]: futures_core::stream::Stream
     /// [`TryStream`]: futures_core::stream::TryStream
-    /// [`Unpositioned`]: crate::stream::Unpositioned
+    /// [`Ok`]: core::result::Result::Ok
+    /// [`Infallible`]: core::convert::Infallible
     #[derive(Debug)]
     pub struct InfallibleStream<S> {
         #[pin]
