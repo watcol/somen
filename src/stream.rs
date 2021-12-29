@@ -6,7 +6,7 @@
 //! etc.
 
 mod position;
-mod reset;
+mod rewind;
 
 pub use position::Positioned;
-pub use reset::Reset;
+pub use rewind::Rewind;

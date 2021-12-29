@@ -1,12 +1,12 @@
 mod future;
-use future::{MarkFuture, ResetFuture};
+use future::{MarkFuture, RewindFuture};
 
 use core::pin::Pin;
 use core::task::{Context, Poll};
 use futures_core::TryStream;
 
 /// A stream that can mark current position, and rewind its position to the mark.
-pub trait Reset: TryStream {
+pub trait Rewind: TryStream {
     /// The type of markers.
     type Marker;
 
@@ -17,7 +17,7 @@ pub trait Reset: TryStream {
     ) -> Poll<Result<Self::Marker, Self::Error>>;
 
     /// Rewinding the postion to the marker.
-    fn poll_reset(
+    fn poll_rewind(
         self: Pin<&mut Self>,
         cx: &mut Context<'_>,
         marker: Self::Marker,
@@ -34,11 +34,11 @@ pub trait Reset: TryStream {
 
     /// An asynchronous version of `poll_rewind`, which returns a `Future` object.
     #[inline]
-    fn reset(&mut self, marker: Self::Marker) -> ResetFuture<'_, Self>
+    fn rewind(&mut self, marker: Self::Marker) -> RewindFuture<'_, Self>
     where
         Self: Unpin,
         Self::Marker: Clone,
     {
-        ResetFuture::new(self, marker)
+        RewindFuture::new(self, marker)
     }
 }

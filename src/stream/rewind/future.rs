@@ -1,4 +1,4 @@
-use super::Reset;
+use super::Rewind;
 use core::future::Future;
 use core::pin::Pin;
 use core::task::{Context, Poll};
@@ -14,7 +14,7 @@ impl<'a, P: ?Sized> MarkFuture<'a, P> {
 
 impl<P: ?Sized + Unpin> Unpin for MarkFuture<'_, P> {}
 
-impl<'a, P: Reset + ?Sized + Unpin> Future for MarkFuture<'a, P> {
+impl<'a, P: Rewind + ?Sized + Unpin> Future for MarkFuture<'a, P> {
     type Output = Result<P::Marker, P::Error>;
 
     #[inline]
@@ -23,18 +23,18 @@ impl<'a, P: Reset + ?Sized + Unpin> Future for MarkFuture<'a, P> {
     }
 }
 
-pub struct ResetFuture<'a, P: Reset + ?Sized>(&'a mut P, P::Marker);
+pub struct RewindFuture<'a, P: Rewind + ?Sized>(&'a mut P, P::Marker);
 
-impl<'a, P: Reset + ?Sized> ResetFuture<'a, P> {
+impl<'a, P: Rewind + ?Sized> RewindFuture<'a, P> {
     #[inline]
     pub(super) fn new(inner: &'a mut P, marker: P::Marker) -> Self {
         Self(inner, marker)
     }
 }
 
-impl<P: Reset + ?Sized + Unpin> Unpin for ResetFuture<'_, P> {}
+impl<P: Rewind + ?Sized + Unpin> Unpin for RewindFuture<'_, P> {}
 
-impl<'a, P: Reset + ?Sized + Unpin> Future for ResetFuture<'a, P>
+impl<'a, P: Rewind + ?Sized + Unpin> Future for RewindFuture<'a, P>
 where
     P::Marker: Clone,
 {
@@ -43,6 +43,6 @@ where
     #[inline]
     fn poll(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {
         let marker = self.1.clone();
-        Pin::new(&mut *self.0).poll_reset(cx, marker)
+        Pin::new(&mut *self.0).poll_rewind(cx, marker)
     }
 }
