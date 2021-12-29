@@ -5,6 +5,7 @@
 //! on them by wrapping types implementing [`Stream`], [`AsyncRead`], etc.
 //!
 //! ## TODO
+//! - [x] UnpositionedStream (TryStream -> TryStream + Positioned)
 //! - [ ] InfallibleStream (Stream -> TryStream)
 //! - [ ] IteratorStream (Iterator -> Stream)
 //! - [ ] PositionedStream (TryStream -> TryStream + Positioned)
@@ -24,5 +25,8 @@
 mod position;
 mod rewind;
 
+mod unpositioned;
+
 pub use position::Positioned;
 pub use rewind::Rewind;
+pub use unpositioned::UnpositionedStream;
