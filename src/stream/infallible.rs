@@ -7,7 +7,7 @@ use pin_project_lite::pin_project;
 use super::Unpositioned;
 
 pin_project! {
-    /// Wrapping normal (infallible) [`Stream`] and implements [`TryStream`] which returns
+    /// Wrapping normal (infallible) [`Stream`], implements [`TryStream`] which returns
     /// `Result<S::Item, core::convert::Infallible>` and [`Unpositioned`].
     ///
     /// [`Stream`]: https://docs.rs/futures/latest/futures/stream/trait.Stream.html
