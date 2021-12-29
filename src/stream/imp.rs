@@ -10,9 +10,13 @@
 //! - [ ] ReaderStream (AsyncRead -> TryStream)
 //! - [ ] SeekStream (TryStream + AsyncSeek -> TryStream + Rewind)
 
+use super::{Positioned, Unpositioned};
+
 mod infallible;
 mod iterator;
+mod positioned;
 mod unpositioned;
 pub use infallible::InfallibleStream;
 pub use iterator::IteratorStream;
+pub use positioned::PositionedStream;
 pub use unpositioned::UnpositionedStream;
