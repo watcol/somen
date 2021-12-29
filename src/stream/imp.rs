@@ -2,7 +2,7 @@
 //! - [x] UnpositionedStream (TryStream -> TryStream + Positioned)
 //! - [x] InfallibleStream (Stream -> TryStream)
 //! - [x] IteratorStream (Iterator -> Stream)
-//! - [ ] PositionedStream (TryStream -> TryStream + Positioned)
+//! - [x] PositionedStream (TryStream -> TryStream + Positioned)
 //! - [ ] RecordedStream (TryStream -> TryStream + Rewind) (saving output with `Vec`, using it
 //! to `Rewind`).
 //! - [ ] ExtendStream (TryStream -> TryStream) (saving output with `Extend`)
