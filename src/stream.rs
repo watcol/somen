@@ -27,6 +27,6 @@ mod rewind;
 
 mod unpositioned;
 
-pub use position::Positioned;
+pub use position::{Positioned, Unpositioned};
 pub use rewind::Rewind;
 pub use unpositioned::UnpositionedStream;
