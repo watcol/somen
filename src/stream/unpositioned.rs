@@ -1,4 +1,4 @@
-use super::{Positioned, Unpositioned};
+use super::Unpositioned;
 use core::pin::Pin;
 use core::task::{Context, Poll};
 use futures_core::{Stream, TryStream};
@@ -32,3 +32,5 @@ impl<S: TryStream> Stream for UnpositionedStream<S> {
         self.project().stream.try_poll_next(cx)
     }
 }
+
+impl<S: TryStream> Unpositioned for UnpositionedStream<S> {}
