@@ -4,32 +4,16 @@
 //! sometimes [`Rewind`] will be required), so here we'll provide some implementations
 //! on them by wrapping types implementing [`Stream`], [`AsyncRead`], etc.
 //!
-//! ## TODO
-//! - [x] UnpositionedStream (TryStream -> TryStream + Positioned)
-//! - [x] InfallibleStream (Stream -> TryStream)
-//! - [x] IteratorStream (Iterator -> Stream)
-//! - [ ] PositionedStream (TryStream -> TryStream + Positioned)
-//! - [ ] RecordedStream (TryStream -> TryStream + Rewind) (saving output with `Vec`, using it
-//! to `Rewind`).
-//! - [ ] ExtendStream (TryStream -> TryStream) (saving output with `Extend`)
-//! - [ ] BufferedStream (TryStream -> TryStream + Rewind)
-//! - [ ] ReaderStream (AsyncRead -> TryStream)
-//! - [ ] SeekStream (TryStream + AsyncSeek -> TryStream + Rewind)
-//!
 //! [`Rewind`]: ./trait.Rewind.html
 //! [`Positioned`]: ./trait.Positioned.html
 //! [`Stream`]: https://docs.rs/futures/latest/futures/stream/trait.Stream.html
 //! [`TryStream`]: https://docs.rs/futures/latest/futures/stream/trait.TryStream.html
 //! [`AsyncRead`]: https://docs.rs/futures/latest/futures/io/trait.AsyncRead.html
 
+mod imp;
 mod position;
 mod rewind;
+
+pub use imp::*;
 pub use position::{Positioned, Unpositioned};
 pub use rewind::Rewind;
-
-mod infallible;
-mod iterator;
-mod unpositioned;
-pub use infallible::InfallibleStream;
-pub use iterator::IteratorStream;
-pub use unpositioned::UnpositionedStream;
