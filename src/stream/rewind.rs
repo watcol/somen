@@ -23,8 +23,10 @@ pub trait Rewind: TryStream {
         marker: Self::Marker,
     ) -> Poll<Result<(), Self::Error>>;
 
-    /// An asynchronous version of [`poll_mark`](#tymethod.poll_mark), which returns a
-    /// [`Future`](https://doc.rust-lang.org/stable/std/future/trait.Future.html) object.
+    /// An asynchronous version of [`poll_mark`], which returns a [`Future`] object.
+    ///
+    /// [`poll_mark`]: crate::stream::Rewind::poll_mark
+    /// [`Future`]: core::future::Future
     #[inline]
     fn mark(&mut self) -> MarkFuture<'_, Self>
     where
@@ -33,8 +35,10 @@ pub trait Rewind: TryStream {
         MarkFuture::new(self)
     }
 
-    /// An asynchronous version of [`poll_rewind`](#tymethod.poll_rewind), which returns a
-    /// [`Future`](https://doc.rust-lang.org/stable/std/future/trait.Future.html) object.
+    /// An asynchronous version of [`poll_rewind`], which returns a [`Future`] object.
+    ///
+    /// [`poll_rewind`]: crate::stream::Rewind::poll_rewind
+    /// [`Future`]: core::future::Future
     #[inline]
     fn rewind(&mut self, marker: Self::Marker) -> RewindFuture<'_, Self>
     where

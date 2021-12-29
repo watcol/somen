@@ -11,10 +11,10 @@ pin_project! {
     /// if `I::Item == Result<T, E>`, this implements [`Unpositioned`], otherwise you should
     /// combinate with [`InfallibleStream`].
     ///
-    /// [`Iterator`]: https://doc.rust-lang.org/stable/core/iter/trait.Iterator.html
-    /// [`Stream`]: https://docs.rs/futures/latest/futures/stream/trait.Stream.html
-    /// [`Unpositioned`]: ./trait.Unpositioned.html
-    /// [`InfallibleStream`]: ./struct.InfallibleStream.html
+    /// [`Iterator`]: core::iter::Iterator
+    /// [`Stream`]: futures_core::stream::Stream
+    /// [`Unpositioned`]: crate::stream::Unpositioned
+    /// [`InfallibleStream`]: crate::stream::InfallibleStream
     #[derive(Debug)]
     pub struct IteratorStream<I> {
         iter: I,

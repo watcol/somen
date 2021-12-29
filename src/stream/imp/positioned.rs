@@ -7,8 +7,8 @@ use pin_project_lite::pin_project;
 pin_project! {
     /// Wrapping a [`TryStream`], implements [`Positioned`] trait.
     ///
-    /// [`TryStream`]: https://docs.rs/futures/latest/futures/stream/trait.TryStream.html
-    /// [`Positioned`]: ./trait.Positioned.html
+    /// [`TryStream`]: futures_core::stream::TryStream
+    /// [`Positioned`]: crate::stream::Positioned
     #[derive(Debug)]
     pub struct PositionedStream<S> {
         position: usize,

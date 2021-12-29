@@ -10,9 +10,9 @@ pin_project! {
     /// Wrapping normal (infallible) [`Stream`], implements [`TryStream`] which returns
     /// `Result<S::Item, core::convert::Infallible>` and [`Unpositioned`].
     ///
-    /// [`Stream`]: https://docs.rs/futures/latest/futures/stream/trait.Stream.html
-    /// [`TryStream`]: https://docs.rs/futures/latest/futures/stream/trait.TryStream.html
-    /// [`Unpositioned`]: ./trait.Unpositioned.html
+    /// [`Stream`]: futures_core::stream::Stream
+    /// [`TryStream`]: futures_core::stream::TryStream
+    /// [`Unpositioned`]: crate::stream::Unpositioned
     #[derive(Debug)]
     pub struct InfallibleStream<S> {
         #[pin]

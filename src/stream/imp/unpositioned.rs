@@ -7,8 +7,8 @@ use pin_project_lite::pin_project;
 pin_project! {
     /// Wrapping a [`TryStream`], just implements [`Unpositioned`] trait.
     ///
-    /// [`TryStream`]: https://docs.rs/futures/latest/futures/stream/trait.TryStream.html
-    /// [`Unpositioned`]: ./trait.Unpositioned.html
+    /// [`TryStream`]: futures_core::stream::TryStream
+    /// [`Unpositioned`]: crate::stream::Unpositioned
     #[derive(Debug)]
     pub struct UnpositionedStream<S> {
         #[pin]

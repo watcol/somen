@@ -22,8 +22,10 @@ pub trait Positioned: TryStream {
         cx: &mut Context<'_>,
     ) -> Poll<Result<Self::Position, Self::Error>>;
 
-    /// An asynchronous version of [`poll_position`](#tymethod.poll_position), which returns a
-    /// [`Future`](https://doc.rust-lang.org/stable/std/future/trait.Future.html) object.
+    /// An asynchronous version of [`poll_position`], which returns a [`Future`] object.
+    ///
+    /// [`poll_position`]: crate::stream::Positioned::poll_position
+    /// [`Future`]: core::future::Future
     #[inline]
     fn position(&mut self) -> PositionFuture<'_, Self>
     where
@@ -35,8 +37,10 @@ pub trait Positioned: TryStream {
 
 /// A stream does not records its position.
 ///
-/// By implementing this trait, the type automatically implements `Positioned` trait by `type
+/// By implementing this trait, the type automatically implements [`Positioned`] trait by `type
 /// Position = ();`.
+///
+/// [`Positioned`]: crate::stream::Positioned
 pub trait Unpositioned: TryStream {}
 
 impl<T: Unpositioned> Positioned for T {
