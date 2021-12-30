@@ -5,7 +5,7 @@ use futures_core::{Stream, TryStream};
 use pin_project_lite::pin_project;
 
 pin_project! {
-    /// Wrapping a [`TryStream`], implements [`Positioned`] trait.
+    /// Wrapping [`TryStream`], implements [`Positioned`] trait.
     ///
     /// [`TryStream`]: futures_core::stream::TryStream
     /// [`Positioned`]: crate::stream::Positioned

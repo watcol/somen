@@ -6,7 +6,7 @@ use futures_core::{ready, Stream, TryStream};
 use pin_project_lite::pin_project;
 
 pin_project! {
-    /// Wrapping a [`TryStream`],  implements [`Positioned`] and [`Rewind`] trait by storing
+    /// Wrapping [`TryStream`],  implements [`Positioned`] and [`Rewind`] trait by storing
     /// the stream outputs to [`Vec`].
     ///
     /// [`TryStream`]: futures_core::stream::TryStream
