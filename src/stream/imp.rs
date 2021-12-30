@@ -1,15 +1,3 @@
-//! ## TODO
-//! - [x] UnpositionedStream (TryStream -> TryStream + Positioned)
-//! - [x] InfallibleStream (Stream -> TryStream)
-//! - [x] IteratorStream (Iterator -> Stream)
-//! - [x] PositionedStream (TryStream -> TryStream + Positioned)
-//! - [x] RecordStream (TryStream -> TryStream + Rewind) (saving output with `Vec`, using it
-//! to `Rewind`).
-//! - [x] ExtendStream (TryStream -> TryStream) (saving output with `Extend`)
-//! - [x] BufferedStream (TryStream -> TryStream + Rewind)
-//! - [ ] ReaderStream (AsyncRead -> TryStream)
-//! - [ ] SeekStream (TryStream + AsyncSeek -> TryStream + Rewind)
-
 use super::{Positioned, Rewind, Unpositioned};
 
 mod extend;
@@ -35,4 +23,8 @@ pub use record::RecordStream;
 #[cfg(feature = "std")]
 mod reader;
 #[cfg(feature = "std")]
+mod seek;
+#[cfg(feature = "std")]
 pub use reader::ReaderStream;
+#[cfg(feature = "std")]
+pub use seek::{SeekError, SeekStream};

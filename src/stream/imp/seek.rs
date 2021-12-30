@@ -1,0 +1,94 @@
+mod error;
+pub use error::SeekError;
+
+use super::{Positioned, Rewind};
+use core::pin::Pin;
+use core::task::{Context, Poll};
+use futures_core::{Stream, TryStream};
+use futures_io::{AsyncSeek, SeekFrom};
+use pin_project_lite::pin_project;
+
+pin_project! {
+    /// Wrapping [`AsyncSeek`], implements [`Positioned`] and [`Rewind`] trait.
+    ///
+    /// [`AsyncSeek`]: futures_io::AsyncSeek
+    /// [`Positioned`]: crate::stream::Positioned
+    /// [`Rewind`]: crate::stream::Rewind
+    #[derive(Debug)]
+    pub struct SeekStream<S> {
+        #[pin]
+        stream: S,
+    }
+}
+
+impl<S: TryStream + AsyncSeek> From<S> for SeekStream<S> {
+    #[inline]
+    fn from(stream: S) -> Self {
+        Self { stream }
+    }
+}
+
+impl<S: TryStream + AsyncSeek> SeekStream<S> {
+    /// Creating a new instance.
+    #[inline]
+    pub fn new(stream: S) -> Self {
+        Self::from(stream)
+    }
+
+    /// Extracting the original stream.
+    #[inline]
+    pub fn into_inner(self) -> S {
+        self.stream
+    }
+}
+
+impl<S: TryStream> Stream for SeekStream<S> {
+    type Item = Result<S::Ok, SeekError<S::Error>>;
+
+    #[inline]
+    fn poll_next(self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Option<Self::Item>> {
+        self.project()
+            .stream
+            .try_poll_next(cx)
+            .map(|o| o.map(|r| r.map_err(SeekError::Stream)))
+    }
+}
+
+impl<S: TryStream + AsyncSeek> Positioned for SeekStream<S> {
+    type Position = u64;
+
+    #[inline]
+    fn poll_position(
+        self: Pin<&mut Self>,
+        cx: &mut Context<'_>,
+    ) -> Poll<Result<Self::Position, Self::Error>> {
+        self.project()
+            .stream
+            .poll_seek(cx, SeekFrom::Current(0))
+            .map(|r| r.map_err(SeekError::Seek))
+    }
+}
+
+impl<S: TryStream + AsyncSeek> Rewind for SeekStream<S> {
+    type Marker = u64;
+
+    #[inline]
+    fn poll_mark(
+        self: Pin<&mut Self>,
+        cx: &mut Context<'_>,
+    ) -> Poll<Result<Self::Marker, Self::Error>> {
+        self.poll_position(cx)
+    }
+
+    #[inline]
+    fn poll_rewind(
+        self: Pin<&mut Self>,
+        cx: &mut Context<'_>,
+        marker: Self::Marker,
+    ) -> Poll<Result<(), Self::Error>> {
+        self.project()
+            .stream
+            .poll_seek(cx, SeekFrom::Start(marker))
+            .map(|r| r.map(|_| ()).map_err(SeekError::Seek))
+    }
+}
