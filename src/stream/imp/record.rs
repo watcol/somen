@@ -34,16 +34,19 @@ impl<S: TryStream> RecordStream<S> {
     }
 
     /// Getting the reference of the vector.
+    #[inline]
     pub fn as_vec(&self) -> &Vec<S::Ok> {
         &self.record
     }
 
     /// Getting the mutable reference of the vector.
+    #[inline]
     pub fn as_vec_mut(&mut self) -> &mut Vec<S::Ok> {
         &mut self.record
     }
 
     /// Extracting the vector from the stream.
+    #[inline]
     pub fn into_vec(self) -> Vec<S::Ok> {
         self.record
     }
