@@ -3,8 +3,10 @@
 mod future;
 use future::PositionFuture;
 
+mod cast;
 mod nop;
 mod positioner;
+pub use cast::CastPositioner;
 pub use nop::NopPositioner;
 pub use positioner::Positioner;
 
