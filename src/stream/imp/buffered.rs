@@ -1,7 +1,7 @@
 mod error;
 pub use error::BufferedError;
 
-use super::{Positioned, Rewind};
+use crate::stream::{Positioned, Rewind};
 use alloc::collections::VecDeque;
 use alloc::vec::Vec;
 use core::pin::Pin;

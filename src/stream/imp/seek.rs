@@ -1,7 +1,7 @@
 mod error;
 pub use error::SeekError;
 
-use super::{Positioned, Rewind};
+use crate::stream::{Positioned, Rewind};
 use core::pin::Pin;
 use core::task::{Context, Poll};
 use futures_core::{Stream, TryStream};

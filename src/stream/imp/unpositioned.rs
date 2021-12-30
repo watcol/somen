@@ -1,11 +1,11 @@
-use super::{Rewind, Unpositioned};
+use crate::stream::{Positioned, Rewind};
 use core::pin::Pin;
 use core::task::{Context, Poll};
 use futures_core::{Stream, TryStream};
 use pin_project_lite::pin_project;
 
 pin_project! {
-    /// Wrapping [`TryStream`], just implements [`Unpositioned`] trait.
+    /// Wrapping [`TryStream`], just implements [`Positioned`] trait by `type Position = ()`.
     ///
     /// [`TryStream`]: futures_core::stream::TryStream
     /// [`Unpositioned`]: crate::stream::Unpositioned
@@ -46,7 +46,17 @@ impl<S: TryStream> Stream for UnpositionedStream<S> {
     }
 }
 
-impl<S: TryStream> Unpositioned for UnpositionedStream<S> {}
+impl<S: TryStream> Positioned for UnpositionedStream<S> {
+    type Position = ();
+
+    #[inline]
+    fn poll_position(
+        self: Pin<&mut Self>,
+        _cx: &mut Context<'_>,
+    ) -> Poll<Result<Self::Position, Self::Error>> {
+        Poll::Ready(Ok(()))
+    }
+}
 
 impl<S: Rewind> Rewind for UnpositionedStream<S> {
     type Marker = S::Marker;

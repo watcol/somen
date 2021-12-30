@@ -3,17 +3,11 @@ use core::task::{Context, Poll};
 use futures_core::Stream;
 use pin_project_lite::pin_project;
 
-use super::Unpositioned;
-
 pin_project! {
     /// Wrapping [`Iterator`], implements [`Stream`].
     ///
-    /// if `I::Item == Result<T, E>`, this implements [`Unpositioned`], otherwise you should
-    /// combinate with [`InfallibleStream`].
-    ///
     /// [`Iterator`]: core::iter::Iterator
     /// [`Stream`]: futures_core::stream::Stream
-    /// [`Unpositioned`]: crate::stream::Unpositioned
     /// [`InfallibleStream`]: crate::stream::InfallibleStream
     #[derive(Debug)]
     pub struct IteratorStream<I> {
@@ -50,5 +44,3 @@ impl<I: Iterator> Stream for IteratorStream<I> {
         Poll::Ready(self.project().iter.next())
     }
 }
-
-impl<I, T, E> Unpositioned for IteratorStream<I> where I: Iterator<Item = Result<T, E>> {}

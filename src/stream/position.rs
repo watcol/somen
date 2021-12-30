@@ -34,23 +34,3 @@ pub trait Positioned: TryStream {
         PositionFuture::new(self)
     }
 }
-
-/// A stream does not records its position.
-///
-/// By implementing this trait, the type automatically implements [`Positioned`] trait by `type
-/// Position = ();`.
-///
-/// [`Positioned`]: crate::stream::Positioned
-pub trait Unpositioned: TryStream {}
-
-impl<T: Unpositioned> Positioned for T {
-    type Position = ();
-
-    #[inline]
-    fn poll_position(
-        self: Pin<&mut Self>,
-        _cx: &mut Context<'_>,
-    ) -> Poll<Result<Self::Position, Self::Error>> {
-        Poll::Ready(Ok(()))
-    }
-}

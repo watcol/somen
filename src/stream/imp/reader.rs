@@ -1,4 +1,3 @@
-use super::Unpositioned;
 use core::pin::Pin;
 use core::task::{Context, Poll};
 use futures_core::{ready, Stream};
@@ -53,8 +52,6 @@ impl<R: AsyncRead> Stream for ReaderStream<R> {
         )
     }
 }
-
-impl<R: AsyncRead> Unpositioned for ReaderStream<R> {}
 
 impl<R: AsyncSeek> AsyncSeek for ReaderStream<R> {
     fn poll_seek(

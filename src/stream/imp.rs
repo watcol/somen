@@ -1,5 +1,3 @@
-use super::{Positioned, Rewind, Unpositioned};
-
 mod extend;
 mod infallible;
 mod iterator;

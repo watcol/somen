@@ -1,4 +1,4 @@
-use super::{Positioned, Rewind};
+use crate::stream::{Positioned, Rewind};
 use alloc::vec::Vec;
 use core::pin::Pin;
 use core::task::{Context, Poll};

@@ -4,8 +4,6 @@ use core::task::{Context, Poll};
 use futures_core::Stream;
 use pin_project_lite::pin_project;
 
-use super::Unpositioned;
-
 pin_project! {
     /// Wrapping normal(infallible) [`Stream`], implements [`TryStream`].
     ///
@@ -50,5 +48,3 @@ impl<S: Stream> Stream for InfallibleStream<S> {
         self.project().stream.poll_next(cx).map(|i| i.map(Ok))
     }
 }
-
-impl<S: Stream> Unpositioned for InfallibleStream<S> {}
