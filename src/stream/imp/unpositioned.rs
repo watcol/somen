@@ -16,11 +16,18 @@ pin_project! {
     }
 }
 
+impl<S: TryStream> From<S> for UnpositionedStream<S> {
+    #[inline]
+    fn from(stream: S) -> Self {
+        Self { stream }
+    }
+}
+
 impl<S: TryStream> UnpositionedStream<S> {
     /// Creating a new instance.
     #[inline]
     pub fn new(stream: S) -> Self {
-        Self { stream }
+        Self::from(stream)
     }
 
     /// Extracting the original stream.

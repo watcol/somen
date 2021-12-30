@@ -22,11 +22,18 @@ pin_project! {
     }
 }
 
+impl<S: Stream> From<S> for InfallibleStream<S> {
+    #[inline]
+    fn from(stream: S) -> Self {
+        Self { stream }
+    }
+}
+
 impl<S: Stream> InfallibleStream<S> {
     /// Creating a new instance.
     #[inline]
     pub fn new(stream: S) -> Self {
-        Self { stream }
+        Self::from(stream)
     }
 
     /// Extracting the original stream.

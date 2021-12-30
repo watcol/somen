@@ -21,11 +21,18 @@ pin_project! {
     }
 }
 
+impl<I: Iterator> From<I> for IteratorStream<I> {
+    #[inline]
+    fn from(iter: I) -> Self {
+        Self { iter }
+    }
+}
+
 impl<I: Iterator> IteratorStream<I> {
     /// Create a new instance.
     #[inline]
     pub fn new(iter: I) -> Self {
-        Self { iter }
+        Self::from(iter)
     }
 
     /// Extracting the original iterator.

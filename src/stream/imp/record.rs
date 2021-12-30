@@ -22,15 +22,22 @@ pin_project! {
     }
 }
 
-impl<S: TryStream> RecordStream<S> {
-    /// Creating a new instance.
+impl<S: TryStream> From<S> for RecordStream<S> {
     #[inline]
-    pub fn new(stream: S) -> Self {
+    fn from(stream: S) -> Self {
         Self {
             position: 0,
             record: Vec::new(),
             stream,
         }
+    }
+}
+
+impl<S: TryStream> RecordStream<S> {
+    /// Creating a new instance.
+    #[inline]
+    pub fn new(stream: S) -> Self {
+        Self::from(stream)
     }
 
     /// Extracting the original stream.
