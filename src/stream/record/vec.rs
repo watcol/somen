@@ -14,7 +14,7 @@ pin_project! {
     /// [`Rewind`]: crate::stream::Rewind
     /// [`Vec`]: alloc::vec::Vec
     #[derive(Debug)]
-    pub struct RecordStream<S: TryStream> {
+    pub struct VecRecorder<S: TryStream> {
         position: usize,
         record: Vec<S::Ok>,
         #[pin]
@@ -22,7 +22,7 @@ pin_project! {
     }
 }
 
-impl<S: TryStream> From<S> for RecordStream<S> {
+impl<S: TryStream> From<S> for VecRecorder<S> {
     #[inline]
     fn from(stream: S) -> Self {
         Self {
@@ -33,7 +33,7 @@ impl<S: TryStream> From<S> for RecordStream<S> {
     }
 }
 
-impl<S: TryStream> RecordStream<S> {
+impl<S: TryStream> VecRecorder<S> {
     /// Creating a new instance.
     #[inline]
     pub fn new(stream: S) -> Self {
@@ -65,7 +65,7 @@ impl<S: TryStream> RecordStream<S> {
     }
 }
 
-impl<S: TryStream> Stream for RecordStream<S>
+impl<S: TryStream> Stream for VecRecorder<S>
 where
     S::Ok: Clone,
 {
@@ -88,7 +88,7 @@ where
     }
 }
 
-impl<S: TryStream> Positioned for RecordStream<S>
+impl<S: TryStream> Positioned for VecRecorder<S>
 where
     S::Ok: Clone,
 {
@@ -103,7 +103,7 @@ where
     }
 }
 
-impl<S: TryStream> Rewind for RecordStream<S>
+impl<S: TryStream> Rewind for VecRecorder<S>
 where
     S::Ok: Clone,
 {

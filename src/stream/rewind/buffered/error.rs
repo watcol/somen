@@ -1,8 +1,8 @@
 use core::fmt;
 
-/// An error type for [`BufferedStream`].
+/// An error type for [`BufferedRewinder`].
 ///
-/// [`BufferedStream`]: crate::stream::BufferedStream
+/// [`BufferedRewinder`]: crate::stream::rewind::BufferedRewinder
 #[derive(Debug)]
 pub enum BufferedError<S> {
     Stream(S),

@@ -4,16 +4,18 @@
 //! sometimes [`Rewind`] will be required), so here we'll provide some implementations
 //! on them by wrapping types implementing [`Stream`], [`AsyncRead`], etc.
 //!
-//! [`Rewind`]: crate::stream::Rewind
-//! [`Positioned`]: crate::stream::Positioned
+//! [`Rewind`]: crate::stream::rewind::Rewind
+//! [`Positioned`]: crate::stream::position::Positioned
 //! [`Stream`]: futures_core::stream::Stream
 //! [`TryStream`]: futures_core::stream::TryStream
 //! [`AsyncRead`]: futures_io::AsyncRead
 
 mod imp;
-mod position;
-mod rewind;
-
 pub use imp::*;
-pub use position::{Positioned, Unpositioned};
-pub use rewind::Rewind;
+
+pub mod position;
+pub mod record;
+pub mod rewind;
+
+use position::Positioned;
+use rewind::Rewind;

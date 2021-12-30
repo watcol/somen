@@ -1,36 +1,27 @@
 use crate::stream::{Positioned, Rewind};
 use core::pin::Pin;
 use core::task::{Context, Poll};
-use futures_core::{Stream, TryStream};
+use futures_core::{ready, Stream, TryStream};
 use pin_project_lite::pin_project;
 
 pin_project! {
-    /// Wrapping [`TryStream`], implements [`Positioned`] trait.
+    /// Wrapping [`TryStream`], storing the stream outputs to any types implementing [`Extend`].
     ///
     /// [`TryStream`]: futures_core::stream::TryStream
-    /// [`Positioned`]: crate::stream::Positioned
+    /// [`Extend`]: core::iter::Extend
     #[derive(Debug)]
-    pub struct PositionedStream<S> {
-        position: usize,
+    pub struct ExtendRecorder<'a, S: TryStream, E: ?Sized> {
         #[pin]
         stream: S,
+        output: &'a mut E,
     }
 }
 
-impl<S: TryStream> From<S> for PositionedStream<S> {
-    #[inline]
-    fn from(stream: S) -> Self {
-        Self {
-            position: 0,
-            stream,
-        }
-    }
-}
-impl<S: TryStream> PositionedStream<S> {
+impl<'a, S: TryStream, E: ?Sized> ExtendRecorder<'a, S, E> {
     /// Creating a new instance.
     #[inline]
-    pub fn new(stream: S) -> Self {
-        Self::from(stream)
+    pub fn new(stream: S, output: &'a mut E) -> Self {
+        Self { stream, output }
     }
 
     /// Extracting the original stream.
@@ -40,29 +31,41 @@ impl<S: TryStream> PositionedStream<S> {
     }
 }
 
-impl<S: TryStream> Stream for PositionedStream<S> {
+impl<S: TryStream, E: Extend<S::Ok> + ?Sized> Stream for ExtendRecorder<'_, S, E>
+where
+    S::Ok: Clone,
+{
     type Item = Result<S::Ok, S::Error>;
 
     fn poll_next(self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Option<Self::Item>> {
         let this = self.project();
-        *this.position += 1;
-        this.stream.try_poll_next(cx)
+        let res = ready!(this.stream.try_poll_next(cx));
+        if let Some(Ok(ref i)) = res {
+            this.output.extend(Some(i.clone()));
+        }
+        Poll::Ready(res)
     }
 }
 
-impl<S: TryStream> Positioned for PositionedStream<S> {
-    type Position = usize;
+impl<S: Positioned, E: Extend<S::Ok> + ?Sized> Positioned for ExtendRecorder<'_, S, E>
+where
+    S::Ok: Clone,
+{
+    type Position = S::Position;
 
     #[inline]
     fn poll_position(
         self: Pin<&mut Self>,
-        _cx: &mut Context<'_>,
+        cx: &mut Context<'_>,
     ) -> Poll<Result<Self::Position, Self::Error>> {
-        Poll::Ready(Ok(*self.project().position))
+        self.project().stream.poll_position(cx)
     }
 }
 
-impl<S: Rewind> Rewind for PositionedStream<S> {
+impl<S: Rewind, E: Extend<S::Ok> + ?Sized> Rewind for ExtendRecorder<'_, S, E>
+where
+    S::Ok: Clone,
+{
     type Marker = S::Marker;
 
     #[inline]

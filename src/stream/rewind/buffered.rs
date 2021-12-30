@@ -17,7 +17,7 @@ pin_project! {
     /// [`Positioned`]: crate::stream::Positioned
     /// [`Rewind`]: crate::stream::Rewind
     #[derive(Debug)]
-    pub struct BufferedStream<S: TryStream> {
+    pub struct BufferedRewinder<S: TryStream> {
         position: usize,
         buffer: VecDeque<S::Ok>,
         buffer_offset: usize,
@@ -27,7 +27,7 @@ pin_project! {
     }
 }
 
-impl<S: TryStream> From<S> for BufferedStream<S> {
+impl<S: TryStream> From<S> for BufferedRewinder<S> {
     #[inline]
     fn from(stream: S) -> Self {
         Self {
@@ -40,7 +40,7 @@ impl<S: TryStream> From<S> for BufferedStream<S> {
     }
 }
 
-impl<S: TryStream> BufferedStream<S> {
+impl<S: TryStream> BufferedRewinder<S> {
     /// Creating a new instance.
     #[inline]
     pub fn new(stream: S) -> Self {
@@ -54,7 +54,7 @@ impl<S: TryStream> BufferedStream<S> {
     }
 }
 
-impl<S: TryStream> Stream for BufferedStream<S>
+impl<S: TryStream> Stream for BufferedRewinder<S>
 where
     S::Ok: Clone,
 {
@@ -85,7 +85,7 @@ where
     }
 }
 
-impl<S: TryStream> Positioned for BufferedStream<S>
+impl<S: TryStream> Positioned for BufferedRewinder<S>
 where
     S::Ok: Clone,
 {
@@ -100,7 +100,7 @@ where
     }
 }
 
-impl<S: TryStream> Rewind for BufferedStream<S>
+impl<S: TryStream> Rewind for BufferedRewinder<S>
 where
     S::Ok: Clone,
 {

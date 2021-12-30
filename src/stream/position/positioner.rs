@@ -1,27 +1,36 @@
 use crate::stream::{Positioned, Rewind};
 use core::pin::Pin;
 use core::task::{Context, Poll};
-use futures_core::{ready, Stream, TryStream};
+use futures_core::{Stream, TryStream};
 use pin_project_lite::pin_project;
 
 pin_project! {
-    /// Wrapping [`TryStream`], storing the stream outputs to any types implementing [`Extend`].
+    /// Wrapping [`TryStream`], implements [`Positioned`] trait.
     ///
     /// [`TryStream`]: futures_core::stream::TryStream
-    /// [`Extend`]: core::iter::Extend
+    /// [`Positioned`]: crate::stream::Positioned
     #[derive(Debug)]
-    pub struct ExtendStream<'a, S: TryStream, E: ?Sized> {
+    pub struct Positioner<S> {
+        position: usize,
         #[pin]
         stream: S,
-        output: &'a mut E,
     }
 }
 
-impl<'a, S: TryStream, E: ?Sized> ExtendStream<'a, S, E> {
+impl<S: TryStream> From<S> for Positioner<S> {
+    #[inline]
+    fn from(stream: S) -> Self {
+        Self {
+            position: 0,
+            stream,
+        }
+    }
+}
+impl<S: TryStream> Positioner<S> {
     /// Creating a new instance.
     #[inline]
-    pub fn new(stream: S, output: &'a mut E) -> Self {
-        Self { stream, output }
+    pub fn new(stream: S) -> Self {
+        Self::from(stream)
     }
 
     /// Extracting the original stream.
@@ -31,41 +40,29 @@ impl<'a, S: TryStream, E: ?Sized> ExtendStream<'a, S, E> {
     }
 }
 
-impl<S: TryStream, E: Extend<S::Ok> + ?Sized> Stream for ExtendStream<'_, S, E>
-where
-    S::Ok: Clone,
-{
+impl<S: TryStream> Stream for Positioner<S> {
     type Item = Result<S::Ok, S::Error>;
 
     fn poll_next(self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Option<Self::Item>> {
         let this = self.project();
-        let res = ready!(this.stream.try_poll_next(cx));
-        if let Some(Ok(ref i)) = res {
-            this.output.extend(Some(i.clone()));
-        }
-        Poll::Ready(res)
+        *this.position += 1;
+        this.stream.try_poll_next(cx)
     }
 }
 
-impl<S: Positioned, E: Extend<S::Ok> + ?Sized> Positioned for ExtendStream<'_, S, E>
-where
-    S::Ok: Clone,
-{
-    type Position = S::Position;
+impl<S: TryStream> Positioned for Positioner<S> {
+    type Position = usize;
 
     #[inline]
     fn poll_position(
         self: Pin<&mut Self>,
-        cx: &mut Context<'_>,
+        _cx: &mut Context<'_>,
     ) -> Poll<Result<Self::Position, Self::Error>> {
-        self.project().stream.poll_position(cx)
+        Poll::Ready(Ok(*self.project().position))
     }
 }
 
-impl<S: Rewind, E: Extend<S::Ok> + ?Sized> Rewind for ExtendStream<'_, S, E>
-where
-    S::Ok: Clone,
-{
+impl<S: Rewind> Rewind for Positioner<S> {
     type Marker = S::Marker;
 
     #[inline]

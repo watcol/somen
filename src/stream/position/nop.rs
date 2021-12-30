@@ -5,25 +5,25 @@ use futures_core::{Stream, TryStream};
 use pin_project_lite::pin_project;
 
 pin_project! {
-    /// Wrapping [`TryStream`], just implements [`Positioned`] trait by `type Position = ()`.
+    /// Wrapping [`TryStream`], implements [`Positioned`] trait by `type Position = ()`.
     ///
     /// [`TryStream`]: futures_core::stream::TryStream
     /// [`Unpositioned`]: crate::stream::Unpositioned
     #[derive(Debug)]
-    pub struct UnpositionedStream<S> {
+    pub struct NopPositioner<S> {
         #[pin]
         stream: S,
     }
 }
 
-impl<S: TryStream> From<S> for UnpositionedStream<S> {
+impl<S: TryStream> From<S> for NopPositioner<S> {
     #[inline]
     fn from(stream: S) -> Self {
         Self { stream }
     }
 }
 
-impl<S: TryStream> UnpositionedStream<S> {
+impl<S: TryStream> NopPositioner<S> {
     /// Creating a new instance.
     #[inline]
     pub fn new(stream: S) -> Self {
@@ -37,7 +37,7 @@ impl<S: TryStream> UnpositionedStream<S> {
     }
 }
 
-impl<S: TryStream> Stream for UnpositionedStream<S> {
+impl<S: TryStream> Stream for NopPositioner<S> {
     type Item = Result<S::Ok, S::Error>;
 
     #[inline]
@@ -46,7 +46,7 @@ impl<S: TryStream> Stream for UnpositionedStream<S> {
     }
 }
 
-impl<S: TryStream> Positioned for UnpositionedStream<S> {
+impl<S: TryStream> Positioned for NopPositioner<S> {
     type Position = ();
 
     #[inline]
@@ -58,7 +58,7 @@ impl<S: TryStream> Positioned for UnpositionedStream<S> {
     }
 }
 
-impl<S: Rewind> Rewind for UnpositionedStream<S> {
+impl<S: Rewind> Rewind for NopPositioner<S> {
     type Marker = S::Marker;
 
     #[inline]

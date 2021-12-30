@@ -15,20 +15,20 @@ pin_project! {
     /// [`Positioned`]: crate::stream::Positioned
     /// [`Rewind`]: crate::stream::Rewind
     #[derive(Debug)]
-    pub struct SeekStream<S> {
+    pub struct SeekRewinder<S> {
         #[pin]
         stream: S,
     }
 }
 
-impl<S: TryStream + AsyncSeek> From<S> for SeekStream<S> {
+impl<S: TryStream + AsyncSeek> From<S> for SeekRewinder<S> {
     #[inline]
     fn from(stream: S) -> Self {
         Self { stream }
     }
 }
 
-impl<S: TryStream + AsyncSeek> SeekStream<S> {
+impl<S: TryStream + AsyncSeek> SeekRewinder<S> {
     /// Creating a new instance.
     #[inline]
     pub fn new(stream: S) -> Self {
@@ -42,7 +42,7 @@ impl<S: TryStream + AsyncSeek> SeekStream<S> {
     }
 }
 
-impl<S: TryStream> Stream for SeekStream<S> {
+impl<S: TryStream> Stream for SeekRewinder<S> {
     type Item = Result<S::Ok, SeekError<S::Error>>;
 
     #[inline]
@@ -54,7 +54,7 @@ impl<S: TryStream> Stream for SeekStream<S> {
     }
 }
 
-impl<S: TryStream + AsyncSeek> Positioned for SeekStream<S> {
+impl<S: TryStream + AsyncSeek> Positioned for SeekRewinder<S> {
     type Position = u64;
 
     #[inline]
@@ -69,7 +69,7 @@ impl<S: TryStream + AsyncSeek> Positioned for SeekStream<S> {
     }
 }
 
-impl<S: TryStream + AsyncSeek> Rewind for SeekStream<S> {
+impl<S: TryStream + AsyncSeek> Rewind for SeekRewinder<S> {
     type Marker = u64;
 
     #[inline]

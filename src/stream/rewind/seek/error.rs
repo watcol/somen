@@ -1,9 +1,9 @@
 use core::fmt;
 use futures_io::Error;
 
-/// An error type for [`SeekStream`].
+/// An error type for [`SeekRewinder`].
 ///
-/// [`SeekStream`]: crate::stream::SeekStream
+/// [`SeekRewinder`]: crate::stream::rewind::SeekRewinder
 #[derive(Debug)]
 pub enum SeekError<S> {
     Stream(S),
