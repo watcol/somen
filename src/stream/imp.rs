@@ -3,19 +3,21 @@
 //! - [x] InfallibleStream (Stream -> TryStream)
 //! - [x] IteratorStream (Iterator -> Stream)
 //! - [x] PositionedStream (TryStream -> TryStream + Positioned)
-//! - [ ] RecordStream (TryStream -> TryStream + Rewind) (saving output with `Vec`, using it
+//! - [x] RecordStream (TryStream -> TryStream + Rewind) (saving output with `Vec`, using it
 //! to `Rewind`).
-//! - [ ] ExtendStream (TryStream -> TryStream) (saving output with `Extend`)
+//! - [x] ExtendStream (TryStream -> TryStream) (saving output with `Extend`)
 //! - [ ] BufferedStream (TryStream -> TryStream + Rewind)
 //! - [ ] ReaderStream (AsyncRead -> TryStream)
 //! - [ ] SeekStream (TryStream + AsyncSeek -> TryStream + Rewind)
 
 use super::{Positioned, Rewind, Unpositioned};
 
+mod extend;
 mod infallible;
 mod iterator;
 mod positioned;
 mod unpositioned;
+pub use extend::ExtendStream;
 pub use infallible::InfallibleStream;
 pub use iterator::IteratorStream;
 pub use positioned::PositionedStream;
