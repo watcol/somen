@@ -7,18 +7,14 @@ use alloc::{boxed::Box, string::String};
 
 /// The position where an error has ocuured and the description.
 #[derive(Debug)]
-pub struct Error<
-    P: PartialOrd + Clone = (),
-    #[cfg(feature = "std")] S: std::error::Error = Infallible,
-    #[cfg(not(feature = "std"))] S: fmt::Display = Infallible,
-> {
+pub struct Error<P = (), S = Infallible> {
     /// The range where this error has occured.
     pub range: Range<P>,
     /// The kind of this error.
     pub kind: ErrorKind<S>,
 }
 
-impl fmt::Display for Error {
+impl<P, S: fmt::Display> fmt::Display for Error<P, S> {
     #[inline]
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         self.kind.fmt(f)
@@ -26,7 +22,7 @@ impl fmt::Display for Error {
 }
 
 #[cfg(feature = "std")]
-impl std::error::Error for Error {
+impl<P: fmt::Debug, S: std::error::Error + 'static> std::error::Error for Error<P, S> {
     #[inline]
     fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
         Some(&self.kind)
@@ -35,10 +31,7 @@ impl std::error::Error for Error {
 
 /// The kinds of errors.
 #[derive(Debug)]
-pub enum ErrorKind<
-    #[cfg(feature = "std")] S: std::error::Error = Infallible,
-    #[cfg(not(feature = "std"))] S: fmt::Display = Infallible,
-> {
+pub enum ErrorKind<S = Infallible> {
     /// Expected something, but unmatched.
     Expected {
         #[cfg(feature = "alloc")]
@@ -55,7 +48,7 @@ pub enum ErrorKind<
     Streaming { inner: S },
 }
 
-impl fmt::Display for ErrorKind {
+impl<S: fmt::Display> fmt::Display for ErrorKind<S> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             #[cfg(feature = "alloc")]
@@ -72,7 +65,7 @@ impl fmt::Display for ErrorKind {
 }
 
 #[cfg(feature = "std")]
-impl std::error::Error for ErrorKind {
+impl<S: std::error::Error + 'static> std::error::Error for ErrorKind<S> {
     fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
         match self {
             Self::Expected { .. } => None,

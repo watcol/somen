@@ -6,7 +6,7 @@
 //! - [x] RecordStream (TryStream -> TryStream + Rewind) (saving output with `Vec`, using it
 //! to `Rewind`).
 //! - [x] ExtendStream (TryStream -> TryStream) (saving output with `Extend`)
-//! - [ ] BufferedStream (TryStream -> TryStream + Rewind)
+//! - [x] BufferedStream (TryStream -> TryStream + Rewind)
 //! - [ ] ReaderStream (AsyncRead -> TryStream)
 //! - [ ] SeekStream (TryStream + AsyncSeek -> TryStream + Rewind)
 
@@ -24,6 +24,10 @@ pub use positioned::PositionedStream;
 pub use unpositioned::UnpositionedStream;
 
 #[cfg(feature = "alloc")]
+mod buffered;
+#[cfg(feature = "alloc")]
 mod record;
+#[cfg(feature = "alloc")]
+pub use buffered::{BufferedError, BufferedStream};
 #[cfg(feature = "alloc")]
 pub use record::RecordStream;
