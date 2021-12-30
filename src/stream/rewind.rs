@@ -17,6 +17,8 @@ pub trait Rewind: TryStream {
     ) -> Poll<Result<Self::Marker, Self::Error>>;
 
     /// Rewinding the postion to the marker.
+    ///
+    /// Note that some types implement this require using from most recent generated marker.
     fn poll_rewind(
         self: Pin<&mut Self>,
         cx: &mut Context<'_>,
