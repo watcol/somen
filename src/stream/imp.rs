@@ -31,3 +31,8 @@ mod record;
 pub use buffered::{BufferedError, BufferedStream};
 #[cfg(feature = "alloc")]
 pub use record::RecordStream;
+
+#[cfg(feature = "std")]
+mod reader;
+#[cfg(feature = "std")]
+pub use reader::ReaderStream;
