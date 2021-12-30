@@ -1,4 +1,4 @@
-use super::Positioned;
+use super::{Positioned, Rewind};
 use core::pin::Pin;
 use core::task::{Context, Poll};
 use futures_core::{Stream, TryStream};
@@ -53,10 +53,32 @@ impl<S: TryStream> Stream for PositionedStream<S> {
 impl<S: TryStream> Positioned for PositionedStream<S> {
     type Position = usize;
 
+    #[inline]
     fn poll_position(
         self: Pin<&mut Self>,
         _cx: &mut Context<'_>,
     ) -> Poll<Result<Self::Position, Self::Error>> {
         Poll::Ready(Ok(*self.project().position))
+    }
+}
+
+impl<S: Rewind> Rewind for PositionedStream<S> {
+    type Marker = S::Marker;
+
+    #[inline]
+    fn poll_mark(
+        self: Pin<&mut Self>,
+        cx: &mut Context<'_>,
+    ) -> Poll<Result<Self::Marker, Self::Error>> {
+        self.project().stream.poll_mark(cx)
+    }
+
+    #[inline]
+    fn poll_rewind(
+        self: Pin<&mut Self>,
+        cx: &mut Context<'_>,
+        marker: Self::Marker,
+    ) -> Poll<Result<(), Self::Error>> {
+        self.project().stream.poll_rewind(cx, marker)
     }
 }

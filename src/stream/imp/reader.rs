@@ -2,7 +2,7 @@ use super::Unpositioned;
 use core::pin::Pin;
 use core::task::{Context, Poll};
 use futures_core::{ready, Stream};
-use futures_io::{AsyncRead, Error};
+use futures_io::{AsyncRead, AsyncSeek, Error};
 use pin_project_lite::pin_project;
 
 pin_project! {
@@ -55,3 +55,13 @@ impl<R: AsyncRead> Stream for ReaderStream<R> {
 }
 
 impl<R: AsyncRead> Unpositioned for ReaderStream<R> {}
+
+impl<R: AsyncSeek> AsyncSeek for ReaderStream<R> {
+    fn poll_seek(
+        self: Pin<&mut Self>,
+        cx: &mut Context<'_>,
+        pos: futures_io::SeekFrom,
+    ) -> Poll<futures_io::Result<u64>> {
+        self.project().reader.poll_seek(cx, pos)
+    }
+}

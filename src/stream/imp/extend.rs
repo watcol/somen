@@ -1,4 +1,4 @@
-use super::Unpositioned;
+use super::{Positioned, Rewind};
 use core::pin::Pin;
 use core::task::{Context, Poll};
 use futures_core::{ready, Stream, TryStream};
@@ -47,7 +47,41 @@ where
     }
 }
 
-impl<S: TryStream, E: Extend<S::Ok> + ?Sized> Unpositioned for ExtendStream<'_, S, E> where
-    S::Ok: Clone
+impl<S: Positioned, E: Extend<S::Ok> + ?Sized> Positioned for ExtendStream<'_, S, E>
+where
+    S::Ok: Clone,
 {
+    type Position = S::Position;
+
+    #[inline]
+    fn poll_position(
+        self: Pin<&mut Self>,
+        cx: &mut Context<'_>,
+    ) -> Poll<Result<Self::Position, Self::Error>> {
+        self.project().stream.poll_position(cx)
+    }
+}
+
+impl<S: Rewind, E: Extend<S::Ok> + ?Sized> Rewind for ExtendStream<'_, S, E>
+where
+    S::Ok: Clone,
+{
+    type Marker = S::Marker;
+
+    #[inline]
+    fn poll_mark(
+        self: Pin<&mut Self>,
+        cx: &mut Context<'_>,
+    ) -> Poll<Result<Self::Marker, Self::Error>> {
+        self.project().stream.poll_mark(cx)
+    }
+
+    #[inline]
+    fn poll_rewind(
+        self: Pin<&mut Self>,
+        cx: &mut Context<'_>,
+        marker: Self::Marker,
+    ) -> Poll<Result<(), Self::Error>> {
+        self.project().stream.poll_rewind(cx, marker)
+    }
 }
