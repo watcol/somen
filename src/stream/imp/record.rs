@@ -33,6 +33,12 @@ impl<S: TryStream> RecordStream<S> {
         }
     }
 
+    /// Extracting the original stream.
+    #[inline]
+    pub fn into_inner(self) -> S {
+        self.stream
+    }
+
     /// Getting the reference of the vector.
     #[inline]
     pub fn as_vec(&self) -> &Vec<S::Ok> {

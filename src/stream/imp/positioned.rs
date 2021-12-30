@@ -26,6 +26,12 @@ impl<S: TryStream> PositionedStream<S> {
             stream,
         }
     }
+
+    /// Extracting the original stream.
+    #[inline]
+    pub fn into_inner(self) -> S {
+        self.stream
+    }
 }
 
 impl<S: TryStream> Stream for PositionedStream<S> {

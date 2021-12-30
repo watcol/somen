@@ -22,6 +22,12 @@ impl<S: TryStream> UnpositionedStream<S> {
     pub fn new(stream: S) -> Self {
         Self { stream }
     }
+
+    /// Extracting the original stream.
+    #[inline]
+    pub fn into_inner(self) -> S {
+        self.stream
+    }
 }
 
 impl<S: TryStream> Stream for UnpositionedStream<S> {

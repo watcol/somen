@@ -23,6 +23,12 @@ impl<'a, S: TryStream, E: ?Sized> ExtendStream<'a, S, E> {
     pub fn new(stream: S, output: &'a mut E) -> Self {
         Self { stream, output }
     }
+
+    /// Extracting the original stream.
+    #[inline]
+    pub fn into_inner(self) -> S {
+        self.stream
+    }
 }
 
 impl<S: TryStream, E: Extend<S::Ok> + ?Sized> Stream for ExtendStream<'_, S, E>

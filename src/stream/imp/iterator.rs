@@ -27,6 +27,12 @@ impl<I: Iterator> IteratorStream<I> {
     pub fn new(iter: I) -> Self {
         Self { iter }
     }
+
+    /// Extracting the original iterator.
+    #[inline]
+    pub fn into_inner(self) -> I {
+        self.iter
+    }
 }
 
 impl<I: Iterator> Stream for IteratorStream<I> {
