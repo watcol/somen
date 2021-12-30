@@ -9,10 +9,10 @@ use pin_project_lite::pin_project;
 use std::marker::PhantomData;
 
 pin_project! {
-    /// Performing the type casting on `S::Position` into `T`.
+    /// Performing type casting on `S::Position` into `T` using [`TryFrom`].
     ///
     /// [`TryStream`]: futures_core::stream::TryStream
-    /// [`Positioned`]: crate::stream::position::Positioned
+    /// [`TryFrom`]: core::convert::TryFrom
     #[derive(Debug)]
     pub struct CastPositioner<S, T> {
         #[pin]
