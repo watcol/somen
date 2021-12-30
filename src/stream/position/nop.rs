@@ -8,7 +8,7 @@ pin_project! {
     /// Wrapping [`TryStream`], implements [`Positioned`] trait by `type Position = ()`.
     ///
     /// [`TryStream`]: futures_core::stream::TryStream
-    /// [`Unpositioned`]: crate::stream::Unpositioned
+    /// [`Unpositioned`]: crate::stream::position::Positioned
     #[derive(Debug)]
     pub struct NopPositioner<S> {
         #[pin]

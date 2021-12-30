@@ -10,8 +10,8 @@ pin_project! {
     /// the stream outputs to [`Vec`].
     ///
     /// [`TryStream`]: futures_core::stream::TryStream
-    /// [`Positioned`]: crate::stream::Positioned
-    /// [`Rewind`]: crate::stream::Rewind
+    /// [`Positioned`]: crate::stream::position::Positioned
+    /// [`Rewind`]: crate::stream::rewind::Rewind
     /// [`Vec`]: alloc::vec::Vec
     #[derive(Debug)]
     pub struct VecRecorder<S: TryStream> {

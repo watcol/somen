@@ -8,7 +8,7 @@ pin_project! {
     /// Wrapping [`TryStream`], implements [`Positioned`] trait.
     ///
     /// [`TryStream`]: futures_core::stream::TryStream
-    /// [`Positioned`]: crate::stream::Positioned
+    /// [`Positioned`]: crate::stream::position::Positioned
     #[derive(Debug)]
     pub struct Positioner<S> {
         position: usize,

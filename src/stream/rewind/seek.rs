@@ -12,8 +12,8 @@ pin_project! {
     /// Wrapping [`AsyncSeek`], implements [`Positioned`] and [`Rewind`] trait.
     ///
     /// [`AsyncSeek`]: futures_io::AsyncSeek
-    /// [`Positioned`]: crate::stream::Positioned
-    /// [`Rewind`]: crate::stream::Rewind
+    /// [`Positioned`]: crate::stream::position::Positioned
+    /// [`Rewind`]: crate::stream::rewind::Rewind
     #[derive(Debug)]
     pub struct SeekRewinder<S> {
         #[pin]

@@ -14,8 +14,8 @@ pin_project! {
     /// recent output to buffer, which will live until it becomes unneeded.
     ///
     /// [`TryStream`]: futures_core::stream::TryStream
-    /// [`Positioned`]: crate::stream::Positioned
-    /// [`Rewind`]: crate::stream::Rewind
+    /// [`Positioned`]: crate::stream::position::Positioned
+    /// [`Rewind`]: crate::stream::positon::Rewind
     #[derive(Debug)]
     pub struct BufferedRewinder<S: TryStream> {
         position: usize,
