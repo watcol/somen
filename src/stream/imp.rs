@@ -4,11 +4,13 @@ mod extend;
 mod infallible;
 mod iterator;
 mod positioned;
+mod slice;
 mod unpositioned;
 pub use extend::ExtendStream;
 pub use infallible::InfallibleStream;
 pub use iterator::IteratorStream;
 pub use positioned::PositionedStream;
+pub use slice::SliceStream;
 pub use unpositioned::UnpositionedStream;
 
 #[cfg(feature = "alloc")]
