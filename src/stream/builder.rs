@@ -19,7 +19,7 @@ pub trait StreamBuilder: TryStream {
     /// Implement [`Positioned`] to a stream.
     ///
     /// # Examples
-    /// ```ignore
+    /// ```
     /// # futures::executor::block_on(async {
     /// use somen::stream::{StreamBuilder, position::Positioned};
     /// use futures::stream::TryStreamExt;

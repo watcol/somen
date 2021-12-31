@@ -1,7 +1,7 @@
 use crate::stream::{Positioned, Rewind};
 use core::pin::Pin;
 use core::task::{Context, Poll};
-use futures_core::{Stream, TryStream};
+use futures_core::{ready, Stream, TryStream};
 use pin_project_lite::pin_project;
 
 pin_project! {
@@ -45,8 +45,11 @@ impl<S: TryStream> Stream for Positioner<S> {
 
     fn poll_next(self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Option<Self::Item>> {
         let this = self.project();
-        *this.position += 1;
-        this.stream.try_poll_next(cx)
+        let res = ready!(this.stream.try_poll_next(cx));
+        if let Some(Ok(_)) = res {
+            *this.position += 1;
+        }
+        Poll::Ready(res)
     }
 }
 
