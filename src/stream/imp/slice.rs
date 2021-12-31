@@ -1,9 +1,9 @@
 use crate::stream::{Positioned, Rewind};
+use core::convert::Infallible;
 use core::pin::Pin;
 use core::task::{Context, Poll};
 use futures_core::Stream;
 use pin_project_lite::pin_project;
-use std::convert::Infallible;
 
 pin_project! {
     /// Wrapping slices, implements [`TryStream`], [`Positioned`] and [`Rewind`] trait.

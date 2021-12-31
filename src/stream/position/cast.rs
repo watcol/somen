@@ -2,11 +2,11 @@ mod error;
 pub use error::CastError;
 
 use crate::stream::{Positioned, Rewind};
+use core::marker::PhantomData;
 use core::pin::Pin;
 use core::task::{Context, Poll};
 use futures_core::Stream;
 use pin_project_lite::pin_project;
-use std::marker::PhantomData;
 
 pin_project! {
     /// Performing type casting on `S::Position` into `T` using [`TryFrom`].
