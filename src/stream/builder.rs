@@ -51,6 +51,7 @@ pub trait StreamBuilder: TryStream {
     /// [`AsyncRead`]: futures_io::AsyncRead
     /// [`TryStream`]: futures_core::stream::TryStream
     #[cfg(feature = "std")]
+    #[cfg_attr(all(doc, feature = "unstable"), doc(cfg(feature = "std")))]
     #[inline]
     fn from_reader<R: AsyncRead>(reader: R) -> ReaderStream<R> {
         ReaderStream::from(reader)
@@ -105,6 +106,7 @@ pub trait StreamBuilder: TryStream {
     /// [`Positioned`]: crate::stream::position::Positioned
     /// [`Rewind`]: crate::stream::rewind::Rewind
     #[cfg(feature = "alloc")]
+    #[cfg_attr(all(doc, feature = "unstable"), doc(cfg(feature = "alloc")))]
     #[inline]
     fn buffered_rewind(self) -> BufferedRewinder<Self>
     where
@@ -119,6 +121,7 @@ pub trait StreamBuilder: TryStream {
     /// [`Rewind`]: crate::stream::rewind::Rewind
     /// [`AsyncSeek`]: futures_io::AsyncSeek
     #[cfg(feature = "std")]
+    #[cfg_attr(all(doc, feature = "unstable"), doc(cfg(feature = "std")))]
     #[inline]
     fn seek_rewind(self) -> SeekRewinder<Self>
     where
@@ -133,6 +136,7 @@ pub trait StreamBuilder: TryStream {
     /// [`Positoned`]: crate::stream::position::Positoned
     /// [`Rewind`]: crate::stream::rewind::Rewind
     #[cfg(feature = "alloc")]
+    #[cfg_attr(all(doc, feature = "unstable"), doc(cfg(feature = "alloc")))]
     #[inline]
     fn record_to_vec(self) -> VecRecorder<Self>
     where

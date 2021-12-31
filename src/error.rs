@@ -34,15 +34,18 @@ impl<P: fmt::Debug, S: std::error::Error + 'static> std::error::Error for Error<
 pub enum ErrorKind<S = Infallible> {
     /// Expected something, but unmatched.
     Expected {
+        #[cfg_attr(all(doc, feature = "unstable"), doc(cfg(feature = "alloc")))]
         #[cfg(feature = "alloc")]
         expected: String,
     },
     /// Errors while conversion by `try_map`.
     Conversion {
-        #[cfg(feature = "std")]
-        inner: Box<dyn std::error::Error>,
+        #[cfg_attr(all(doc, feature = "unstable"), doc(cfg(feature = "alloc")))]
         #[cfg(all(not(feature = "std"), feature = "alloc"))]
         inner: Box<dyn fmt::Display>,
+        #[cfg_attr(all(doc, feature = "unstable"), doc(cfg(feature = "std")))]
+        #[cfg(feature = "std")]
+        inner: Box<dyn std::error::Error>,
     },
     /// Errors while consumption by `TryStream`.
     Streaming { inner: S },
@@ -65,6 +68,7 @@ impl<S: fmt::Display> fmt::Display for ErrorKind<S> {
 }
 
 #[cfg(feature = "std")]
+#[cfg_attr(all(doc, feature = "unstable"), doc(cfg(feature = "std")))]
 impl<S: std::error::Error + 'static> std::error::Error for ErrorKind<S> {
     fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
         match self {

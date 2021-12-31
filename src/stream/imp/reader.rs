@@ -10,6 +10,7 @@ pin_project! {
     /// [`AsyncRead`]: futures_io::AsyncRead
     /// [`TryStream`]: futures_core::stream::TryStream
     #[derive(Debug)]
+    #[cfg_attr(all(doc, feature = "unstable"), doc(cfg(feature = "std")))]
     pub struct ReaderStream<R> {
         #[pin]
         reader: R,

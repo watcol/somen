@@ -14,6 +14,7 @@ pin_project! {
     /// [`Rewind`]: crate::stream::rewind::Rewind
     /// [`Vec`]: alloc::vec::Vec
     #[derive(Debug)]
+    #[cfg_attr(all(doc, feature = "unstable"), doc(cfg(feature = "alloc")))]
     pub struct VecRecorder<S: TryStream> {
         position: usize,
         record: Vec<S::Ok>,

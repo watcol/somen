@@ -4,6 +4,7 @@ use core::fmt;
 ///
 /// [`BufferedRewinder`]: crate::stream::rewind::BufferedRewinder
 #[derive(Debug)]
+#[cfg_attr(all(doc, feature = "unstable"), doc(cfg(feature = "alloc")))]
 pub enum BufferedError<S> {
     Stream(S),
     Buffer,

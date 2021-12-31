@@ -5,6 +5,7 @@ use futures_io::Error;
 ///
 /// [`SeekRewinder`]: crate::stream::rewind::SeekRewinder
 #[derive(Debug)]
+#[cfg_attr(all(doc, feature = "unstable"), doc(cfg(feature = "std")))]
 pub enum SeekError<S> {
     Stream(S),
     Seek(Error),

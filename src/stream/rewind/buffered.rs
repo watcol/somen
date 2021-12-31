@@ -17,6 +17,7 @@ pin_project! {
     /// [`Positioned`]: crate::stream::position::Positioned
     /// [`Rewind`]: crate::stream::positon::Rewind
     #[derive(Debug)]
+    #[cfg_attr(all(doc, feature = "unstable"), doc(cfg(feature = "alloc")))]
     pub struct BufferedRewinder<S: TryStream> {
         position: usize,
         buffer: VecDeque<S::Ok>,

@@ -15,6 +15,7 @@ pin_project! {
     /// [`Positioned`]: crate::stream::position::Positioned
     /// [`Rewind`]: crate::stream::rewind::Rewind
     #[derive(Debug)]
+    #[cfg_attr(all(doc, feature = "unstable"), doc(cfg(feature = "std")))]
     pub struct SeekRewinder<S> {
         #[pin]
         stream: S,
