@@ -26,3 +26,6 @@ alloc = ['futures-core/alloc']
 futures-core = { version = "0.3", default_features = false }
 futures-io = { version = "0.3", optional = true }
 pin-project-lite = "0.2"
+
+[dev-dependencies]
+futures = "0.3"

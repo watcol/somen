@@ -12,7 +12,7 @@
 
 mod builder;
 mod imp;
-pub use builder::StreamBuilder;
+pub use builder::*;
 pub use imp::*;
 
 pub mod position;
