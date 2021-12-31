@@ -329,7 +329,7 @@ pub fn from_stream<S: Stream>(stream: S) -> InfallibleStream<S> {
 /// # futures::executor::block_on(async {
 /// use futures::stream::TryStreamExt;
 ///
-/// let mut stream = somen::stream::from_try_iter(vec![Ok('a'), Err("foo")].into_iter());
+/// let mut stream = somen::stream::from_try_iter(vec![Ok('a'), Err("foo")]);
 /// assert_eq!(stream.try_next().await, Ok(Some('a')));
 /// assert_eq!(stream.try_next().await, Err("foo"));
 /// # });
@@ -338,11 +338,11 @@ pub fn from_stream<S: Stream>(stream: S) -> InfallibleStream<S> {
 /// [`Iterator`]: core::iter::Iterator
 /// [`TryStream`]: futures_core::stream::TryStream
 #[inline]
-pub fn from_try_iter<I, T, E>(iter: I) -> IteratorStream<I>
+pub fn from_try_iter<I, T, E>(iter: I) -> IteratorStream<I::IntoIter>
 where
-    I: Iterator<Item = Result<T, E>>,
+    I: IntoIterator<Item = Result<T, E>>,
 {
-    IteratorStream::from(iter)
+    IteratorStream::from(iter.into_iter())
 }
 
 /// An [`Iterator`] into a [`TryStream`].
@@ -352,7 +352,7 @@ where
 /// # futures::executor::block_on(async {
 /// use futures::stream::TryStreamExt;
 ///
-/// let mut stream = somen::stream::from_iter(Some(1).into_iter());
+/// let mut stream = somen::stream::from_iter(Some(1));
 /// assert_eq!(stream.try_next().await, Ok(Some(1u8)));
 /// assert_eq!(stream.try_next().await, Ok(None));
 /// # });
@@ -361,8 +361,8 @@ where
 /// [`Iterator`]: core::iter::Iterator
 /// [`TryStream`]: futures_core::stream::TryStream
 #[inline]
-pub fn from_iter<I: Iterator>(iter: I) -> InfallibleStream<IteratorStream<I>> {
-    InfallibleStream::from(IteratorStream::from(iter))
+pub fn from_iter<I: IntoIterator>(iter: I) -> InfallibleStream<IteratorStream<I::IntoIter>> {
+    InfallibleStream::from(IteratorStream::from(iter.into_iter()))
 }
 
 /// A reader implements [`AsyncRead`] into a [`TryStream`].
