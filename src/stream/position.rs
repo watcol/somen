@@ -23,7 +23,7 @@ use futures_core::TryStream;
 /// where an error has occured), all streams should implement this.
 pub trait Positioned: TryStream {
     /// The type of the position.
-    type Position: Clone + PartialOrd;
+    type Position;
 
     /// Getting the current position.
     fn poll_position(

@@ -59,7 +59,7 @@ impl<S: Positioned, T: TryFrom<S::Position>> Stream for CastPositioner<S, T> {
 
 impl<S: Positioned, T> Positioned for CastPositioner<S, T>
 where
-    T: TryFrom<S::Position> + PartialOrd + Clone,
+    T: TryFrom<S::Position>,
 {
     type Position = T;
 
