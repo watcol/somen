@@ -10,7 +10,9 @@
 //! [`TryStream`]: futures_core::stream::TryStream
 //! [`AsyncRead`]: futures_io::AsyncRead
 
+mod builder;
 mod imp;
+pub use builder::StreamBuilder;
 pub use imp::*;
 
 pub mod position;
