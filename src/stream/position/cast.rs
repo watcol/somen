@@ -55,6 +55,11 @@ impl<S: Positioned, T: TryFrom<S::Position>> Stream for CastPositioner<S, T> {
             .try_poll_next(cx)
             .map(|p| p.map(|o| o.map_err(CastError::Stream)))
     }
+
+    #[inline]
+    fn size_hint(&self) -> (usize, Option<usize>) {
+        self.stream.size_hint()
+    }
 }
 
 impl<S: Positioned, T> Positioned for CastPositioner<S, T>

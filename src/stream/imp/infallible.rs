@@ -44,7 +44,13 @@ impl<S: Stream> InfallibleStream<S> {
 impl<S: Stream> Stream for InfallibleStream<S> {
     type Item = Result<S::Item, Infallible>;
 
+    #[inline]
     fn poll_next(self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Option<Self::Item>> {
         self.project().stream.poll_next(cx).map(|i| i.map(Ok))
+    }
+
+    #[inline]
+    fn size_hint(&self) -> (usize, Option<usize>) {
+        self.stream.size_hint()
     }
 }

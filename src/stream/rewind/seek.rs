@@ -53,6 +53,11 @@ impl<S: TryStream> Stream for SeekRewinder<S> {
             .try_poll_next(cx)
             .map(|o| o.map(|r| r.map_err(SeekError::Stream)))
     }
+
+    #[inline]
+    fn size_hint(&self) -> (usize, Option<usize>) {
+        (self.stream.size_hint().0, None)
+    }
 }
 
 impl<S: TryStream + AsyncSeek> Positioned for SeekRewinder<S> {

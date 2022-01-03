@@ -1,4 +1,4 @@
-use crate::stream::{Positioned, Rewind};
+use crate::stream::Positioned;
 use core::pin::Pin;
 use core::task::{Context, Poll};
 use futures_core::{ready, Stream, TryStream};
@@ -44,6 +44,11 @@ where
             this.output.extend(Some(i.clone()));
         }
         Poll::Ready(res)
+    }
+
+    #[inline]
+    fn size_hint(&self) -> (usize, Option<usize>) {
+        self.stream.size_hint()
     }
 }
 

@@ -41,6 +41,11 @@ impl<T: Clone> Stream for SliceStream<'_, T> {
         *this.position += 1;
         Poll::Ready(res.cloned().map(Ok))
     }
+
+    #[inline]
+    fn size_hint(&self) -> (usize, Option<usize>) {
+        (self.slice.len(), Some(self.slice.len()))
+    }
 }
 
 impl<T: Clone> Positioned for SliceStream<'_, T> {

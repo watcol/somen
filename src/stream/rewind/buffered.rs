@@ -84,6 +84,11 @@ where
             Poll::Ready(res.cloned().map(Ok))
         }
     }
+
+    #[inline]
+    fn size_hint(&self) -> (usize, Option<usize>) {
+        (self.stream.size_hint().0, None)
+    }
 }
 
 impl<S: TryStream> Positioned for BufferedRewinder<S>

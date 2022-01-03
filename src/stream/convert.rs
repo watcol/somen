@@ -25,4 +25,12 @@ pub trait Converter<T> {
         item: T,
         buf: &mut E,
     ) -> Result<usize, Self::Error>;
+
+    /// The output size that the converter will produce by one item.
+    ///
+    /// The first item of the return value is the minimum size and the second is the maximum
+    /// size (if exists). The default return value is `(0, None)`.
+    fn size_hint(&self) -> (usize, Option<usize>) {
+        (0, None)
+    }
 }

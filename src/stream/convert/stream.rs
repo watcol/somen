@@ -40,4 +40,13 @@ impl<S: TryStream, C: Converter<S::Ok>> Stream for ConvertedStream<S, C> {
             }
         }
     }
+
+    fn size_hint(&self) -> (usize, Option<usize>) {
+        let (stream_min, stream_max) = self.stream.size_hint();
+        let (converter_min, converter_max) = self.converter.size_hint();
+        (
+            stream_min * converter_min,
+            stream_max.zip(converter_max).map(|(x, y)| x * y),
+        )
+    }
 }

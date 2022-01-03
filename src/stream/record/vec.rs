@@ -87,6 +87,11 @@ where
             Poll::Ready(res)
         }
     }
+
+    #[inline]
+    fn size_hint(&self) -> (usize, Option<usize>) {
+        (self.stream.size_hint().0, None)
+    }
 }
 
 impl<S: TryStream> Positioned for VecRecorder<S>

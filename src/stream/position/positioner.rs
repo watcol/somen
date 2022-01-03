@@ -26,6 +26,7 @@ impl<S: TryStream> From<S> for Positioner<S> {
         }
     }
 }
+
 impl<S: TryStream> Positioner<S> {
     /// Creating a new instance.
     #[inline]
@@ -50,6 +51,11 @@ impl<S: TryStream> Stream for Positioner<S> {
             *this.position += 1;
         }
         Poll::Ready(res)
+    }
+
+    #[inline]
+    fn size_hint(&self) -> (usize, Option<usize>) {
+        self.stream.size_hint()
     }
 }
 
