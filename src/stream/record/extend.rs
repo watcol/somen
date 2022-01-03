@@ -61,27 +61,3 @@ where
         self.project().stream.poll_position(cx)
     }
 }
-
-impl<S: Rewind, E: Extend<S::Ok> + ?Sized> Rewind for ExtendRecorder<'_, S, E>
-where
-    S::Ok: Clone,
-{
-    type Marker = S::Marker;
-
-    #[inline]
-    fn poll_mark(
-        self: Pin<&mut Self>,
-        cx: &mut Context<'_>,
-    ) -> Poll<Result<Self::Marker, Self::Error>> {
-        self.project().stream.poll_mark(cx)
-    }
-
-    #[inline]
-    fn poll_rewind(
-        self: Pin<&mut Self>,
-        cx: &mut Context<'_>,
-        marker: Self::Marker,
-    ) -> Poll<Result<(), Self::Error>> {
-        self.project().stream.poll_rewind(cx, marker)
-    }
-}

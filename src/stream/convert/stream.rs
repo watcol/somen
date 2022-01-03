@@ -12,6 +12,7 @@ pin_project! {
     /// [`TryStream`]: futures_core::stream::TryStream
     /// [`Converter`]: crate::stream::convert::Converter
     #[derive(Debug)]
+    #[cfg_attr(all(doc, feature = "unstable"), doc(cfg(feature = "alloc")))]
     pub struct ConvertedStream<S: TryStream, C: Converter<S::Ok>> {
         buffer: VecDeque<C::Output>,
         #[pin]
@@ -29,13 +30,11 @@ impl<S: TryStream, C: Converter<S::Ok>> Stream for ConvertedStream<S, C> {
             Poll::Ready(this.buffer.pop_front().map(Ok))
         } else {
             match ready!(this.stream.try_poll_next(cx)) {
-                Some(Ok(item)) => {
-                    match this.converter.convert(item, this.buffer.make_contiguous()) {
-                        Ok(c) if c == 0 => Poll::Pending,
-                        Ok(_) => Poll::Ready(this.buffer.pop_front().map(Ok)),
-                        Err(e) => Poll::Ready(Some(Err(ConvertError::Conversion(e)))),
-                    }
-                }
+                Some(Ok(item)) => match this.converter.convert(item, this.buffer) {
+                    Ok(c) if c == 0 => Poll::Pending,
+                    Ok(_) => Poll::Ready(this.buffer.pop_front().map(Ok)),
+                    Err(e) => Poll::Ready(Some(Err(ConvertError::Conversion(e)))),
+                },
                 Some(Err(e)) => Poll::Ready(Some(Err(ConvertError::Stream(e)))),
                 None => Poll::Ready(None),
             }

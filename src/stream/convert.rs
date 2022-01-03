@@ -1,8 +1,13 @@
 //! Converting values while consuming a stream.
 
 mod error;
-mod stream;
+mod recorder;
 pub use error::ConvertError;
+pub use recorder::ConvertedRecorder;
+
+#[cfg(feature = "alloc")]
+mod stream;
+#[cfg(feature = "alloc")]
 pub use stream::ConvertedStream;
 
 /// Converting a value into another type.
@@ -15,5 +20,9 @@ pub trait Converter<T> {
     /// Converting an item to [`Output`]s, storing to `buf`.
     ///
     /// [`Output`]: crate::stream::convert::Converter::Output
-    fn convert(&mut self, item: T, buf: &mut [Self::Output]) -> Result<usize, Self::Error>;
+    fn convert<E: Extend<Self::Output>>(
+        &mut self,
+        item: T,
+        buf: &mut E,
+    ) -> Result<usize, Self::Error>;
 }
