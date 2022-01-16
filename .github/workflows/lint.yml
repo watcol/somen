@@ -42,4 +42,4 @@ jobs:
         components: clippy
         override: true
     - name: Lint
-      run: cargo clippy --all --all-targets --all-features -- -D warnings
+      run: cargo clippy --all --all-targets -- -D warnings

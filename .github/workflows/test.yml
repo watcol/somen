@@ -47,4 +47,4 @@ jobs:
         toolchain: stable
         override: true
     - name: Test
-      run: cargo test --all --all-features
+      run: cargo test --all
