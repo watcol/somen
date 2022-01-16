@@ -84,34 +84,36 @@ pub trait StreamBuilder: TryStream {
         NopPositioner::from(self)
     }
 
-    /// Casting the type of [`Positioned`].
-    ///
-    /// # Examples
-    /// ```
-    /// # futures::executor::block_on(async {
-    /// use somen::stream::{StreamBuilder, position::Positioned};
-    /// use futures::stream::TryStreamExt;
-    /// use futures::io::Cursor;
-    ///
-    /// let mut stream = somen::stream::from_reader(Cursor::new(b"abc"))
-    ///     .seek_rewind()
-    ///     .cast_positon::<usize>();
-    ///
-    /// assert_eq!(stream.position().await.unwrap(), 0usize);
-    ///
-    /// assert_eq!(stream.try_next().await.unwrap(), Some(b'a'));
-    /// assert_eq!(stream.try_next().await.unwrap(), Some(b'b'));
-    /// assert_eq!(stream.try_next().await.unwrap(), Some(b'c'));
-    ///
-    /// assert_eq!(stream.position().await.unwrap(), 3usize);
-    ///
-    /// assert_eq!(stream.try_next().await.unwrap(), None);
-    ///
-    /// assert_eq!(stream.position().await.unwrap(), 3usize);
-    /// # });
-    /// ```
-    ///
-    /// [`Positioned`]: crate::stream::position::Positioned
+    #[doc = r#"Casting the type of [`Positioned`]
+
+[`Positioned`]: crate::stream::position::Positioned"#]
+    #[cfg_attr(
+        feature = "std",
+        doc = r##"# Examples
+```
+# futures::executor::block_on(async {
+use somen::stream::{StreamBuilder, position::Positioned};
+use futures::stream::TryStreamExt;
+use futures::io::Cursor;
+
+let mut stream = somen::stream::from_reader(Cursor::new(b"abc"))
+    .seek_rewind()
+    .cast_positon::<usize>();
+
+assert_eq!(stream.position().await.unwrap(), 0usize);
+
+assert_eq!(stream.try_next().await.unwrap(), Some(b'a'));
+assert_eq!(stream.try_next().await.unwrap(), Some(b'b'));
+assert_eq!(stream.try_next().await.unwrap(), Some(b'c'));
+
+assert_eq!(stream.position().await.unwrap(), 3usize);
+
+assert_eq!(stream.try_next().await.unwrap(), None);
+
+assert_eq!(stream.position().await.unwrap(), 3usize);
+    # });
+```"##
+    )]
     #[inline]
     fn cast_positon<T>(self) -> CastPositioner<Self, T>
     where
@@ -159,7 +161,7 @@ pub trait StreamBuilder: TryStream {
     /// [`Positioned`]: crate::stream::position::Positioned
     /// [`Rewind`]: crate::stream::rewind::Rewind
     #[cfg(feature = "alloc")]
-    #[cfg_attr(all(doc, feature = "unstable"), doc(cfg(feature = "alloc")))]
+    #[cfg_attr(feature = "nightly", doc(cfg(feature = "alloc")))]
     #[inline]
     fn buffered_rewind(self) -> BufferedRewinder<Self>
     where
@@ -208,7 +210,7 @@ pub trait StreamBuilder: TryStream {
     /// [`Rewind`]: crate::stream::rewind::Rewind
     /// [`AsyncSeek`]: futures_io::AsyncSeek
     #[cfg(feature = "std")]
-    #[cfg_attr(all(doc, feature = "unstable"), doc(cfg(feature = "std")))]
+    #[cfg_attr(feature = "nightly", doc(cfg(feature = "std")))]
     #[inline]
     fn seek_rewind(self) -> SeekRewinder<Self>
     where
@@ -258,7 +260,7 @@ pub trait StreamBuilder: TryStream {
     /// [`Positoned`]: crate::stream::position::Positoned
     /// [`Rewind`]: crate::stream::rewind::Rewind
     #[cfg(feature = "alloc")]
-    #[cfg_attr(all(doc, feature = "unstable"), doc(cfg(feature = "alloc")))]
+    #[cfg_attr(feature = "nightly", doc(cfg(feature = "alloc")))]
     #[inline]
     fn record_to_vec(self) -> VecRecorder<Self>
     where
@@ -384,7 +386,7 @@ pub fn from_iter<I: IntoIterator>(iter: I) -> InfallibleStream<IteratorStream<I:
 /// [`AsyncRead`]: futures_io::AsyncRead
 /// [`TryStream`]: futures_core::stream::TryStream
 #[cfg(feature = "std")]
-#[cfg_attr(all(doc, feature = "unstable"), doc(cfg(feature = "std")))]
+#[cfg_attr(feature = "nightly", doc(cfg(feature = "std")))]
 #[inline]
 pub fn from_reader<R: AsyncRead>(reader: R) -> ReaderStream<R> {
     ReaderStream::from(reader)

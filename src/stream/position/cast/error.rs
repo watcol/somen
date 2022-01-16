@@ -19,6 +19,7 @@ impl<S: fmt::Display, T: fmt::Display> fmt::Display for CastError<S, T> {
 }
 
 #[cfg(feature = "std")]
+#[cfg_attr(feature = "nightly", doc(cfg(feature = "std")))]
 impl<S, T> std::error::Error for CastError<S, T>
 where
     S: std::error::Error + 'static,

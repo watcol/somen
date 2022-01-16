@@ -6,7 +6,7 @@ use core::{convert::Infallible, fmt, ops::Range};
 use alloc::{boxed::Box, string::String};
 
 /// The position where an error has ocuured and the description.
-#[derive(Debug)]
+#[cfg_attr(any(feature = "std", not(feature = "alloc")), derive(Debug))]
 pub struct Error<P = (), S = Infallible> {
     /// The range where this error has occured.
     pub range: Range<P>,
@@ -30,20 +30,20 @@ impl<P: fmt::Debug, S: std::error::Error + 'static> std::error::Error for Error<
 }
 
 /// The kinds of errors.
-#[derive(Debug)]
+#[cfg_attr(any(feature = "std", not(feature = "alloc")), derive(Debug))]
 pub enum ErrorKind<S = Infallible> {
     /// Expected something, but unmatched.
     Expected {
-        #[cfg_attr(all(doc, feature = "unstable"), doc(cfg(feature = "alloc")))]
+        #[cfg_attr(feature = "nightly", doc(cfg(feature = "alloc")))]
         #[cfg(feature = "alloc")]
         expected: String,
     },
     /// Errors while conversion by `try_map`.
     Conversion {
-        #[cfg_attr(all(doc, feature = "unstable"), doc(cfg(feature = "alloc")))]
+        #[cfg_attr(feature = "nightly", doc(cfg(feature = "alloc")))]
         #[cfg(all(not(feature = "std"), feature = "alloc"))]
         inner: Box<dyn fmt::Display>,
-        #[cfg_attr(all(doc, feature = "unstable"), doc(cfg(feature = "std")))]
+        #[cfg_attr(feature = "nightly", doc(cfg(feature = "std")))]
         #[cfg(feature = "std")]
         inner: Box<dyn std::error::Error>,
     },
@@ -68,7 +68,7 @@ impl<S: fmt::Display> fmt::Display for ErrorKind<S> {
 }
 
 #[cfg(feature = "std")]
-#[cfg_attr(all(doc, feature = "unstable"), doc(cfg(feature = "std")))]
+#[cfg_attr(feature = "nightly", doc(cfg(feature = "std")))]
 impl<S: std::error::Error + 'static> std::error::Error for ErrorKind<S> {
     fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
         match self {

@@ -5,7 +5,7 @@ use futures_io::Error;
 ///
 /// [`SeekRewinder`]: crate::stream::rewind::SeekRewinder
 #[derive(Debug)]
-#[cfg_attr(all(doc, feature = "unstable"), doc(cfg(feature = "std")))]
+#[cfg_attr(feature = "nightly", doc(cfg(feature = "std")))]
 pub enum SeekError<S> {
     Stream(S),
     Seek(Error),
@@ -20,7 +20,6 @@ impl<S: fmt::Display> fmt::Display for SeekError<S> {
     }
 }
 
-#[cfg(feature = "std")]
 impl<S: std::error::Error + 'static> std::error::Error for SeekError<S> {
     fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
         match self {

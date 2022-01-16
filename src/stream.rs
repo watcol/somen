@@ -15,7 +15,6 @@ mod imp;
 pub use builder::*;
 pub use imp::*;
 
-pub mod convert;
 pub mod position;
 pub mod record;
 pub mod rewind;
