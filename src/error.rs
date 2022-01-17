@@ -2,6 +2,13 @@
 
 use core::ops::Range;
 use core::{convert::Infallible, fmt};
+use futures_core::stream::TryStream;
+
+use crate::parser::Parser;
+
+/// The Result type for this crate.
+pub type ParseResult<P, S> =
+    Result<<P as Parser>::Output, Error<<P as Parser>::Error, <S as TryStream>::Error>>;
 
 /// The error type for this crate.
 #[derive(Debug)]
