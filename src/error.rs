@@ -1,80 +1,41 @@
 //! Types for error handling.
 
-use core::{convert::Infallible, fmt, ops::Range};
+use core::ops::Range;
+use core::{convert::Infallible, fmt};
 
-#[cfg(feature = "alloc")]
-use alloc::{boxed::Box, string::String};
-
-/// The position where an error has ocuured and the description.
-#[cfg_attr(any(feature = "std", not(feature = "alloc")), derive(Debug))]
-pub struct Error<P = (), S = Infallible> {
-    /// The range where this error has occured.
-    pub range: Range<P>,
-    /// The kind of this error.
-    pub kind: ErrorKind<S>,
+/// The error type for this crate.
+#[derive(Debug)]
+pub enum Error<P, S = Infallible> {
+    Parse(P),
+    Stream(S),
 }
 
-impl<P, S: fmt::Display> fmt::Display for Error<P, S> {
+impl<P: fmt::Display, S: fmt::Display> fmt::Display for Error<P, S> {
     #[inline]
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        self.kind.fmt(f)
-    }
-}
-
-#[cfg(feature = "std")]
-impl<P: fmt::Debug, S: std::error::Error + 'static> std::error::Error for Error<P, S> {
-    #[inline]
-    fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
-        Some(&self.kind)
-    }
-}
-
-/// The kinds of errors.
-#[cfg_attr(any(feature = "std", not(feature = "alloc")), derive(Debug))]
-pub enum ErrorKind<S = Infallible> {
-    /// Expected something, but unmatched.
-    Expected {
-        #[cfg_attr(feature = "nightly", doc(cfg(feature = "alloc")))]
-        #[cfg(feature = "alloc")]
-        expected: String,
-    },
-    /// Errors while conversion by `try_map`.
-    Conversion {
-        #[cfg_attr(feature = "nightly", doc(cfg(feature = "alloc")))]
-        #[cfg(all(not(feature = "std"), feature = "alloc"))]
-        inner: Box<dyn fmt::Display>,
-        #[cfg_attr(feature = "nightly", doc(cfg(feature = "std")))]
-        #[cfg(feature = "std")]
-        inner: Box<dyn std::error::Error>,
-    },
-    /// Errors while consumption by `TryStream`.
-    Streaming { inner: S },
-}
-
-impl<S: fmt::Display> fmt::Display for ErrorKind<S> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            #[cfg(feature = "alloc")]
-            Self::Expected { expected } => write!(f, "expected {}", expected),
-            #[cfg(not(feature = "alloc"))]
-            Self::Expected {} => write!(f, "parsing failed"),
-            #[cfg(feature = "alloc")]
-            Self::Conversion { inner } => write!(f, "{}", inner),
-            #[cfg(not(feature = "alloc"))]
-            Self::Conversion {} => write!(f, "conversion failed"),
-            Self::Streaming { inner } => write!(f, "{}", inner),
+            Self::Parse(e) => write!(f, "{}", e),
+            Self::Stream(e) => write!(f, "{}", e),
         }
     }
 }
 
+pub trait ParseError: fmt::Display {
+    type Position;
+    fn range(&self) -> Range<Self::Position>;
+}
+
 #[cfg(feature = "std")]
-#[cfg_attr(feature = "nightly", doc(cfg(feature = "std")))]
-impl<S: std::error::Error + 'static> std::error::Error for ErrorKind<S> {
+impl<P, S> std::error::Error for Error<P, S>
+where
+    P: std::error::Error + 'static,
+    S: std::error::Error + 'static,
+{
+    #[inline]
     fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
         match self {
-            Self::Expected { .. } => None,
-            Self::Conversion { inner } => Some(inner.as_ref()),
-            Self::Streaming { inner } => Some(inner),
+            Self::Parse(e) => Some(e),
+            Self::Stream(e) => Some(e),
         }
     }
 }
