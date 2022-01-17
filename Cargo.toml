@@ -17,7 +17,7 @@ include = [
 ]
 
 [features]
-unstable = []
+nightly = []
 default = ['std']
 std = ['alloc', 'futures-core/std', 'futures-io']
 alloc = ['futures-core/alloc']
