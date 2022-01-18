@@ -5,44 +5,49 @@ use core::{convert::Infallible, fmt};
 use futures_core::stream::TryStream;
 
 use crate::parser::Parser;
+use crate::stream::position::Positioned;
 
-/// The Result type for this crate.
+/// The Result type for [`poll_parse`].
+///
+/// [`poll_parse`]: crate::parser::Parser::poll_parse
 pub type ParseResult<P, I> = core::result::Result<
     <P as Parser<I>>::Output,
-    Error<<P as Parser<I>>::Error, <I as TryStream>::Error>,
+    ParseError<<P as Parser<I>>::Error, <I as TryStream>::Error>,
+>;
+
+/// The Result type for [`poll_parse_positioned`].
+///
+/// [`poll_parse_positioned`]: crate::parser::Parser::poll_parse_positioned
+pub type PositionedResult<P, I> = core::result::Result<
+    <P as Parser<I>>::Output,
+    ParseError<
+        PositionedError<<P as Parser<I>>::Error, <I as Positioned>::Position>,
+        <I as TryStream>::Error,
+    >,
 >;
 
 /// The error type for this crate.
-#[derive(Debug)]
-pub enum Error<P, S = Infallible> {
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub enum ParseError<P, S = Infallible> {
     /// A parsing error. (with position)
-    Parse(P),
+    Parser(P),
     /// An error while reading streams.
     Stream(S),
 }
 
-impl<P: fmt::Display, S: fmt::Display> fmt::Display for Error<P, S> {
+impl<P: fmt::Display, S: fmt::Display> fmt::Display for ParseError<P, S> {
     #[inline]
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            Self::Parse(e) => write!(f, "{}", e),
+            Self::Parser(e) => write!(f, "{}", e),
             Self::Stream(e) => write!(f, "{}", e),
         }
     }
 }
 
-/// A trait for parsing errors.
-pub trait ParseError: fmt::Display {
-    /// The returning position type.
-    type Position;
-
-    /// The range where the error was occured.
-    fn range(&self) -> &Range<Self::Position>;
-}
-
 #[cfg(feature = "std")]
 #[cfg_attr(feature = "nightly", doc(cfg(feature = "std")))]
-impl<P, S> std::error::Error for Error<P, S>
+impl<P, S> std::error::Error for ParseError<P, S>
 where
     P: std::error::Error + 'static,
     S: std::error::Error + 'static,
@@ -50,8 +55,33 @@ where
     #[inline]
     fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
         match self {
-            Self::Parse(e) => Some(e),
+            Self::Parser(e) => Some(e),
             Self::Stream(e) => Some(e),
         }
+    }
+}
+
+/// A parsing error with information about where the error occured.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct PositionedError<E, P> {
+    /// The position where the error occured.
+    pub range: Range<P>,
+    /// The original error.
+    pub error: E,
+}
+
+impl<E: fmt::Display, P> fmt::Display for PositionedError<E, P> {
+    #[inline]
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        self.error.fmt(f)
+    }
+}
+
+#[cfg(feature = "std")]
+#[cfg_attr(feature = "nightly", doc(cfg(feature = "std")))]
+impl<E: std::error::Error + 'static, P: fmt::Debug> std::error::Error for PositionedError<E, P> {
+    #[inline]
+    fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
+        Some(&self.error)
     }
 }

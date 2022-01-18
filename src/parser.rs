@@ -1,16 +1,18 @@
 //! Basic parsers and combinators.
 
 mod future;
-use future::ParseFuture;
+use future::{ParseFuture, ParsePositionedFuture};
 
 use core::pin::Pin;
 use core::task::{Context, Poll};
+use futures_core::ready;
+
+use crate::error::{ParseError, ParseResult, PositionedError, PositionedResult};
+use crate::stream::position::Positioned;
+use crate::stream::BasicInput;
 
 #[cfg(feature = "alloc")]
 use alloc::boxed::Box;
-
-use crate::error::ParseResult;
-use crate::stream::BasicInput;
 
 #[cfg(feature = "alloc")]
 pub type BoxParser<'a, I, O, E> = Box<&'a dyn Parser<I, Output = O, Error = E>>;
@@ -24,6 +26,34 @@ pub trait Parser<I: BasicInput + ?Sized> {
 
     /// Parse the `input`, get an output.
     fn poll_parse(&self, input: Pin<&mut I>, cx: &mut Context<'_>) -> Poll<ParseResult<Self, I>>;
+
+    /// Parse the `input`, get an output or returning the error information with positions.
+    fn poll_parse_positioned(
+        &self,
+        mut input: Pin<&mut I>,
+        cx: &mut Context<'_>,
+    ) -> Poll<PositionedResult<Self, I>>
+    where
+        I: Positioned,
+    {
+        let start = ready!(input
+            .as_mut()
+            .poll_position(cx)
+            .map_err(ParseError::Stream)?);
+        let parsed = ready!(self.poll_parse(input.as_mut(), cx));
+        let end = ready!(input
+            .as_mut()
+            .poll_position(cx)
+            .map_err(ParseError::Stream)?);
+
+        Poll::Ready(parsed.map_err(|err| match err {
+            ParseError::Parser(e) => ParseError::Parser(PositionedError {
+                range: start..end,
+                error: e,
+            }),
+            ParseError::Stream(e) => ParseError::Stream(e),
+        }))
+    }
 }
 
 pub trait ParserExt<I: BasicInput + ?Sized>: Parser<I> {
@@ -36,6 +66,17 @@ pub trait ParserExt<I: BasicInput + ?Sized>: Parser<I> {
         I: Unpin,
     {
         ParseFuture::new(self, input)
+    }
+
+    /// An asynchronous version of [`poll_parse_positioned`], which returns a [`Future`] object.
+    ///
+    /// [`poll_parse_positioned`]: self::Parser::poll_parse_positioned
+    /// [`Future`]: core::future::Future
+    fn parse_positioned<'a>(&self, input: &'a mut I) -> ParsePositionedFuture<'_, 'a, Self, I>
+    where
+        I: Positioned + Unpin,
+    {
+        ParsePositionedFuture::new(self, input)
     }
 
     #[cfg(feature = "alloc")]
