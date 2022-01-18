@@ -3,40 +3,33 @@ use core::pin::Pin;
 use core::task::{Context, Poll};
 use futures_core::stream::TryStream;
 
-use crate::error::{ParseError, ParseResult};
+use crate::error::ParseResult;
 use crate::parser::Parser;
-use crate::stream::position::Positioned;
 
-pub struct ParseFuture<'a, 'b, P, S: ?Sized> {
+pub struct ParseFuture<'a, 'b, P: ?Sized, I: ?Sized> {
     parser: &'a P,
-    stream: &'b mut S,
+    input: &'b mut I,
 }
 
-impl<'a, 'b, P, S> ParseFuture<'a, 'b, P, S>
+impl<'a, 'b, P, I> ParseFuture<'a, 'b, P, I>
 where
-    P: Parser,
-    S: TryStream<Ok = P::Item>
-        + Positioned<Position = <P::Error as ParseError>::Position>
-        + ?Sized
-        + Unpin,
+    P: Parser<I> + ?Sized,
+    I: TryStream + ?Sized + Unpin,
 {
-    pub fn new(parser: &'a P, stream: &'b mut S) -> Self {
-        Self { parser, stream }
+    pub fn new(parser: &'a P, input: &'b mut I) -> Self {
+        Self { parser, input }
     }
 }
 
-impl<P, S: ?Sized + Unpin> Unpin for ParseFuture<'_, '_, P, S> {}
+impl<P: ?Sized, I: ?Sized + Unpin> Unpin for ParseFuture<'_, '_, P, I> {}
 
-impl<P, S> Future for ParseFuture<'_, '_, P, S>
+impl<P, I> Future for ParseFuture<'_, '_, P, I>
 where
-    P: Parser,
-    S: TryStream<Ok = P::Item>
-        + Positioned<Position = <P::Error as ParseError>::Position>
-        + ?Sized
-        + Unpin,
+    P: Parser<I> + ?Sized,
+    I: TryStream + ?Sized + Unpin,
 {
-    type Output = ParseResult<P, S>;
+    type Output = ParseResult<P, I>;
     fn poll(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {
-        self.parser.poll_parse(Pin::new(&mut *self.stream), cx)
+        self.parser.poll_parse(Pin::new(&mut *self.input), cx)
     }
 }

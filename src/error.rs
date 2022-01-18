@@ -7,8 +7,10 @@ use futures_core::stream::TryStream;
 use crate::parser::Parser;
 
 /// The Result type for this crate.
-pub type ParseResult<P, S> =
-    Result<<P as Parser>::Output, Error<<P as Parser>::Error, <S as TryStream>::Error>>;
+pub type ParseResult<P, I> = core::result::Result<
+    <P as Parser<I>>::Output,
+    Error<<P as Parser<I>>::Error, <I as TryStream>::Error>,
+>;
 
 /// The error type for this crate.
 #[derive(Debug)]
@@ -35,7 +37,7 @@ pub trait ParseError: fmt::Display {
     type Position;
 
     /// The range where the error was occured.
-    fn range(&self) -> Range<Self::Position>;
+    fn range(&self) -> &Range<Self::Position>;
 }
 
 #[cfg(feature = "std")]

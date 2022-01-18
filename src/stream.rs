@@ -19,5 +19,46 @@ pub mod position;
 pub mod record;
 pub mod rewind;
 
+use futures_core::stream::TryStream;
 use position::Positioned;
 use rewind::Rewind;
+
+/// An alias trait for [`TryStream`]` + `[`Positioned`]` + `[`Rewind`], the most featured parser.
+///
+/// [`TryStream`]: futures_core::stream::TryStream
+/// [`Positioned`]: self::position::Positioned
+/// [`Rewind`]: self::rewind::Rewind
+pub trait Input: TryStream + Positioned + Rewind {
+    type Token;
+}
+
+impl<T: TryStream + Positioned + Rewind + ?Sized> Input for T {
+    type Token = T::Ok;
+}
+
+/// An alias trait for [`TryStream`]` + `[`Positioned`].
+pub trait PositionedInput: TryStream + Positioned {
+    type Token;
+}
+
+impl<T: TryStream + Positioned + ?Sized> PositionedInput for T {
+    type Token = T::Ok;
+}
+
+/// An alias trait for [`TryStream`]` + `[`Rewind`].
+pub trait RewindableInput: TryStream + Rewind {
+    type Token;
+}
+
+impl<T: TryStream + Rewind + ?Sized> RewindableInput for T {
+    type Token = T::Ok;
+}
+
+/// An alias trait for [`TryStream`].
+pub trait BasicInput: TryStream {
+    type Token;
+}
+
+impl<T: TryStream + ?Sized> BasicInput for T {
+    type Token = T::Ok;
+}
