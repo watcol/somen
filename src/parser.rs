@@ -3,6 +3,9 @@
 mod future;
 use future::{ParseFuture, ParsePositionedFuture};
 
+mod boxed;
+pub use boxed::BoxParser;
+
 use core::pin::Pin;
 use core::task::{Context, Poll};
 use futures_core::ready;
@@ -13,9 +16,6 @@ use crate::stream::BasicInput;
 
 #[cfg(feature = "alloc")]
 use alloc::boxed::Box;
-
-#[cfg(feature = "alloc")]
-pub type BoxParser<'a, I, O, E> = Box<&'a dyn Parser<I, Output = O, Error = E>>;
 
 /// A trait for parsers.
 pub trait Parser<I: BasicInput + ?Sized> {
@@ -90,14 +90,3 @@ pub trait ParserExt<I: BasicInput + ?Sized>: Parser<I> {
 }
 
 impl<P: Parser<I>, I: BasicInput + ?Sized> ParserExt<I> for P {}
-
-#[cfg(feature = "alloc")]
-impl<I: BasicInput + ?Sized, O, E> Parser<I> for BoxParser<'_, I, O, E> {
-    type Output = O;
-    type Error = E;
-
-    #[inline]
-    fn poll_parse(&self, input: Pin<&mut I>, cx: &mut Context<'_>) -> Poll<ParseResult<Self, I>> {
-        (**self).poll_parse(input, cx)
-    }
-}
