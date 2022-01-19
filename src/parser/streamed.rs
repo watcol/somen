@@ -23,7 +23,7 @@ pub trait StreamedParser<I: BasicInput + ?Sized> {
 
     /// The type of returned stream.
     type Stream: TryStream<Ok = Self::Output, Error = ParseError<Self::Error, I::Error>>
-        + BorrowInput<I>;
+        + BorrowMutPin<I>;
 
     /// Takes an input, returns multiple outputs with [`Stream`].
     ///
@@ -35,7 +35,7 @@ pub trait StreamedParser<I: BasicInput + ?Sized> {
     /// [`parser_stream`]: Self::parser_stream
     fn parser_stream_positioned(&self, input: &mut I) -> PositionedStream<Self::Stream, I>
     where
-        Self::Stream: BorrowInput<I>,
+        Self::Stream: BorrowMutPin<I>,
         I: Positioned,
     {
         PositionedStream::from(self.parser_stream(input))
@@ -44,9 +44,9 @@ pub trait StreamedParser<I: BasicInput + ?Sized> {
 
 /// Borrowing the input stream which should be owned by parser stream.
 ///
-pub trait BorrowInput<I: ?Sized> {
+pub trait BorrowMutPin<I: ?Sized> {
     /// Mutably borrows the pinned input stream.
-    fn borrow_mut(self: Pin<&mut Self>) -> Pin<&mut I>;
+    fn borrow_mut_pin(self: Pin<&mut Self>) -> Pin<&mut I>;
 }
 
 pin_project! {
@@ -81,7 +81,7 @@ impl<S, I: ?Sized> PositionedStream<S, I> {
 
 impl<S, I, E, F> Stream for PositionedStream<S, I>
 where
-    S: TryStream<Error = ParseError<E, F>> + BorrowInput<I>,
+    S: TryStream<Error = ParseError<E, F>> + BorrowMutPin<I>,
     I: BasicInput<Error = F> + Positioned + ?Sized,
 {
     #[allow(clippy::type_complexity)]
@@ -89,12 +89,12 @@ where
 
     fn poll_next(self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Option<Self::Item>> {
         let mut this = self.project();
-        let start = match ready!(this.inner.as_mut().borrow_mut().poll_position(cx)) {
+        let start = match ready!(this.inner.as_mut().borrow_mut_pin().poll_position(cx)) {
             Ok(s) => s,
             Err(e) => return Poll::Ready(Some(Err(ParseError::Stream(e)))),
         };
         let parsed = ready!(this.inner.as_mut().try_poll_next(cx));
-        let end = match ready!(this.inner.as_mut().borrow_mut().poll_position(cx)) {
+        let end = match ready!(this.inner.as_mut().borrow_mut_pin().poll_position(cx)) {
             Ok(s) => s,
             Err(e) => return Poll::Ready(Some(Err(ParseError::Stream(e)))),
         };
