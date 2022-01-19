@@ -1,14 +1,16 @@
 //! Basic parsers and combinators.
 
-mod future;
-use future::{ParseFuture, ParsePositionedFuture};
+pub mod streamed;
 
 mod boxed;
 pub use boxed::BoxParser;
 
+mod future;
+use future::{ParseFuture, ParsePositionedFuture};
+
 use core::pin::Pin;
 use core::task::{Context, Poll};
-use futures_core::{ready, TryStream};
+use futures_core::ready;
 
 use crate::error::{ParseError, ParseResult, PositionedError, PositionedResult};
 use crate::stream::position::Positioned;
@@ -54,23 +56,6 @@ pub trait Parser<I: BasicInput + ?Sized> {
             ParseError::Stream(e) => ParseError::Stream(e),
         }))
     }
-}
-
-/// A trait for parsers returning multiple outputs with [`Stream`].
-///
-/// [`Stream`]: futures_core::stream::Stream
-pub trait StreamedParser<I: BasicInput + ?Sized> {
-    /// The type for items of input stream.
-    type Output;
-
-    /// The error type that the stream will returns.
-    type Error;
-
-    /// The type of returned stream.
-    type Stream: TryStream<Ok = Self::Output, Error = Self::Error>;
-
-    /// Takes an input, returns multiple outputs with [`Stream`].
-    fn parser_stream(&self, input: &mut I) -> Self::Stream;
 }
 
 pub trait ParserExt<I: BasicInput + ?Sized>: Parser<I> {
