@@ -28,12 +28,12 @@ pub trait StreamedParser<I: BasicInput + ?Sized> {
     /// Takes an input, returns multiple outputs with [`Stream`].
     ///
     /// [`Stream`]: futures_core::stream::Stream
-    fn parser_stream(&self, input: &mut I) -> Self::Stream;
+    fn parser_stream(&self, input: Pin<&mut I>) -> Self::Stream;
 
     /// A positioned version of [`parser_stream`].
     ///
     /// [`parser_stream`]: Self::parser_stream
-    fn parser_stream_positioned(&self, input: &mut I) -> PositionedStream<Self::Stream, I>
+    fn parser_stream_positioned(&self, input: Pin<&mut I>) -> PositionedStream<Self::Stream, I>
     where
         Self::Stream: BorrowMutPin<I>,
         I: Positioned,
