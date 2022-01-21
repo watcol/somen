@@ -7,17 +7,17 @@ use futures_core::stream::TryStream;
 use crate::parser::Parser;
 use crate::stream::position::Positioned;
 
-/// The Result type for [`poll_parse`].
+/// The Result type for [`parse`].
 ///
-/// [`poll_parse`]: crate::parser::Parser::poll_parse
+/// [`parse`]: crate::parser::Parser::parse
 pub type ParseResult<P, I> = core::result::Result<
     <P as Parser<I>>::Output,
     ParseError<<P as Parser<I>>::Error, <I as TryStream>::Error>,
 >;
 
-/// The Result type for [`poll_parse_positioned`].
+/// The Result type for [`parse_positioned`].
 ///
-/// [`poll_parse_positioned`]: crate::parser::Parser::poll_parse_positioned
+/// [`parse_positioned`]: crate::parser::PositionedParser::parse_positioned
 pub type PositionedResult<P, I> = core::result::Result<
     <P as Parser<I>>::Output,
     ParseError<
