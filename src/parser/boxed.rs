@@ -1,9 +1,8 @@
 use core::marker::PhantomData;
 
-use super::{Parser, PositionedParser};
-use crate::error::{ParseError, ParseResult, PositionedResult};
+use super::Parser;
+use crate::error::{ParseError, ParseResult};
 use crate::stream::position::Positioned;
-use crate::stream::BasicInput;
 
 use core::future::Future;
 use futures_core::future::BoxFuture;
@@ -13,13 +12,9 @@ use alloc::boxed::Box;
 /// The boxed parsers.
 pub type BoxParser<'a, I, O, E, F> = Box<dyn Parser<I, Output = O, Error = E, Future = F> + 'a>;
 
-/// The boxed positioned parsers.
-pub type BoxPositionedParser<'a, I, O, E, F, G> =
-    Box<dyn PositionedParser<I, Output = O, Error = E, Future = F, PosFuture = G> + 'a>;
-
-impl<I: BasicInput + ?Sized, O, E, F> Parser<I> for BoxParser<'_, I, O, E, F>
+impl<I: Positioned + ?Sized, O, E, F> Parser<I> for BoxParser<'_, I, O, E, F>
 where
-    F: Future<Output = Result<O, ParseError<E, I::Error>>>,
+    F: Future<Output = Result<O, ParseError<E, I::Error, I::Position>>>,
 {
     type Output = O;
     type Error = E;
@@ -33,24 +28,22 @@ where
 
 /// A wrapper for parsers to box future objects.
 #[derive(Clone, Debug, PartialEq, Eq)]
-pub struct FutureBoxed<'a, 'b, P> {
+pub struct FutureBoxed<'a, P> {
     parser: P,
     _phantom_a: PhantomData<&'a ()>,
-    _phantom_b: PhantomData<&'b ()>,
 }
 
-impl<P> FutureBoxed<'_, '_, P> {
+impl<P> FutureBoxed<'_, P> {
     /// Creating a new instance.
     pub fn new(parser: P) -> Self {
         Self {
             parser,
             _phantom_a: PhantomData,
-            _phantom_b: PhantomData,
         }
     }
 }
 
-impl<'a, P: Parser<I>, I: BasicInput + ?Sized> Parser<I> for FutureBoxed<'a, '_, P>
+impl<'a, P: Parser<I>, I: Positioned + ?Sized> Parser<I> for FutureBoxed<'a, P>
 where
     P::Future: Send + 'a,
 {
@@ -61,19 +54,5 @@ where
     #[inline]
     fn parse(&self, input: &mut I) -> Self::Future {
         Box::pin(self.parser.parse(input))
-    }
-}
-
-impl<'a, 'b, P: PositionedParser<I>, I> PositionedParser<I> for FutureBoxed<'a, 'b, P>
-where
-    I: BasicInput + Positioned + ?Sized,
-    <P as Parser<I>>::Future: Send + 'a,
-    <P as PositionedParser<I>>::PosFuture: Send + 'b,
-{
-    type PosFuture = BoxFuture<'b, PositionedResult<Self, I>>;
-
-    #[inline]
-    fn parse_positioned(&self, input: &mut I) -> <Self as PositionedParser<I>>::PosFuture {
-        Box::pin(self.parser.parse_positioned(input))
     }
 }
