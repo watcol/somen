@@ -5,7 +5,7 @@ pub mod streamed;
 #[cfg(feature = "alloc")]
 mod boxed;
 #[cfg(feature = "alloc")]
-pub use boxed::{BoxParser, FutureBoxed};
+pub use boxed::{BoxParser, BoxPositionedParser, FutureBoxed};
 
 use core::future::Future;
 
@@ -50,10 +50,22 @@ pub trait Parser<I: BasicInput + ?Sized> {
 
 /// A trait for parsers provides errors with position informations.
 pub trait PositionedParser<I: BasicInput + Positioned + ?Sized>: Parser<I> {
-    type Future: Future<Output = PositionedResult<Self, I>>;
+    type PosFuture: Future<Output = PositionedResult<Self, I>>;
 
     /// A positioned version of [`parse`].
     ///
     /// [`parse`]: self::Parser::parse
-    fn parse_positioned(&self, input: &mut I) -> <Self as PositionedParser<I>>::Future;
+    fn parse_positioned(&self, input: &mut I) -> <Self as PositionedParser<I>>::PosFuture;
+
+    /// Wrapping the parser in a Box.
+    #[cfg(feature = "alloc")]
+    #[inline]
+    fn pos_boxed<'a>(
+        self,
+    ) -> BoxPositionedParser<'a, I, Self::Output, Self::Error, Self::Future, Self::PosFuture>
+    where
+        Self: Sized + 'a,
+    {
+        Box::new(self)
+    }
 }

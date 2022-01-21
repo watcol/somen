@@ -13,6 +13,10 @@ use alloc::boxed::Box;
 /// The boxed parsers.
 pub type BoxParser<'a, I, O, E, F> = Box<dyn Parser<I, Output = O, Error = E, Future = F> + 'a>;
 
+/// The boxed positioned parsers.
+pub type BoxPositionedParser<'a, I, O, E, F, G> =
+    Box<dyn PositionedParser<I, Output = O, Error = E, Future = F, PosFuture = G> + 'a>;
+
 impl<I: BasicInput + ?Sized, O, E, F> Parser<I> for BoxParser<'_, I, O, E, F>
 where
     F: Future<Output = Result<O, ParseError<E, I::Error>>>,
@@ -64,12 +68,12 @@ impl<'a, 'b, P: PositionedParser<I>, I> PositionedParser<I> for FutureBoxed<'a, 
 where
     I: BasicInput + Positioned + ?Sized,
     <P as Parser<I>>::Future: Send + 'a,
-    <P as PositionedParser<I>>::Future: Send + 'b,
+    <P as PositionedParser<I>>::PosFuture: Send + 'b,
 {
-    type Future = BoxFuture<'b, PositionedResult<Self, I>>;
+    type PosFuture = BoxFuture<'b, PositionedResult<Self, I>>;
 
     #[inline]
-    fn parse_positioned(&self, input: &mut I) -> <Self as PositionedParser<I>>::Future {
+    fn parse_positioned(&self, input: &mut I) -> <Self as PositionedParser<I>>::PosFuture {
         Box::pin(self.parser.parse_positioned(input))
     }
 }
