@@ -3,7 +3,7 @@ use core::future::Future;
 use core::marker::PhantomData;
 use core::pin::Pin;
 use core::task::{Context, Poll};
-use futures_core::future::BoxFuture;
+use futures_core::future::{BoxFuture, TryFuture};
 
 use super::Parser;
 use crate::error::{ParseError, ParseResult};
@@ -92,22 +92,22 @@ impl<P> ErrorBoxed<P> {
 
 pin_project_lite::pin_project! {
     #[derive(Debug)]
-    pub struct ErrorBoxedFuture<Fut, O, E, F, L> {
+    pub struct ErrorBoxedFuture<Fut, E, F, L> {
         #[pin]
         inner: Fut,
-        _phantom: PhantomData<(O, E, F, L)>,
+        _phantom: PhantomData<(E, F, L)>,
     }
 }
 
-impl<Fut, O, E, F, L> Future for ErrorBoxedFuture<Fut, O, E, F, L>
+impl<Fut, E, F, L> Future for ErrorBoxedFuture<Fut, E, F, L>
 where
-    Fut: Future<Output = ParseResult<O, E, F, L>>,
+    Fut: TryFuture<Error = ParseError<E, F, L>>,
     E: core::fmt::Display + 'static,
 {
-    type Output = ParseResult<O, Box<dyn core::fmt::Display + 'static>, F, L>;
+    type Output = ParseResult<Fut::Ok, Box<dyn core::fmt::Display + 'static>, F, L>;
 
     fn poll(self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {
-        self.project().inner.poll(cx).map_err(|err| match err {
+        self.project().inner.try_poll(cx).map_err(|err| match err {
             ParseError::Parser(e, p) => ParseError::Parser(Box::new(e) as _, p),
             ParseError::Stream(e) => ParseError::Stream(e),
         })
@@ -123,7 +123,7 @@ where
     type Output = P::Output;
     type Error = Box<dyn core::fmt::Display + 'static>;
     #[allow(clippy::type_complexity)]
-    type Future = ErrorBoxedFuture<P::Future, P::Output, P::Error, I::Error, I::Locator>;
+    type Future = ErrorBoxedFuture<P::Future, P::Error, I::Error, I::Locator>;
 
     #[inline]
     fn parse(&'parser self, input: &'input mut I) -> Self::Future {
