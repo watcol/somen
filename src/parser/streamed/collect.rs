@@ -3,7 +3,7 @@ use core::marker::PhantomData;
 use core::mem;
 use core::pin::Pin;
 use core::task::{Context, Poll};
-use futures_core::{ready, TryStream};
+use futures_core::{ready, FusedFuture, FusedStream, TryStream};
 
 use crate::parser::Parser;
 use crate::stream::Positioned;
@@ -40,6 +40,17 @@ pin_project_lite::pin_project! {
         #[pin]
         stream: S,
         collection: E,
+    }
+}
+
+impl<S, E> FusedFuture for CollectFuture<S, E>
+where
+    S: TryStream + FusedStream,
+    E: Default + Extend<S::Ok>,
+{
+    #[inline]
+    fn is_terminated(&self) -> bool {
+        self.stream.is_terminated()
     }
 }
 

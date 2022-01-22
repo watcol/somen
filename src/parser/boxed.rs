@@ -3,7 +3,7 @@ use core::future::Future;
 use core::marker::PhantomData;
 use core::pin::Pin;
 use core::task::{Context, Poll};
-use futures_core::future::{BoxFuture, TryFuture};
+use futures_core::future::{BoxFuture, FusedFuture, TryFuture};
 
 use super::Parser;
 use crate::error::{ParseError, ParseResult};
@@ -96,6 +96,17 @@ pin_project_lite::pin_project! {
         #[pin]
         inner: Fut,
         _phantom: PhantomData<(E, F, L)>,
+    }
+}
+
+impl<Fut, E, F, L> FusedFuture for ErrorBoxedFuture<Fut, E, F, L>
+where
+    Fut: TryFuture<Error = ParseError<E, F, L>> + FusedFuture,
+    E: core::fmt::Display + 'static,
+{
+    #[inline]
+    fn is_terminated(&self) -> bool {
+        self.inner.is_terminated()
     }
 }
 
