@@ -13,7 +13,7 @@ use super::StreamedParser;
 /// A parser collecting outputs from a [`StreamedParser`].
 #[derive(Debug)]
 pub struct Collect<P, E> {
-    parser: P,
+    inner: P,
     _phantom: PhantomData<E>,
 }
 
@@ -22,7 +22,7 @@ impl<P, E> Collect<P, E> {
     #[inline]
     pub fn new(parser: P) -> Self {
         Self {
-            parser,
+            inner: parser,
             _phantom: PhantomData,
         }
     }
@@ -30,7 +30,7 @@ impl<P, E> Collect<P, E> {
     /// Extracting the inner parser.
     #[inline]
     pub fn into_inner(self) -> P {
-        self.parser
+        self.inner
     }
 }
 
@@ -84,7 +84,7 @@ where
 
     fn parse(&'parser self, input: &'input mut I) -> Self::Future {
         CollectFuture {
-            stream: self.parser.parse_streamed(input),
+            stream: self.inner.parse_streamed(input),
             collection: E::default(),
         }
     }

@@ -32,7 +32,7 @@ where
 /// A wrapper for parsers to box future objects.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct FutureBoxed<'a, P> {
-    parser: P,
+    inner: P,
     _phantom: PhantomData<&'a ()>,
 }
 
@@ -41,7 +41,7 @@ impl<P> FutureBoxed<'_, P> {
     #[inline]
     pub fn new(parser: P) -> Self {
         Self {
-            parser,
+            inner: parser,
             _phantom: PhantomData,
         }
     }
@@ -49,7 +49,7 @@ impl<P> FutureBoxed<'_, P> {
     /// Extracting the inner parser.
     #[inline]
     pub fn into_inner(self) -> P {
-        self.parser
+        self.inner
     }
 }
 
@@ -66,27 +66,27 @@ where
 
     #[inline]
     fn parse(&'parser self, input: &'input mut I) -> Self::Future {
-        Box::pin(self.parser.parse(input))
+        Box::pin(self.inner.parse(input))
     }
 }
 
 /// A wrapper for parsers to box future objects.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct ErrorBoxed<P> {
-    parser: P,
+    inner: P,
 }
 
 impl<P> ErrorBoxed<P> {
     /// Creating a new instance.
     #[inline]
-    pub fn new(parser: P) -> Self {
-        Self { parser }
+    pub fn new(inner: P) -> Self {
+        Self { inner }
     }
 
     /// Extracting the inner parser.
     #[inline]
     pub fn into_inner(self) -> P {
-        self.parser
+        self.inner
     }
 }
 
@@ -139,7 +139,7 @@ where
     #[inline]
     fn parse(&'parser self, input: &'input mut I) -> Self::Future {
         ErrorBoxedFuture {
-            inner: self.parser.parse(input),
+            inner: self.inner.parse(input),
             _phantom: PhantomData,
         }
     }
