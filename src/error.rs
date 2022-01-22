@@ -2,11 +2,31 @@
 
 use core::fmt;
 use core::ops::Range;
+use futures_core::TryStream;
+
+use crate::parser::streamed::StreamedParser;
+use crate::parser::Parser;
+use crate::stream::Positioned;
 
 /// The Result type for [`parse`].
 ///
-/// [`parse`]: crate::parser::Parser::parse
-pub type ParseResult<O, E, F, L> = core::result::Result<O, ParseError<E, F, L>>;
+/// [`parse`]: crate::parser::ParserExt::parse
+pub type ParseResult<P, I> = core::result::Result<
+    <P as Parser<I>>::Output,
+    ParseError<<P as Parser<I>>::Error, <I as TryStream>::Error, <I as Positioned>::Locator>,
+>;
+
+/// The Result type for [`parse_streamed`].
+///
+/// [`parse_streamed`]: crate::parser::streamed::StreamedParser::parse_streamed
+pub type StreamedResult<P, I> = core::result::Result<
+    Option<<P as StreamedParser<I>>::Output>,
+    ParseError<
+        <P as StreamedParser<I>>::Error,
+        <I as TryStream>::Error,
+        <I as Positioned>::Locator,
+    >,
+>;
 
 /// The error type for this crate.
 #[derive(Clone, Debug, PartialEq, Eq)]

@@ -99,7 +99,7 @@ impl<S: TryStream + AsyncSeek> Rewind for SeekRewinder<S> {
         marker: Self::Marker,
     ) -> Poll<Result<(), Self::Error>> {
         self.project()
-            .stream
+            .inner
             .poll_seek(cx, SeekFrom::Start(marker))
             .map(|r| r.map(|_| ()).map_err(SeekError::Seek))
     }
