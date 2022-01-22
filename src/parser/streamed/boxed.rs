@@ -7,13 +7,13 @@ use crate::error::{ParseError, StreamedResult};
 use crate::stream::position::Positioned;
 
 /// The boxed streamed parsers.
-pub type BoxStreamedParser<'a, I, O, E> = Box<dyn StreamedParser<I, Output = O, Error = E> + 'a>;
+pub type BoxStreamedParser<'a, I, T, E> = Box<dyn StreamedParser<I, Item = T, Error = E> + 'a>;
 
-impl<I, O, E> StreamedParser<I> for BoxStreamedParser<'_, I, O, E>
+impl<I, T, E> StreamedParser<I> for BoxStreamedParser<'_, I, T, E>
 where
     I: Positioned + ?Sized,
 {
-    type Output = O;
+    type Item = T;
     type Error = E;
 
     #[inline]
@@ -52,7 +52,7 @@ where
     P::Error: core::fmt::Display + 'static,
     I: Positioned + ?Sized,
 {
-    type Output = P::Output;
+    type Item = P::Item;
     type Error = Box<dyn core::fmt::Display + 'static>;
 
     #[inline]

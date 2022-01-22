@@ -23,7 +23,7 @@ impl<'a, 'b, P: ?Sized, I: ?Sized> ParserStream<'a, 'b, P, I> {
 impl<P: StreamedParser<I> + ?Sized, I: Positioned + Unpin + ?Sized> Stream
     for ParserStream<'_, '_, P, I>
 {
-    type Item = Result<P::Output, ParseError<P::Error, I::Error, I::Locator>>;
+    type Item = Result<P::Item, ParseError<P::Error, I::Error, I::Locator>>;
 
     fn poll_next(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Option<Self::Item>> {
         let Self {

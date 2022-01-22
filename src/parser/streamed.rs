@@ -24,7 +24,7 @@ use stream::ParserStream;
 /// [`TryStream`]: futures_core::TryStream
 pub trait StreamedParser<I: Positioned + ?Sized> {
     /// The type for items of input stream.
-    type Output;
+    type Item;
 
     /// The error type that the stream will returns.
     type Error;
@@ -50,7 +50,7 @@ pub trait StreamedParserExt<I: Positioned + ?Sized>: StreamedParser<I> {
     /// Returns a [`Parser`] by collecting all the outputs.
     ///
     /// [`Parser`]: super::Parser
-    fn collect<E: Default + Extend<Self::Output>>(self) -> Collect<Self, E>
+    fn collect<E: Default + Extend<Self::Item>>(self) -> Collect<Self, E>
     where
         Self: Sized,
     {
@@ -59,7 +59,7 @@ pub trait StreamedParserExt<I: Positioned + ?Sized>: StreamedParser<I> {
 
     /// Wraps the streamed parser into a [`Box`].
     #[cfg(feature = "alloc")]
-    fn boxed<'a>(self) -> BoxStreamedParser<'a, I, Self::Output, Self::Error>
+    fn boxed<'a>(self) -> BoxStreamedParser<'a, I, Self::Item, Self::Error>
     where
         Self: Sized + 'a,
     {

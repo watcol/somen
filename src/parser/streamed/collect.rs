@@ -39,7 +39,7 @@ where
 impl<P, E, I> Parser<I> for Collect<P, E>
 where
     P: StreamedParser<I>,
-    E: Default + Extend<P::Output>,
+    E: Default + Extend<P::Item>,
     I: Positioned + ?Sized,
 {
     type Output = E;
