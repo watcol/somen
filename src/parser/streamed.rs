@@ -1,13 +1,15 @@
 //! Tools for parsers return multiple outputs.
 
-use core::pin::Pin;
+mod collected;
+pub use collected::Collected;
+
 use futures_core::stream::TryStream;
 
 use crate::error::ParseError;
 use crate::stream::position::Positioned;
 
 /// A trait for parsers return multiple outputs with [`TryStream`].
-pub trait StreamedParser<I: Positioned + ?Sized> {
+pub trait StreamedParser<'parser, 'input, I: Positioned + ?Sized> {
     /// The type for items of input stream.
     type Output;
 
@@ -18,5 +20,15 @@ pub trait StreamedParser<I: Positioned + ?Sized> {
     type Stream: TryStream<Ok = Self::Output, Error = ParseError<Self::Error, I::Error, I::Locator>>;
 
     /// Takes an input, returns multiple outputs with [`TryStream`].
-    fn parse_streamed(&self, input: Pin<&mut I>) -> Self::Stream;
+    fn parse_streamed(&'parser self, input: &'input mut I) -> Self::Stream;
+
+    /// Returns a [`Parser`] by collecting all the outputs.
+    ///
+    /// [`Parser`]: super::Parser
+    fn collected<E: Default + Extend<Self::Output>>(self) -> Collected<Self, E>
+    where
+        Self: Sized,
+    {
+        Collected::new(self)
+    }
 }
