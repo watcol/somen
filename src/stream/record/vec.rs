@@ -1,7 +1,7 @@
 use alloc::vec::Vec;
 use core::pin::Pin;
 use core::task::{Context, Poll};
-use futures_core::{ready, Stream, TryStream};
+use futures_core::{ready, FusedStream, Stream, TryStream};
 use pin_project_lite::pin_project;
 
 use crate::stream::{Positioned, Rewind};
@@ -12,20 +12,20 @@ pin_project! {
     #[derive(Debug)]
     #[cfg_attr(feature = "nightly", doc(cfg(feature = "alloc")))]
     pub struct VecRecorder<S: TryStream> {
+        #[pin]
+        inner: S,
         position: usize,
         record: Vec<S::Ok>,
-        #[pin]
-        stream: S,
     }
 }
 
 impl<S: TryStream> From<S> for VecRecorder<S> {
     #[inline]
-    fn from(stream: S) -> Self {
+    fn from(inner: S) -> Self {
         Self {
+            inner,
             position: 0,
             record: Vec::new(),
-            stream,
         }
     }
 }
@@ -40,7 +40,7 @@ impl<S: TryStream> VecRecorder<S> {
     /// Extracting the original stream.
     #[inline]
     pub fn into_inner(self) -> S {
-        self.stream
+        self.inner
     }
 
     /// Getting the reference of the vector.
@@ -62,6 +62,16 @@ impl<S: TryStream> VecRecorder<S> {
     }
 }
 
+impl<S: TryStream + FusedStream> FusedStream for VecRecorder<S>
+where
+    S::Ok: Clone,
+{
+    #[inline]
+    fn is_terminated(&self) -> bool {
+        self.inner.is_terminated()
+    }
+}
+
 impl<S: TryStream> Stream for VecRecorder<S>
 where
     S::Ok: Clone,
@@ -71,7 +81,7 @@ where
     fn poll_next(self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Option<Self::Item>> {
         let this = self.project();
         if *this.position == this.record.len() {
-            let res = ready!(this.stream.try_poll_next(cx));
+            let res = ready!(this.inner.try_poll_next(cx));
             if let Some(Ok(ref i)) = res {
                 *this.position += 1;
                 this.record.push(i.clone());
@@ -86,7 +96,7 @@ where
 
     #[inline]
     fn size_hint(&self) -> (usize, Option<usize>) {
-        (self.stream.size_hint().0, None)
+        (self.inner.size_hint().0, None)
     }
 }
 

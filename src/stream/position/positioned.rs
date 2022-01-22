@@ -1,6 +1,6 @@
 use core::pin::Pin;
 use core::task::{Context, Poll};
-use futures_core::{ready, Stream, TryStream};
+use futures_core::{ready, FusedStream, Stream, TryStream};
 use pin_project_lite::pin_project;
 
 use super::Locator;
@@ -10,18 +10,18 @@ pin_project! {
     /// Wrapping [`TryStream`], implements [`Positioned`] trait.
     #[derive(Debug)]
     pub struct PositionedStream<S, L> {
-        position: L,
         #[pin]
-        stream: S,
+        inner: S,
+        position: L,
     }
 }
 
 impl<S, L: Default> From<S> for PositionedStream<S, L> {
     #[inline]
-    fn from(stream: S) -> Self {
+    fn from(inner: S) -> Self {
         Self {
+            inner,
             position: L::default(),
-            stream,
         }
     }
 }
@@ -29,14 +29,21 @@ impl<S, L: Default> From<S> for PositionedStream<S, L> {
 impl<S, L> PositionedStream<S, L> {
     /// Creating a new instance.
     #[inline]
-    pub fn new(stream: S, position: L) -> Self {
-        Self { position, stream }
+    pub fn new(inner: S, position: L) -> Self {
+        Self { inner, position }
     }
 
     /// Extracting the original stream.
     #[inline]
     pub fn into_inner(self) -> S {
-        self.stream
+        self.inner
+    }
+}
+
+impl<S: TryStream + FusedStream, L: Locator<S::Ok>> FusedStream for PositionedStream<S, L> {
+    #[inline]
+    fn is_terminated(&self) -> bool {
+        self.inner.is_terminated()
     }
 }
 
@@ -45,7 +52,7 @@ impl<S: TryStream, L: Locator<S::Ok>> Stream for PositionedStream<S, L> {
 
     fn poll_next(self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Option<Self::Item>> {
         let this = self.project();
-        let res = ready!(this.stream.try_poll_next(cx));
+        let res = ready!(this.inner.try_poll_next(cx));
         if let Some(Ok(ref c)) = res {
             this.position.next(c);
         }
@@ -54,7 +61,7 @@ impl<S: TryStream, L: Locator<S::Ok>> Stream for PositionedStream<S, L> {
 
     #[inline]
     fn size_hint(&self) -> (usize, Option<usize>) {
-        self.stream.size_hint()
+        self.inner.size_hint()
     }
 }
 
@@ -75,7 +82,7 @@ impl<S: Rewind, L: Locator<S::Ok>> Rewind for PositionedStream<S, L> {
         self: Pin<&mut Self>,
         cx: &mut Context<'_>,
     ) -> Poll<Result<Self::Marker, Self::Error>> {
-        self.project().stream.poll_mark(cx)
+        self.project().inner.poll_mark(cx)
     }
 
     #[inline]
@@ -84,6 +91,6 @@ impl<S: Rewind, L: Locator<S::Ok>> Rewind for PositionedStream<S, L> {
         cx: &mut Context<'_>,
         marker: Self::Marker,
     ) -> Poll<Result<(), Self::Error>> {
-        self.project().stream.poll_rewind(cx, marker)
+        self.project().inner.poll_rewind(cx, marker)
     }
 }

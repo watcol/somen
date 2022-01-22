@@ -1,7 +1,7 @@
 use core::convert::Infallible;
 use core::pin::Pin;
 use core::task::{Context, Poll};
-use futures_core::Stream;
+use futures_core::{FusedStream, Stream};
 use pin_project_lite::pin_project;
 
 pin_project! {
@@ -13,14 +13,14 @@ pin_project! {
     #[derive(Debug)]
     pub struct InfallibleStream<S> {
         #[pin]
-        stream: S,
+        inner: S,
     }
 }
 
 impl<S: Stream> From<S> for InfallibleStream<S> {
     #[inline]
     fn from(stream: S) -> Self {
-        Self { stream }
+        Self { inner: stream }
     }
 }
 
@@ -34,7 +34,14 @@ impl<S: Stream> InfallibleStream<S> {
     /// Extracting the original stream.
     #[inline]
     pub fn into_inner(self) -> S {
-        self.stream
+        self.inner
+    }
+}
+
+impl<S: FusedStream> FusedStream for InfallibleStream<S> {
+    #[inline]
+    fn is_terminated(&self) -> bool {
+        self.inner.is_terminated()
     }
 }
 
@@ -43,11 +50,11 @@ impl<S: Stream> Stream for InfallibleStream<S> {
 
     #[inline]
     fn poll_next(self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Option<Self::Item>> {
-        self.project().stream.poll_next(cx).map(|i| i.map(Ok))
+        self.project().inner.poll_next(cx).map(|i| i.map(Ok))
     }
 
     #[inline]
     fn size_hint(&self) -> (usize, Option<usize>) {
-        self.stream.size_hint()
+        self.inner.size_hint()
     }
 }

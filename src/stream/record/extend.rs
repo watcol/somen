@@ -1,6 +1,6 @@
 use core::pin::Pin;
 use core::task::{Context, Poll};
-use futures_core::{ready, Stream, TryStream};
+use futures_core::{ready, FusedStream, Stream, TryStream};
 use pin_project_lite::pin_project;
 
 use crate::stream::Positioned;
@@ -10,7 +10,7 @@ pin_project! {
     #[derive(Debug)]
     pub struct ExtendRecorder<'a, S: TryStream, E: ?Sized> {
         #[pin]
-        stream: S,
+        inner: S,
         output: &'a mut E,
     }
 }
@@ -18,14 +18,24 @@ pin_project! {
 impl<'a, S: TryStream, E: ?Sized> ExtendRecorder<'a, S, E> {
     /// Creating a new instance.
     #[inline]
-    pub fn new(stream: S, output: &'a mut E) -> Self {
-        Self { stream, output }
+    pub fn new(inner: S, output: &'a mut E) -> Self {
+        Self { inner, output }
     }
 
     /// Extracting the original stream.
     #[inline]
     pub fn into_inner(self) -> S {
-        self.stream
+        self.inner
+    }
+}
+
+impl<S: TryStream + FusedStream, E: Extend<S::Ok> + ?Sized> FusedStream for ExtendRecorder<'_, S, E>
+where
+    S::Ok: Clone,
+{
+    #[inline]
+    fn is_terminated(&self) -> bool {
+        self.inner.is_terminated()
     }
 }
 
@@ -37,7 +47,7 @@ where
 
     fn poll_next(self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Option<Self::Item>> {
         let this = self.project();
-        let res = ready!(this.stream.try_poll_next(cx));
+        let res = ready!(this.inner.try_poll_next(cx));
         if let Some(Ok(ref i)) = res {
             this.output.extend(Some(i.clone()));
         }
@@ -46,7 +56,7 @@ where
 
     #[inline]
     fn size_hint(&self) -> (usize, Option<usize>) {
-        self.stream.size_hint()
+        self.inner.size_hint()
     }
 }
 
@@ -58,6 +68,6 @@ where
 
     #[inline]
     fn position(&self) -> Self::Locator {
-        self.stream.position()
+        self.inner.position()
     }
 }

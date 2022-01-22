@@ -4,7 +4,7 @@ pub use error::SeekError;
 
 use core::pin::Pin;
 use core::task::{Context, Poll};
-use futures_core::{Stream, TryStream};
+use futures_core::{FusedStream, Stream, TryStream};
 use futures_io::{AsyncSeek, SeekFrom};
 use pin_project_lite::pin_project;
 
@@ -20,28 +20,35 @@ pin_project! {
     #[cfg_attr(feature = "nightly", doc(cfg(feature = "std")))]
     pub struct SeekRewinder<S> {
         #[pin]
-        stream: S,
+        inner: S,
     }
 }
 
 impl<S: TryStream + AsyncSeek> From<S> for SeekRewinder<S> {
     #[inline]
-    fn from(stream: S) -> Self {
-        Self { stream }
+    fn from(inner: S) -> Self {
+        Self { inner }
     }
 }
 
 impl<S: TryStream + AsyncSeek> SeekRewinder<S> {
     /// Creating a new instance.
     #[inline]
-    pub fn new(stream: S) -> Self {
-        Self::from(stream)
+    pub fn new(inner: S) -> Self {
+        Self::from(inner)
     }
 
     /// Extracting the original stream.
     #[inline]
     pub fn into_inner(self) -> S {
-        self.stream
+        self.inner
+    }
+}
+
+impl<S: TryStream + FusedStream> FusedStream for SeekRewinder<S> {
+    #[inline]
+    fn is_terminated(&self) -> bool {
+        self.inner.is_terminated()
     }
 }
 
@@ -51,14 +58,14 @@ impl<S: TryStream> Stream for SeekRewinder<S> {
     #[inline]
     fn poll_next(self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Option<Self::Item>> {
         self.project()
-            .stream
+            .inner
             .try_poll_next(cx)
             .map(|o| o.map(|r| r.map_err(SeekError::Stream)))
     }
 
     #[inline]
     fn size_hint(&self) -> (usize, Option<usize>) {
-        (self.stream.size_hint().0, None)
+        (self.inner.size_hint().0, None)
     }
 }
 
@@ -67,7 +74,7 @@ impl<S: Positioned> Positioned for SeekRewinder<S> {
 
     #[inline]
     fn position(&self) -> Self::Locator {
-        self.stream.position()
+        self.inner.position()
     }
 }
 
@@ -80,7 +87,7 @@ impl<S: TryStream + AsyncSeek> Rewind for SeekRewinder<S> {
         cx: &mut Context<'_>,
     ) -> Poll<Result<Self::Marker, Self::Error>> {
         self.project()
-            .stream
+            .inner
             .poll_seek(cx, SeekFrom::Current(0))
             .map(|r| r.map_err(SeekError::Seek))
     }

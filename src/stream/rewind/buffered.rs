@@ -6,7 +6,7 @@ use alloc::collections::VecDeque;
 use alloc::vec::Vec;
 use core::pin::Pin;
 use core::task::{Context, Poll};
-use futures_core::{ready, Stream, TryStream};
+use futures_core::{ready, FusedStream, Stream, TryStream};
 use pin_project_lite::pin_project;
 
 use crate::stream::{Positioned, Rewind};
@@ -21,24 +21,24 @@ pin_project! {
     #[derive(Debug)]
     #[cfg_attr(feature = "nightly", doc(cfg(feature = "alloc")))]
     pub struct BufferedRewinder<S: TryStream> {
+        #[pin]
+        inner: S,
         position: usize,
         buffer: VecDeque<S::Ok>,
         buffer_offset: usize,
         markers: Vec<usize>,
-        #[pin]
-        stream: S,
     }
 }
 
 impl<S: TryStream> From<S> for BufferedRewinder<S> {
     #[inline]
-    fn from(stream: S) -> Self {
+    fn from(inner: S) -> Self {
         Self {
+            inner,
             position: 0,
             buffer: VecDeque::new(),
             buffer_offset: 0,
             markers: Vec::new(),
-            stream,
         }
     }
 }
@@ -46,14 +46,24 @@ impl<S: TryStream> From<S> for BufferedRewinder<S> {
 impl<S: TryStream> BufferedRewinder<S> {
     /// Creating a new instance.
     #[inline]
-    pub fn new(stream: S) -> Self {
-        Self::from(stream)
+    pub fn new(inner: S) -> Self {
+        Self::from(inner)
     }
 
     /// Extracting the original stream.
     #[inline]
     pub fn into_inner(self) -> S {
-        self.stream
+        self.inner
+    }
+}
+
+impl<S: TryStream + FusedStream> FusedStream for BufferedRewinder<S>
+where
+    S::Ok: Clone,
+{
+    #[inline]
+    fn is_terminated(&self) -> bool {
+        self.inner.is_terminated()
     }
 }
 
@@ -67,7 +77,7 @@ where
         let this = self.project();
         if *this.position == *this.buffer_offset + this.buffer.len() {
             let res =
-                ready!(this.stream.try_poll_next(cx)).map(|r| r.map_err(BufferedError::Stream));
+                ready!(this.inner.try_poll_next(cx)).map(|r| r.map_err(BufferedError::Stream));
             if let Some(Ok(ref i)) = res {
                 *this.position += 1;
                 if !this.markers.is_empty() {
@@ -89,7 +99,7 @@ where
 
     #[inline]
     fn size_hint(&self) -> (usize, Option<usize>) {
-        (self.stream.size_hint().0, None)
+        (self.inner.size_hint().0, None)
     }
 }
 
