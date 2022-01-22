@@ -1,16 +1,15 @@
-use crate::stream::{Positioned, Rewind};
 use core::convert::Infallible;
 use core::pin::Pin;
 use core::task::{Context, Poll};
 use futures_core::Stream;
 use pin_project_lite::pin_project;
 
+use crate::stream::{Positioned, Rewind};
+
 pin_project! {
     /// Wrapping slices, implements [`TryStream`], [`Positioned`] and [`Rewind`] trait.
     ///
     /// [`TryStream`]: futures_core::stream::TryStream
-    /// [`Positioned`]: crate::stream::position::Positioned
-    /// [`Rewind`]: crate::stream::rewind::Rewind
     #[derive(Debug)]
     pub struct SliceStream<'a, T> {
         position: usize,

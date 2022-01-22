@@ -1,18 +1,14 @@
-use crate::stream::{Positioned, Rewind};
 use alloc::vec::Vec;
 use core::pin::Pin;
 use core::task::{Context, Poll};
 use futures_core::{ready, Stream, TryStream};
 use pin_project_lite::pin_project;
 
+use crate::stream::{Positioned, Rewind};
+
 pin_project! {
     /// Wrapping [`TryStream`],  implements [`Positioned`] and [`Rewind`] trait by storing
     /// the stream outputs to [`Vec`].
-    ///
-    /// [`TryStream`]: futures_core::stream::TryStream
-    /// [`Positioned`]: crate::stream::position::Positioned
-    /// [`Rewind`]: crate::stream::rewind::Rewind
-    /// [`Vec`]: alloc::vec::Vec
     #[derive(Debug)]
     #[cfg_attr(feature = "nightly", doc(cfg(feature = "alloc")))]
     pub struct VecRecorder<S: TryStream> {

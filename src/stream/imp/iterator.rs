@@ -6,9 +6,14 @@ use pin_project_lite::pin_project;
 pin_project! {
     /// Wrapping [`Iterator`], implements [`Stream`].
     ///
-    /// [`Iterator`]: core::iter::Iterator
-    /// [`Stream`]: futures_core::stream::Stream
+    /// ### Note
+    /// The returned stream is not a [`TryStream`], you should combinate it with
+    /// [`InfallibleStream`]. An utility function [`from_iter`] will automatically
+    /// do this.
+    ///
+    /// [`TryStream`]: futures_core::TryStream
     /// [`InfallibleStream`]: crate::stream::InfallibleStream
+    /// [`from_iter`]: crate::stream::from_iter
     #[derive(Debug)]
     pub struct IteratorStream<I> {
         iter: I,

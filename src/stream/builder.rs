@@ -1,20 +1,20 @@
 use futures_core::{Stream, TryStream};
-
-#[cfg(feature = "std")]
-use super::rewind::SeekRewinder;
-#[cfg(feature = "std")]
-use super::ReaderStream;
 #[cfg(feature = "std")]
 use futures_io::{AsyncRead, AsyncSeek};
+
+use super::position::{Locator, PositionedStream};
+use super::record::ExtendRecorder;
+use super::{InfallibleStream, IteratorStream, SliceStream};
 
 #[cfg(feature = "alloc")]
 use super::record::VecRecorder;
 #[cfg(feature = "alloc")]
 use super::rewind::BufferedRewinder;
 
-use super::position::{Locator, PositionedStream};
-use super::record::ExtendRecorder;
-use super::{InfallibleStream, IteratorStream, SliceStream};
+#[cfg(feature = "std")]
+use super::rewind::SeekRewinder;
+#[cfg(feature = "std")]
+use super::ReaderStream;
 
 /// An utility trait to build a stream from various type.
 pub trait StreamBuilder: TryStream {
@@ -175,7 +175,6 @@ pub trait StreamBuilder: TryStream {
     ///
     /// [`Positioned`]: crate::stream::position::Positioned
     /// [`Rewind`]: crate::stream::rewind::Rewind
-    /// [`AsyncSeek`]: futures_io::AsyncSeek
     #[cfg(feature = "std")]
     #[cfg_attr(feature = "nightly", doc(cfg(feature = "std")))]
     #[inline]
@@ -283,9 +282,6 @@ impl<T: TryStream> StreamBuilder for T {}
 /// assert_eq!(stream.try_next().await, Ok(None));
 /// # });
 /// ```
-///
-/// [`Stream`]: futures_core::stream::Stream
-/// [`TryStream`]: futures_core::stream::TryStream
 #[inline]
 pub fn from_stream<S: Stream>(stream: S) -> InfallibleStream<S> {
     InfallibleStream::from(stream)
@@ -303,9 +299,6 @@ pub fn from_stream<S: Stream>(stream: S) -> InfallibleStream<S> {
 /// assert_eq!(stream.try_next().await, Err("foo"));
 /// # });
 /// ```
-///
-/// [`Iterator`]: core::iter::Iterator
-/// [`TryStream`]: futures_core::stream::TryStream
 #[inline]
 pub fn from_try_iter<I, T, E>(iter: I) -> IteratorStream<I::IntoIter>
 where
@@ -326,9 +319,6 @@ where
 /// assert_eq!(stream.try_next().await, Ok(None));
 /// # });
 /// ```
-///
-/// [`Iterator`]: core::iter::Iterator
-/// [`TryStream`]: futures_core::stream::TryStream
 #[inline]
 pub fn from_iter<I: IntoIterator>(iter: I) -> InfallibleStream<IteratorStream<I::IntoIter>> {
     InfallibleStream::from(IteratorStream::from(iter.into_iter()))
@@ -349,9 +339,6 @@ pub fn from_iter<I: IntoIterator>(iter: I) -> InfallibleStream<IteratorStream<I:
 /// assert_eq!(stream.try_next().await.unwrap(), None);
 /// # });
 /// ```
-///
-/// [`AsyncRead`]: futures_io::AsyncRead
-/// [`TryStream`]: futures_core::stream::TryStream
 #[cfg(feature = "std")]
 #[cfg_attr(feature = "nightly", doc(cfg(feature = "std")))]
 #[inline]
@@ -374,7 +361,6 @@ pub fn from_reader<R: AsyncRead>(reader: R) -> ReaderStream<R> {
 /// # });
 /// ```
 ///
-/// [`TryStream`]: futures_core::stream::TryStream
 /// [`Positioned`]: crate::stream::position::Positioned
 /// [`Rewind`]: crate::stream::rewind::Rewind
 #[inline]

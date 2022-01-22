@@ -1,7 +1,8 @@
-use super::Rewind;
 use core::future::Future;
 use core::pin::Pin;
 use core::task::{Context, Poll};
+
+use super::Rewind;
 
 pub struct MarkFuture<'a, P: ?Sized>(&'a mut P);
 

@@ -1,12 +1,11 @@
 //! Rewinding streams.
 
-mod future;
-use future::{MarkFuture, RewindFuture};
-
 #[cfg(feature = "alloc")]
 mod buffered;
+mod future;
 #[cfg(feature = "std")]
 mod seek;
+
 #[cfg(feature = "alloc")]
 pub use buffered::{BufferedError, BufferedRewinder};
 #[cfg(feature = "std")]
@@ -15,6 +14,8 @@ pub use seek::{SeekError, SeekRewinder};
 use core::pin::Pin;
 use core::task::{Context, Poll};
 use futures_core::TryStream;
+
+use future::{MarkFuture, RewindFuture};
 
 /// A stream that can mark current position, and rewind its position to the mark.
 pub trait Rewind: TryStream {
@@ -38,7 +39,7 @@ pub trait Rewind: TryStream {
 
     /// An asynchronous version of [`poll_mark`], which returns a [`Future`] object.
     ///
-    /// [`poll_mark`]: crate::stream::rewind::Rewind::poll_mark
+    /// [`poll_mark`]: Self::poll_mark
     /// [`Future`]: core::future::Future
     #[inline]
     fn mark(&mut self) -> MarkFuture<'_, Self>
@@ -50,7 +51,7 @@ pub trait Rewind: TryStream {
 
     /// An asynchronous version of [`poll_rewind`], which returns a [`Future`] object.
     ///
-    /// [`poll_rewind`]: crate::stream::rewind::Rewind::poll_rewind
+    /// [`poll_rewind`]: Self::poll_rewind
     /// [`Future`]: core::future::Future
     #[inline]
     fn rewind(&mut self, marker: Self::Marker) -> RewindFuture<'_, Self>

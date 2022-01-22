@@ -35,6 +35,7 @@ locator_impl! { usize }
 
 /// A locator for streams of [`char`]s, indicates line and column index.
 ///
+/// ### Note
 /// The index starts with `1`, and only `\n` will be treated as a newline character.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct LineCol {

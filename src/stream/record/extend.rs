@@ -1,14 +1,12 @@
-use crate::stream::Positioned;
 use core::pin::Pin;
 use core::task::{Context, Poll};
 use futures_core::{ready, Stream, TryStream};
 use pin_project_lite::pin_project;
 
+use crate::stream::Positioned;
+
 pin_project! {
     /// Wrapping [`TryStream`], storing the stream outputs to any types implementing [`Extend`].
-    ///
-    /// [`TryStream`]: futures_core::stream::TryStream
-    /// [`Extend`]: core::iter::Extend
     #[derive(Debug)]
     pub struct ExtendRecorder<'a, S: TryStream, E: ?Sized> {
         #[pin]

@@ -1,13 +1,11 @@
+use alloc::boxed::Box;
+use core::future::Future;
 use core::marker::PhantomData;
+use futures_core::future::BoxFuture;
 
 use super::Parser;
 use crate::error::{ParseError, ParseResult};
 use crate::stream::position::Positioned;
-
-use core::future::Future;
-use futures_core::future::BoxFuture;
-
-use alloc::boxed::Box;
 
 /// The boxed parsers.
 pub type BoxParser<'a, I, O, E, F> = Box<dyn Parser<I, Output = O, Error = E, Future = F> + 'a>;

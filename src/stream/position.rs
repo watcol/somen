@@ -1,10 +1,10 @@
 //! Positioning streams.
 
-mod positioned;
-pub use positioned::PositionedStream;
-
 mod locator;
+mod positioned;
+
 pub use locator::{LineCol, Locator};
+pub use positioned::PositionedStream;
 
 use futures_core::TryStream;
 

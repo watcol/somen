@@ -1,12 +1,14 @@
 mod error;
+
 pub use error::SeekError;
 
-use crate::stream::{Positioned, Rewind};
 use core::pin::Pin;
 use core::task::{Context, Poll};
 use futures_core::{Stream, TryStream};
 use futures_io::{AsyncSeek, SeekFrom};
 use pin_project_lite::pin_project;
+
+use crate::stream::{Positioned, Rewind};
 
 pin_project! {
     /// Wrapping [`AsyncSeek`], implements [`Positioned`] and [`Rewind`] trait.

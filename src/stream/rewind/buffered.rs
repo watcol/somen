@@ -1,13 +1,15 @@
 mod error;
+
 pub use error::BufferedError;
 
-use crate::stream::{Positioned, Rewind};
 use alloc::collections::VecDeque;
 use alloc::vec::Vec;
 use core::pin::Pin;
 use core::task::{Context, Poll};
 use futures_core::{ready, Stream, TryStream};
 use pin_project_lite::pin_project;
+
+use crate::stream::{Positioned, Rewind};
 
 pin_project! {
     /// Wrapping [`TryStream`],  implements [`Positioned`] and [`Rewind`] trait by storing

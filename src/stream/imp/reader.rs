@@ -7,7 +7,6 @@ use pin_project_lite::pin_project;
 pin_project! {
     /// Wrapping [`AsyncRead`], implements [`TryStream`] trait.
     ///
-    /// [`AsyncRead`]: futures_io::AsyncRead
     /// [`TryStream`]: futures_core::stream::TryStream
     #[derive(Debug)]
     #[cfg_attr(feature = "nightly", doc(cfg(feature = "std")))]

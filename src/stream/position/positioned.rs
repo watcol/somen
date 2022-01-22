@@ -8,9 +8,6 @@ use crate::stream::{Positioned, Rewind};
 
 pin_project! {
     /// Wrapping [`TryStream`], implements [`Positioned`] trait.
-    ///
-    /// [`TryStream`]: futures_core::stream::TryStream
-    /// [`Positioned`]: crate::stream::position::Positioned
     #[derive(Debug)]
     pub struct PositionedStream<S, L> {
         position: L,
