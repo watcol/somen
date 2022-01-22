@@ -28,19 +28,19 @@ pub trait StreamBuilder: TryStream {
     ///
     /// let mut stream = somen::stream::from_slice(b"abc").positioned::<usize>();
     /// // Initial position is 0.
-    /// assert_eq!(stream.position().await, Ok(0));
+    /// assert_eq!(stream.position(), 0);
     ///
     /// assert_eq!(stream.try_next().await.unwrap(), Some(b'a'));
     /// assert_eq!(stream.try_next().await.unwrap(), Some(b'b'));
     /// assert_eq!(stream.try_next().await.unwrap(), Some(b'c'));
     ///
     /// // The position incremented.
-    /// assert_eq!(stream.position().await, Ok(3));
+    /// assert_eq!(stream.position(), 3);
     ///
     /// assert_eq!(stream.try_next().await.unwrap(), None);
     ///
     /// // The position will not be incremented if the stream have already ended.
-    /// assert_eq!(stream.position().await, Ok(3));
+    /// assert_eq!(stream.position(), 3);
     /// # });
     /// ```
     ///
@@ -64,19 +64,19 @@ pub trait StreamBuilder: TryStream {
     ///
     /// let mut stream = somen::stream::from_slice(b"abc").positioned_by(1i32);
     /// // Initial position is 0.
-    /// assert_eq!(stream.position().await, Ok(1));
+    /// assert_eq!(stream.position(), 1);
     ///
     /// assert_eq!(stream.try_next().await.unwrap(), Some(b'a'));
     /// assert_eq!(stream.try_next().await.unwrap(), Some(b'b'));
     /// assert_eq!(stream.try_next().await.unwrap(), Some(b'c'));
     ///
     /// // The position incremented.
-    /// assert_eq!(stream.position().await, Ok(4));
+    /// assert_eq!(stream.position(), 4);
     ///
     /// assert_eq!(stream.try_next().await.unwrap(), None);
     ///
     /// // The position will not be incremented if the stream have already ended.
-    /// assert_eq!(stream.position().await, Ok(4));
+    /// assert_eq!(stream.position(), 4);
     /// # });
     /// ```
     ///
@@ -105,23 +105,23 @@ pub trait StreamBuilder: TryStream {
     ///
     /// let marker = stream.mark().await.unwrap();
     ///
-    /// assert_eq!(stream.position().await.unwrap(), 1);
+    /// assert_eq!(stream.position(), 1);
     ///
     /// assert_eq!(stream.try_next().await.unwrap(), Some(b'b'));
     /// assert_eq!(stream.try_next().await.unwrap(), Some(b'c'));
     /// assert_eq!(stream.try_next().await.unwrap(), None);
     ///
-    /// assert_eq!(stream.position().await.unwrap(), 3);
+    /// assert_eq!(stream.position(), 3);
     ///
     /// stream.rewind(marker).await.unwrap();
     ///
-    /// assert_eq!(stream.position().await.unwrap(), 1);
+    /// assert_eq!(stream.position(), 1);
     ///
     /// assert_eq!(stream.try_next().await.unwrap(), Some(b'b'));
     /// assert_eq!(stream.try_next().await.unwrap(), Some(b'c'));
     /// assert_eq!(stream.try_next().await.unwrap(), None);
     ///
-    /// assert_eq!(stream.position().await.unwrap(), 3);
+    /// assert_eq!(stream.position(), 3);
     /// # });
     /// ```
     ///
@@ -137,12 +137,12 @@ pub trait StreamBuilder: TryStream {
         BufferedRewinder::from(self)
     }
 
-    /// Implement [`Positioned`] and [`Rewind`] using [`AsyncSeek`] trait.
+    /// Implement [`Rewind`] using [`AsyncSeek`] trait.
     ///
     /// # Examples
     /// ```
     /// # futures::executor::block_on(async {
-    /// use somen::stream::{StreamBuilder, position::Positioned, rewind::Rewind};
+    /// use somen::stream::{StreamBuilder, rewind::Rewind};
     /// use futures::stream::TryStreamExt;
     /// use futures::io::Cursor;
     ///
@@ -153,27 +153,18 @@ pub trait StreamBuilder: TryStream {
     ///
     /// let marker = stream.mark().await.unwrap();
     ///
-    /// assert_eq!(stream.position().await.unwrap(), 1);
-    ///
     /// assert_eq!(stream.try_next().await.unwrap(), Some(b'b'));
     /// assert_eq!(stream.try_next().await.unwrap(), Some(b'c'));
     /// assert_eq!(stream.try_next().await.unwrap(), None);
-    ///
-    /// assert_eq!(stream.position().await.unwrap(), 3);
     ///
     /// stream.rewind(marker).await.unwrap();
     ///
-    /// assert_eq!(stream.position().await.unwrap(), 1);
-    ///
     /// assert_eq!(stream.try_next().await.unwrap(), Some(b'b'));
     /// assert_eq!(stream.try_next().await.unwrap(), Some(b'c'));
     /// assert_eq!(stream.try_next().await.unwrap(), None);
-    ///
-    /// assert_eq!(stream.position().await.unwrap(), 3);
     /// # });
     /// ```
     ///
-    /// [`Positioned`]: crate::stream::position::Positioned
     /// [`Rewind`]: crate::stream::rewind::Rewind
     #[cfg(feature = "std")]
     #[cfg_attr(feature = "nightly", doc(cfg(feature = "std")))]
@@ -200,23 +191,23 @@ pub trait StreamBuilder: TryStream {
     ///
     /// let marker = stream.mark().await.unwrap();
     ///
-    /// assert_eq!(stream.position().await.unwrap(), 1);
+    /// assert_eq!(stream.position(), 1);
     ///
     /// assert_eq!(stream.try_next().await.unwrap(), Some(b'b'));
     /// assert_eq!(stream.try_next().await.unwrap(), Some(b'c'));
     /// assert_eq!(stream.try_next().await.unwrap(), None);
     ///
-    /// assert_eq!(stream.position().await.unwrap(), 3);
+    /// assert_eq!(stream.position(), 3);
     ///
     /// stream.rewind(marker).await.unwrap();
     ///
-    /// assert_eq!(stream.position().await.unwrap(), 1);
+    /// assert_eq!(stream.position(), 1);
     ///
     /// assert_eq!(stream.try_next().await.unwrap(), Some(b'b'));
     /// assert_eq!(stream.try_next().await.unwrap(), Some(b'c'));
     /// assert_eq!(stream.try_next().await.unwrap(), None);
     ///
-    /// assert_eq!(stream.position().await.unwrap(), 3);
+    /// assert_eq!(stream.position(), 3);
     ///
     /// assert_eq!(stream.into_vec(), b"abc".to_vec());
     /// # });
