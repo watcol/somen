@@ -1,7 +1,7 @@
 //! Tools for parsers return multiple outputs.
 
-mod collected;
-pub use collected::Collected;
+mod collect;
+pub use collect::Collect;
 
 use futures_core::stream::TryStream;
 
@@ -25,10 +25,10 @@ pub trait StreamedParser<'parser, 'input, I: Positioned + ?Sized> {
     /// Returns a [`Parser`] by collecting all the outputs.
     ///
     /// [`Parser`]: super::Parser
-    fn collected<E: Default + Extend<Self::Output>>(self) -> Collected<Self, E>
+    fn collect<E: Default + Extend<Self::Output>>(self) -> Collect<Self, E>
     where
         Self: Sized,
     {
-        Collected::new(self)
+        Collect::new(self)
     }
 }

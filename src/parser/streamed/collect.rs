@@ -10,14 +10,14 @@ use crate::stream::Positioned;
 
 use super::StreamedParser;
 
-/// A parser collecting outputs of [`StreamedParser`].
+/// A parser collecting outputs from a [`StreamedParser`].
 #[derive(Debug)]
-pub struct Collected<P, E> {
+pub struct Collect<P, E> {
     parser: P,
     _phantom: PhantomData<E>,
 }
 
-impl<P, E> Collected<P, E> {
+impl<P, E> Collect<P, E> {
     /// Creating a new instance.
     #[inline]
     pub fn new(parser: P) -> Self {
@@ -36,14 +36,14 @@ impl<P, E> Collected<P, E> {
 
 pin_project_lite::pin_project! {
     #[derive(Debug)]
-    pub struct CollectedFuture<S, E> {
+    pub struct CollectFuture<S, E> {
         #[pin]
         stream: S,
         collection: E,
     }
 }
 
-impl<S, E> Future for CollectedFuture<S, E>
+impl<S, E> Future for CollectFuture<S, E>
 where
     S: TryStream,
     E: Default + Extend<S::Ok>,
@@ -61,7 +61,7 @@ where
     }
 }
 
-impl<'parser, 'input, P, E, I> Parser<'parser, 'input, I> for Collected<P, E>
+impl<'parser, 'input, P, E, I> Parser<'parser, 'input, I> for Collect<P, E>
 where
     P: StreamedParser<'parser, 'input, I>,
     E: Default + Extend<P::Output>,
@@ -69,10 +69,10 @@ where
 {
     type Output = E;
     type Error = P::Error;
-    type Future = CollectedFuture<P::Stream, E>;
+    type Future = CollectFuture<P::Stream, E>;
 
     fn parse(&'parser self, input: &'input mut I) -> Self::Future {
-        CollectedFuture {
+        CollectFuture {
             stream: self.parser.parse_streamed(input),
             collection: E::default(),
         }
