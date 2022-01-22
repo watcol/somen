@@ -42,7 +42,7 @@ pub trait StreamedParserExt<I: Positioned + ?Sized>: StreamedParser<I> {
     /// Returning a [`TryStream`] by invoking [`poll_parse_next`].
     ///
     /// [`TryStream`]: futures_core::TryStream
-    /// [`poll_parse_next`]: Self::poll_parse_next
+    /// [`poll_parse_next`]: self::StreamedParser::poll_parse_next
     fn parse_streamed<'a, 'b>(&'a mut self, input: &'b mut I) -> ParserStream<'a, 'b, Self, I> {
         ParserStream::new(self, input)
     }

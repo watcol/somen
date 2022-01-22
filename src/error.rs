@@ -18,7 +18,7 @@ pub type ParseResult<P, I> = core::result::Result<
 
 /// The Result type for [`parse_streamed`].
 ///
-/// [`parse_streamed`]: crate::parser::streamed::StreamedParser::parse_streamed
+/// [`parse_streamed`]: crate::parser::streamed::StreamedParserExt::parse_streamed
 pub type StreamedResult<P, I> = core::result::Result<
     Option<<P as StreamedParser<I>>::Output>,
     ParseError<
