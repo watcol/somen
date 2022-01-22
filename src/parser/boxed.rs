@@ -14,7 +14,7 @@ pub type BoxParser<'a, I, O, E, F> = Box<dyn Parser<I, Output = O, Error = E, Fu
 
 impl<I: Positioned + ?Sized, O, E, F> Parser<I> for BoxParser<'_, I, O, E, F>
 where
-    F: Future<Output = Result<O, ParseError<E, I::Error, I::Position>>>,
+    F: Future<Output = Result<O, ParseError<E, I::Error, I::Locator>>>,
 {
     type Output = O;
     type Error = E;

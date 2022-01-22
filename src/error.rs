@@ -12,19 +12,19 @@ use crate::stream::position::Positioned;
 /// [`parse`]: crate::parser::Parser::parse
 pub type ParseResult<P, I> = core::result::Result<
     <P as Parser<I>>::Output,
-    ParseError<<P as Parser<I>>::Error, <I as TryStream>::Error, <I as Positioned>::Position>,
+    ParseError<<P as Parser<I>>::Error, <I as TryStream>::Error, <I as Positioned>::Locator>,
 >;
 
 /// The error type for this crate.
 #[derive(Clone, Debug, PartialEq, Eq)]
-pub enum ParseError<E, F, P> {
+pub enum ParseError<E, F, L> {
     /// A parsing error. (with position)
-    Parser(E, Range<P>),
+    Parser(E, Range<L>),
     /// An error while reading streams.
     Stream(F),
 }
 
-impl<E: fmt::Display, F: fmt::Display, P> fmt::Display for ParseError<E, F, P> {
+impl<E: fmt::Display, F: fmt::Display, L> fmt::Display for ParseError<E, F, L> {
     #[inline]
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {

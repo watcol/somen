@@ -56,13 +56,10 @@ impl<S: Positioned, E: Extend<S::Ok> + ?Sized> Positioned for ExtendRecorder<'_,
 where
     S::Ok: Clone,
 {
-    type Position = S::Position;
+    type Locator = S::Locator;
 
     #[inline]
-    fn poll_position(
-        self: Pin<&mut Self>,
-        cx: &mut Context<'_>,
-    ) -> Poll<Result<Self::Position, Self::Error>> {
-        self.project().stream.poll_position(cx)
+    fn position(&self) -> Self::Locator {
+        self.stream.position()
     }
 }

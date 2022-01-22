@@ -49,14 +49,11 @@ impl<T: Clone> Stream for SliceStream<'_, T> {
 }
 
 impl<T: Clone> Positioned for SliceStream<'_, T> {
-    type Position = usize;
+    type Locator = usize;
 
     #[inline]
-    fn poll_position(
-        self: Pin<&mut Self>,
-        _cx: &mut Context<'_>,
-    ) -> Poll<Result<Self::Position, Self::Error>> {
-        Poll::Ready(Ok(*self.project().position))
+    fn position(&self) -> Self::Locator {
+        self.position
     }
 }
 
@@ -66,9 +63,9 @@ impl<T: Clone> Rewind for SliceStream<'_, T> {
     #[inline]
     fn poll_mark(
         self: Pin<&mut Self>,
-        cx: &mut Context<'_>,
+        _cx: &mut Context<'_>,
     ) -> Poll<Result<Self::Marker, Self::Error>> {
-        self.poll_position(cx)
+        Poll::Ready(Ok(self.position()))
     }
 
     #[inline]

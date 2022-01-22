@@ -17,10 +17,7 @@ pub trait StreamedParser<I: Positioned + ?Sized> {
     type Error;
 
     /// The type of returned stream.
-    type Stream: TryStream<
-        Ok = Self::Output,
-        Error = ParseError<Self::Error, I::Error, I::Position>,
-    >;
+    type Stream: TryStream<Ok = Self::Output, Error = ParseError<Self::Error, I::Error, I::Locator>>;
 
     /// Takes an input, returns multiple outputs with [`Stream`].
     ///

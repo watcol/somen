@@ -1,18 +1,20 @@
 use futures_core::{Stream, TryStream};
 
 #[cfg(feature = "std")]
-use super::{rewind::SeekRewinder, ReaderStream};
+use super::rewind::SeekRewinder;
+#[cfg(feature = "std")]
+use super::ReaderStream;
 #[cfg(feature = "std")]
 use futures_io::{AsyncRead, AsyncSeek};
 
 #[cfg(feature = "alloc")]
-use super::{record::VecRecorder, rewind::BufferedRewinder};
+use super::record::VecRecorder;
+#[cfg(feature = "alloc")]
+use super::rewind::BufferedRewinder;
 
-use super::{
-    position::{CastPositioner, NopPositioner, Positioned, Positioner},
-    record::ExtendRecorder,
-    InfallibleStream, IteratorStream, SliceStream,
-};
+use super::position::{Locator, PositionedStream};
+use super::record::ExtendRecorder;
+use super::{InfallibleStream, IteratorStream, SliceStream};
 
 /// An utility trait to build a stream from various type.
 pub trait StreamBuilder: TryStream {
@@ -24,7 +26,7 @@ pub trait StreamBuilder: TryStream {
     /// use somen::stream::{StreamBuilder, position::Positioned};
     /// use futures::stream::TryStreamExt;
     ///
-    /// let mut stream = somen::stream::from_slice(b"abc").positioned();
+    /// let mut stream = somen::stream::from_slice(b"abc").positioned::<usize>();
     /// // Initial position is 0.
     /// assert_eq!(stream.position().await, Ok(0));
     ///
@@ -44,14 +46,15 @@ pub trait StreamBuilder: TryStream {
     ///
     /// [`Positioned`]: crate::stream::position::Positioned
     #[inline]
-    fn positioned(self) -> Positioner<Self>
+    fn positioned<P>(self) -> PositionedStream<Self, P>
     where
+        P: Locator<Self::Ok> + Default,
         Self: Sized,
     {
-        Positioner::from(self)
+        PositionedStream::from(self)
     }
 
-    /// Implement [`Positioned`] by `Position = ()` to a stream.
+    /// Implement [`Positioned`] to a stream, with a custom initial value.
     ///
     /// # Examples
     /// ```
@@ -59,68 +62,32 @@ pub trait StreamBuilder: TryStream {
     /// use somen::stream::{StreamBuilder, position::Positioned};
     /// use futures::stream::TryStreamExt;
     ///
-    /// let mut stream = somen::stream::from_slice(b"abc").not_positioned();
-    ///
-    /// assert_eq!(stream.position().await, Ok(()));
+    /// let mut stream = somen::stream::from_slice(b"abc").positioned_by(1i32);
+    /// // Initial position is 0.
+    /// assert_eq!(stream.position().await, Ok(1));
     ///
     /// assert_eq!(stream.try_next().await.unwrap(), Some(b'a'));
     /// assert_eq!(stream.try_next().await.unwrap(), Some(b'b'));
     /// assert_eq!(stream.try_next().await.unwrap(), Some(b'c'));
     ///
-    /// assert_eq!(stream.position().await, Ok(()));
+    /// // The position incremented.
+    /// assert_eq!(stream.position().await, Ok(4));
     ///
     /// assert_eq!(stream.try_next().await.unwrap(), None);
     ///
-    /// assert_eq!(stream.position().await, Ok(()));
+    /// // The position will not be incremented if the stream have already ended.
+    /// assert_eq!(stream.position().await, Ok(4));
     /// # });
     /// ```
     ///
     /// [`Positioned`]: crate::stream::position::Positioned
     #[inline]
-    fn not_positioned(self) -> NopPositioner<Self>
+    fn positioned_by<P>(self, initial: P) -> PositionedStream<Self, P>
     where
+        P: Locator<Self::Ok>,
         Self: Sized,
     {
-        NopPositioner::from(self)
-    }
-
-    #[doc = r#"Casting the type of [`Positioned`]
-
-[`Positioned`]: crate::stream::position::Positioned"#]
-    #[cfg_attr(
-        feature = "std",
-        doc = r##"# Examples
-```
-# futures::executor::block_on(async {
-use somen::stream::{StreamBuilder, position::Positioned};
-use futures::stream::TryStreamExt;
-use futures::io::Cursor;
-
-let mut stream = somen::stream::from_reader(Cursor::new(b"abc"))
-    .seek_rewind()
-    .cast_positon::<usize>();
-
-assert_eq!(stream.position().await.unwrap(), 0usize);
-
-assert_eq!(stream.try_next().await.unwrap(), Some(b'a'));
-assert_eq!(stream.try_next().await.unwrap(), Some(b'b'));
-assert_eq!(stream.try_next().await.unwrap(), Some(b'c'));
-
-assert_eq!(stream.position().await.unwrap(), 3usize);
-
-assert_eq!(stream.try_next().await.unwrap(), None);
-
-assert_eq!(stream.position().await.unwrap(), 3usize);
-    # });
-```"##
-    )]
-    #[inline]
-    fn cast_positon<T>(self) -> CastPositioner<Self, T>
-    where
-        Self: Positioned + Sized,
-        T: TryFrom<Self::Position>,
-    {
-        CastPositioner::from(self)
+        PositionedStream::new(self, initial)
     }
 
     /// Implement [`Positioned`] and [`Rewind`] by buffering recent inputs.
@@ -257,7 +224,7 @@ assert_eq!(stream.position().await.unwrap(), 3usize);
     /// ```
     ///
     /// [`Vec`]: alloc::vec::Vec
-    /// [`Positoned`]: crate::stream::position::Positoned
+    /// [`Positioned`]: crate::stream::position::Positioned
     /// [`Rewind`]: crate::stream::rewind::Rewind
     #[cfg(feature = "alloc")]
     #[cfg_attr(feature = "nightly", doc(cfg(feature = "alloc")))]

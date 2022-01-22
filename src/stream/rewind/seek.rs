@@ -60,18 +60,12 @@ impl<S: TryStream> Stream for SeekRewinder<S> {
     }
 }
 
-impl<S: TryStream + AsyncSeek> Positioned for SeekRewinder<S> {
-    type Position = u64;
+impl<S: Positioned> Positioned for SeekRewinder<S> {
+    type Locator = S::Locator;
 
     #[inline]
-    fn poll_position(
-        self: Pin<&mut Self>,
-        cx: &mut Context<'_>,
-    ) -> Poll<Result<Self::Position, Self::Error>> {
-        self.project()
-            .stream
-            .poll_seek(cx, SeekFrom::Current(0))
-            .map(|r| r.map_err(SeekError::Seek))
+    fn position(&self) -> Self::Locator {
+        self.stream.position()
     }
 }
 
@@ -83,7 +77,10 @@ impl<S: TryStream + AsyncSeek> Rewind for SeekRewinder<S> {
         self: Pin<&mut Self>,
         cx: &mut Context<'_>,
     ) -> Poll<Result<Self::Marker, Self::Error>> {
-        self.poll_position(cx)
+        self.project()
+            .stream
+            .poll_seek(cx, SeekFrom::Current(0))
+            .map(|r| r.map_err(SeekError::Seek))
     }
 
     #[inline]

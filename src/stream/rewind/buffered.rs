@@ -95,14 +95,11 @@ impl<S: TryStream> Positioned for BufferedRewinder<S>
 where
     S::Ok: Clone,
 {
-    type Position = usize;
+    type Locator = usize;
 
     #[inline]
-    fn poll_position(
-        self: Pin<&mut Self>,
-        _cx: &mut Context<'_>,
-    ) -> Poll<Result<Self::Position, Self::Error>> {
-        Poll::Ready(Ok(*self.project().position))
+    fn position(&self) -> Self::Locator {
+        self.position
     }
 }
 
