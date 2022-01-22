@@ -26,6 +26,10 @@ pub use rewind::Rewind;
 ///
 /// [`Positioned`]: self::position::Positioned
 /// [`Rewind`]: self::rewind::Rewind
-pub trait Input: Positioned + Rewind {}
+pub trait Input: Positioned + Rewind {
+    type Token;
+}
 
-impl<T: Positioned + Rewind + ?Sized> Input for T {}
+impl<T: Positioned + Rewind + ?Sized> Input for T {
+    type Token = T::Ok;
+}
