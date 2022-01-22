@@ -33,7 +33,7 @@ pub trait Parser<I: Positioned + ?Sized> {
     ) -> Poll<ParseResult<Self, I>>;
 }
 
-/// The extension trait for parsers.
+/// An extension trait for [`Parser`].
 pub trait ParserExt<I: Positioned + ?Sized>: Parser<I> + private::Sealed<I> {
     /// An asynchronous version of [`poll_parse`], which returns a [`Future`].
     ///
