@@ -65,7 +65,7 @@ where
         let mut this = self.project();
         loop {
             match ready!(this.stream.as_mut().try_poll_next(cx)?) {
-                Some(x) => this.collection.extend([x]),
+                Some(x) => this.collection.extend(Some(x)),
                 None => break Poll::Ready(Ok(mem::take(this.collection))),
             }
         }
