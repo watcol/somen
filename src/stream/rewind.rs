@@ -31,4 +31,37 @@ pub trait Rewind: TryStream {
     fn drop_marker(self: Pin<&mut Self>, marker: Self::Marker) -> Result<(), Self::Error> {
         Ok(())
     }
+
+    /// Perform [`mark`] for unpinned stream.
+    ///
+    /// [`mark`]: Self::mark
+    #[inline]
+    fn mark_unpin(&mut self) -> Result<Self::Marker, Self::Error>
+    where
+        Self: Unpin,
+    {
+        Pin::new(&mut *self).mark()
+    }
+
+    /// Perform [`rewind`] for unpinned stream.
+    ///
+    /// [`rewind`]: Self::rewind
+    #[inline]
+    fn rewind_unpin(&mut self, marker: Self::Marker) -> Result<(), Self::Error>
+    where
+        Self: Unpin,
+    {
+        Pin::new(&mut *self).rewind(marker)
+    }
+
+    /// Perform [`drop_marker`] for unpinned stream.
+    ///
+    /// [`drop_marker`]: Self::drop_marker
+    #[inline]
+    fn drop_marker_unpin(&mut self, marker: Self::Marker) -> Result<(), Self::Error>
+    where
+        Self: Unpin,
+    {
+        Pin::new(&mut *self).drop_marker(marker)
+    }
 }

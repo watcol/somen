@@ -101,7 +101,7 @@ pub trait StreamBuilder: TryStream {
     ///
     /// assert_eq!(stream.try_next().await.unwrap(), Some(b'a'));
     ///
-    /// let marker = stream.mark().await.unwrap();
+    /// let marker = stream.mark_unpin().unwrap();
     ///
     /// assert_eq!(stream.position(), 1);
     ///
@@ -111,7 +111,7 @@ pub trait StreamBuilder: TryStream {
     ///
     /// assert_eq!(stream.position(), 3);
     ///
-    /// stream.rewind(marker).await.unwrap();
+    /// stream.rewind_unpin(marker).unwrap();
     ///
     /// assert_eq!(stream.position(), 1);
     ///
@@ -148,7 +148,7 @@ pub trait StreamBuilder: TryStream {
     ///
     /// assert_eq!(stream.try_next().await.unwrap(), Some(b'a'));
     ///
-    /// let marker = stream.mark().await.unwrap();
+    /// let marker = stream.mark_unpin().unwrap();
     ///
     /// assert_eq!(stream.position(), 1);
     ///
@@ -158,7 +158,7 @@ pub trait StreamBuilder: TryStream {
     ///
     /// assert_eq!(stream.position(), 3);
     ///
-    /// stream.rewind(marker).await.unwrap();
+    /// stream.rewind_unpin(marker).unwrap();
     ///
     /// assert_eq!(stream.position(), 1);
     ///
