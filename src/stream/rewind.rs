@@ -37,6 +37,15 @@ pub trait Rewind: TryStream {
         marker: Self::Marker,
     ) -> Poll<Result<(), Self::Error>>;
 
+    /// Dropping unused markers.
+    ///
+    /// Users can use it for explicitly declare as the marker will no longer be used.
+    #[allow(unused_variables)]
+    #[inline]
+    fn drop_marker(&mut self, marker: Self::Marker) -> Result<(), Self::Error> {
+        Ok(())
+    }
+
     /// An asynchronous version of [`poll_mark`], which returns a [`Future`] object.
     ///
     /// [`poll_mark`]: Self::poll_mark

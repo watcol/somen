@@ -145,4 +145,13 @@ where
             Poll::Ready(Err(BufferedError::Buffer))
         }
     }
+
+    #[inline]
+    fn drop_marker(&mut self, marker: Self::Marker) -> Result<(), Self::Error> {
+        if self.markers.pop() == Some(marker) {
+            Ok(())
+        } else {
+            Err(BufferedError::Buffer)
+        }
+    }
 }

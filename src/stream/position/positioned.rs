@@ -93,4 +93,9 @@ impl<S: Rewind, L: Locator<S::Ok>> Rewind for PositionedStream<S, L> {
     ) -> Poll<Result<(), Self::Error>> {
         self.project().inner.poll_rewind(cx, marker)
     }
+
+    #[inline]
+    fn drop_marker(&mut self, marker: Self::Marker) -> Result<(), Self::Error> {
+        self.inner.drop_marker(marker)
+    }
 }
