@@ -4,6 +4,7 @@ pub mod streamed;
 
 mod any;
 mod future;
+mod opt;
 
 #[cfg(feature = "alloc")]
 mod boxed;
@@ -11,6 +12,7 @@ mod boxed;
 pub use any::{Any, AnyError};
 #[cfg(feature = "alloc")]
 pub use boxed::{BoxError, BoxParser};
+pub use opt::Opt;
 
 #[cfg(feature = "alloc")]
 use alloc::boxed::Box;
@@ -20,7 +22,7 @@ use core::task::{Context, Poll};
 use future::ParseFuture;
 
 use crate::error::ParseResult;
-use crate::stream::position::Positioned;
+use crate::stream::{Input, Positioned};
 
 /// Parses any token.
 #[inline]
@@ -50,6 +52,14 @@ pub trait ParserExt<I: Positioned + ?Sized>: Parser<I> + private::Sealed<I> {
     #[inline]
     fn parse<'a, 'b>(&'a mut self, input: &'b mut I) -> ParseFuture<'a, 'b, Self, I> {
         ParseFuture::new(self, input)
+    }
+
+    fn opt(self) -> Opt<Self, I::Marker>
+    where
+        I: Input,
+        Self: Sized,
+    {
+        Opt::new(self)
     }
 
     /// Wrapping the parser in a [`Box`].
