@@ -6,18 +6,18 @@ use futures_core::ready;
 
 use crate::error::{ParseError, ParseResult};
 use crate::parser::Parser;
-use crate::stream::Input;
+use crate::stream::{Input, Rewind};
 
 /// A parser for method [`opt`].
 ///
 /// [`opt`]: super::ParserExt::opt
 #[derive(Debug)]
-pub struct Opt<P: Parser<I>, I: Input + ?Sized> {
+pub struct Opt<P, I: Rewind + ?Sized> {
     inner: P,
     queued_marker: Option<I::Marker>,
 }
 
-impl<P: Parser<I>, I: Input + ?Sized> Opt<P, I> {
+impl<P, I: Rewind + ?Sized> Opt<P, I> {
     /// Creating a new instance.
     #[inline]
     pub fn new(parser: P) -> Self {
