@@ -78,20 +78,13 @@ impl<S: Rewind, L: Locator<S::Ok>> Rewind for PositionedStream<S, L> {
     type Marker = S::Marker;
 
     #[inline]
-    fn poll_mark(
-        self: Pin<&mut Self>,
-        cx: &mut Context<'_>,
-    ) -> Poll<Result<Self::Marker, Self::Error>> {
-        self.project().inner.poll_mark(cx)
+    fn mark(&mut self) -> Result<Self::Marker, Self::Error> {
+        self.inner.mark()
     }
 
     #[inline]
-    fn poll_rewind(
-        self: Pin<&mut Self>,
-        cx: &mut Context<'_>,
-        marker: Self::Marker,
-    ) -> Poll<Result<(), Self::Error>> {
-        self.project().inner.poll_rewind(cx, marker)
+    fn rewind(&mut self, marker: Self::Marker) -> Result<(), Self::Error> {
+        self.inner.rewind(marker)
     }
 
     #[inline]

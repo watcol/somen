@@ -1,6 +1,6 @@
 use futures_core::{Stream, TryStream};
 #[cfg(feature = "std")]
-use futures_io::{AsyncRead, AsyncSeek};
+use futures_io::AsyncRead;
 
 use super::position::{Locator, PositionedStream};
 use super::record::ExtendRecorder;
@@ -11,8 +11,6 @@ use super::record::VecRecorder;
 #[cfg(feature = "alloc")]
 use super::rewind::BufferedRewinder;
 
-#[cfg(feature = "std")]
-use super::rewind::SeekRewinder;
 #[cfg(feature = "std")]
 use super::ReaderStream;
 
@@ -135,45 +133,6 @@ pub trait StreamBuilder: TryStream {
         Self: Sized,
     {
         BufferedRewinder::from(self)
-    }
-
-    /// Implement [`Rewind`] using [`AsyncSeek`] trait.
-    ///
-    /// # Examples
-    /// ```
-    /// # futures::executor::block_on(async {
-    /// use somen::stream::{StreamBuilder, rewind::Rewind};
-    /// use futures::stream::TryStreamExt;
-    /// use futures::io::Cursor;
-    ///
-    /// let mut stream = somen::stream::from_reader(Cursor::new(b"abc"))
-    ///     .seek_rewind();
-    ///
-    /// assert_eq!(stream.try_next().await.unwrap(), Some(b'a'));
-    ///
-    /// let marker = stream.mark().await.unwrap();
-    ///
-    /// assert_eq!(stream.try_next().await.unwrap(), Some(b'b'));
-    /// assert_eq!(stream.try_next().await.unwrap(), Some(b'c'));
-    /// assert_eq!(stream.try_next().await.unwrap(), None);
-    ///
-    /// stream.rewind(marker).await.unwrap();
-    ///
-    /// assert_eq!(stream.try_next().await.unwrap(), Some(b'b'));
-    /// assert_eq!(stream.try_next().await.unwrap(), Some(b'c'));
-    /// assert_eq!(stream.try_next().await.unwrap(), None);
-    /// # });
-    /// ```
-    ///
-    /// [`Rewind`]: crate::stream::rewind::Rewind
-    #[cfg(feature = "std")]
-    #[cfg_attr(feature = "nightly", doc(cfg(feature = "std")))]
-    #[inline]
-    fn seek_rewind(self) -> SeekRewinder<Self>
-    where
-        Self: Sized + AsyncSeek,
-    {
-        SeekRewinder::from(self)
     }
 
     /// Recording stream outputs into a [`Vec`] and implements [`Positioned`], [`Rewind`].

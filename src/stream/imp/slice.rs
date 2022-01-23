@@ -60,20 +60,13 @@ impl<T: Clone> Rewind for SliceStream<'_, T> {
     type Marker = usize;
 
     #[inline]
-    fn poll_mark(
-        self: Pin<&mut Self>,
-        _cx: &mut Context<'_>,
-    ) -> Poll<Result<Self::Marker, Self::Error>> {
-        Poll::Ready(Ok(self.position()))
+    fn mark(&mut self) -> Result<Self::Marker, Self::Error> {
+        Ok(self.position())
     }
 
     #[inline]
-    fn poll_rewind(
-        self: Pin<&mut Self>,
-        _cx: &mut Context<'_>,
-        marker: Self::Marker,
-    ) -> Poll<Result<(), Self::Error>> {
-        *self.project().position = marker;
-        Poll::Ready(Ok(()))
+    fn rewind(&mut self, marker: Self::Marker) -> Result<(), Self::Error> {
+        self.position = marker;
+        Ok(())
     }
 }

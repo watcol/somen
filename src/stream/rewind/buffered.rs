@@ -123,30 +123,20 @@ where
 {
     type Marker = usize;
 
-    fn poll_mark(
-        self: Pin<&mut Self>,
-        _cx: &mut Context<'_>,
-    ) -> Poll<Result<Self::Marker, Self::Error>> {
-        let this = self.project();
-        this.markers.push(*this.position);
-        Poll::Ready(Ok(*this.position))
+    fn mark(&mut self) -> Result<Self::Marker, Self::Error> {
+        self.markers.push(self.position);
+        Ok(self.position)
     }
 
-    fn poll_rewind(
-        self: Pin<&mut Self>,
-        _cx: &mut Context<'_>,
-        marker: Self::Marker,
-    ) -> Poll<Result<(), Self::Error>> {
-        let this = self.project();
-        if this.markers.pop() == Some(marker) {
-            *this.position = marker;
-            Poll::Ready(Ok(()))
+    fn rewind(&mut self, marker: Self::Marker) -> Result<(), Self::Error> {
+        if self.markers.pop() == Some(marker) {
+            self.position = marker;
+            Ok(())
         } else {
-            Poll::Ready(Err(BufferedError::Buffer))
+            Err(BufferedError::Buffer)
         }
     }
 
-    #[inline]
     fn drop_marker(&mut self, marker: Self::Marker) -> Result<(), Self::Error> {
         if self.markers.pop() == Some(marker) {
             Ok(())
