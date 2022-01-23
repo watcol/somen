@@ -2,11 +2,13 @@
 
 pub mod streamed;
 
+mod any;
 mod future;
 
 #[cfg(feature = "alloc")]
 mod boxed;
 
+pub use any::{Any, AnyError};
 #[cfg(feature = "alloc")]
 pub use boxed::{BoxError, BoxParser};
 
@@ -19,6 +21,12 @@ use future::ParseFuture;
 
 use crate::error::ParseResult;
 use crate::stream::position::Positioned;
+
+/// Parses any token.
+#[inline]
+pub fn any() -> Any {
+    Any::new()
+}
 
 /// A trait for parsers.
 pub trait Parser<I: Positioned + ?Sized> {
