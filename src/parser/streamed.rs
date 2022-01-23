@@ -43,6 +43,7 @@ pub trait StreamedParserExt<I: Positioned + ?Sized>: StreamedParser<I> {
     ///
     /// [`TryStream`]: futures_core::TryStream
     /// [`poll_parse_next`]: self::StreamedParser::poll_parse_next
+    #[inline]
     fn parse_streamed<'a, 'b>(&'a mut self, input: &'b mut I) -> ParserStream<'a, 'b, Self, I> {
         ParserStream::new(self, input)
     }
@@ -50,6 +51,7 @@ pub trait StreamedParserExt<I: Positioned + ?Sized>: StreamedParser<I> {
     /// Returns a [`Parser`] by collecting all the outputs.
     ///
     /// [`Parser`]: super::Parser
+    #[inline]
     fn collect<E: Default + Extend<Self::Item>>(self) -> Collect<Self, E>
     where
         Self: Sized,
@@ -59,6 +61,7 @@ pub trait StreamedParserExt<I: Positioned + ?Sized>: StreamedParser<I> {
 
     /// Wraps the streamed parser into a [`Box`].
     #[cfg(feature = "alloc")]
+    #[inline]
     fn boxed<'a>(self) -> BoxStreamedParser<'a, I, Self::Item, Self::Error>
     where
         Self: Sized + 'a,
@@ -68,6 +71,7 @@ pub trait StreamedParserExt<I: Positioned + ?Sized>: StreamedParser<I> {
 
     /// Returns a new streamed parser by wrapping the error into a [`Box`].
     #[cfg(feature = "alloc")]
+    #[inline]
     fn box_error(self) -> BoxError<Self>
     where
         Self: Sized,

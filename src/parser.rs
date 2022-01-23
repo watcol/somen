@@ -39,6 +39,7 @@ pub trait ParserExt<I: Positioned + ?Sized>: Parser<I> + private::Sealed<I> {
     ///
     /// [`poll_parse`]: self::Parser::poll_parse
     /// [`Future`]: core::future::Future
+    #[inline]
     fn parse<'a, 'b>(&'a mut self, input: &'b mut I) -> ParseFuture<'a, 'b, Self, I> {
         ParseFuture::new(self, input)
     }
