@@ -33,6 +33,9 @@ impl fmt::Display for AnyError {
     }
 }
 
+#[cfg(feature = "std")]
+impl std::error::Error for AnyError {}
+
 impl<I: Positioned + ?Sized> Parser<I> for Any {
     type Output = I::Ok;
     type Error = AnyError;
