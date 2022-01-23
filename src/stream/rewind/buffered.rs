@@ -82,6 +82,8 @@ where
                 *this.position += 1;
                 if !this.markers.is_empty() {
                     this.buffer.push_back(i.clone());
+                } else {
+                    *this.buffer_offset += 1;
                 }
             }
             Poll::Ready(res)
@@ -126,9 +128,6 @@ where
         _cx: &mut Context<'_>,
     ) -> Poll<Result<Self::Marker, Self::Error>> {
         let this = self.project();
-        if this.markers.is_empty() {
-            *this.buffer_offset = *this.position;
-        }
         this.markers.push(*this.position);
         Poll::Ready(Ok(*this.position))
     }
