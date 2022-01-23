@@ -123,22 +123,24 @@ where
 {
     type Marker = usize;
 
-    fn mark(&mut self) -> Result<Self::Marker, Self::Error> {
-        self.markers.push(self.position);
-        Ok(self.position)
+    fn mark(self: Pin<&mut Self>) -> Result<Self::Marker, Self::Error> {
+        let this = self.project();
+        this.markers.push(*this.position);
+        Ok(*this.position)
     }
 
-    fn rewind(&mut self, marker: Self::Marker) -> Result<(), Self::Error> {
-        if self.markers.pop() == Some(marker) {
-            self.position = marker;
+    fn rewind(self: Pin<&mut Self>, marker: Self::Marker) -> Result<(), Self::Error> {
+        let this = self.project();
+        if this.markers.pop() == Some(marker) {
+            *this.position = marker;
             Ok(())
         } else {
             Err(BufferedError::Buffer)
         }
     }
 
-    fn drop_marker(&mut self, marker: Self::Marker) -> Result<(), Self::Error> {
-        if self.markers.pop() == Some(marker) {
+    fn drop_marker(self: Pin<&mut Self>, marker: Self::Marker) -> Result<(), Self::Error> {
+        if self.project().markers.pop() == Some(marker) {
             Ok(())
         } else {
             Err(BufferedError::Buffer)

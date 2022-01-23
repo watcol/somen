@@ -60,12 +60,12 @@ impl<T: Clone> Rewind for SliceStream<'_, T> {
     type Marker = usize;
 
     #[inline]
-    fn mark(&mut self) -> Result<Self::Marker, Self::Error> {
+    fn mark(self: Pin<&mut Self>) -> Result<Self::Marker, Self::Error> {
         Ok(self.position())
     }
 
     #[inline]
-    fn rewind(&mut self, marker: Self::Marker) -> Result<(), Self::Error> {
+    fn rewind(mut self: Pin<&mut Self>, marker: Self::Marker) -> Result<(), Self::Error> {
         self.position = marker;
         Ok(())
     }

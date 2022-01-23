@@ -119,12 +119,12 @@ where
     type Marker = usize;
 
     #[inline]
-    fn mark(&mut self) -> Result<Self::Marker, Self::Error> {
+    fn mark(self: Pin<&mut Self>) -> Result<Self::Marker, Self::Error> {
         Ok(self.position())
     }
 
-    fn rewind(&mut self, marker: Self::Marker) -> Result<(), Self::Error> {
-        self.position = marker;
+    fn rewind(self: Pin<&mut Self>, marker: Self::Marker) -> Result<(), Self::Error> {
+        *self.project().position = marker;
         Ok(())
     }
 }

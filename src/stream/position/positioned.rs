@@ -78,17 +78,17 @@ impl<S: Rewind, L: Locator<S::Ok>> Rewind for PositionedStream<S, L> {
     type Marker = S::Marker;
 
     #[inline]
-    fn mark(&mut self) -> Result<Self::Marker, Self::Error> {
-        self.inner.mark()
+    fn mark(self: Pin<&mut Self>) -> Result<Self::Marker, Self::Error> {
+        self.project().inner.mark()
     }
 
     #[inline]
-    fn rewind(&mut self, marker: Self::Marker) -> Result<(), Self::Error> {
-        self.inner.rewind(marker)
+    fn rewind(self: Pin<&mut Self>, marker: Self::Marker) -> Result<(), Self::Error> {
+        self.project().inner.rewind(marker)
     }
 
     #[inline]
-    fn drop_marker(&mut self, marker: Self::Marker) -> Result<(), Self::Error> {
-        self.inner.drop_marker(marker)
+    fn drop_marker(self: Pin<&mut Self>, marker: Self::Marker) -> Result<(), Self::Error> {
+        self.project().inner.drop_marker(marker)
     }
 }
