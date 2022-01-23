@@ -12,12 +12,12 @@ use crate::stream::Input;
 ///
 /// [`opt`]: super::ParserExt::opt
 #[derive(Debug)]
-pub struct Opt<P, M> {
+pub struct Opt<P: Parser<I>, I: Input + ?Sized> {
     inner: P,
-    queued_marker: Option<M>,
+    queued_marker: Option<I::Marker>,
 }
 
-impl<P, M> Opt<P, M> {
+impl<P: Parser<I>, I: Input + ?Sized> Opt<P, I> {
     /// Creating a new instance.
     #[inline]
     pub fn new(parser: P) -> Self {
@@ -34,7 +34,7 @@ impl<P, M> Opt<P, M> {
     }
 }
 
-impl<P, I> Parser<I> for Opt<P, I::Marker>
+impl<P, I> Parser<I> for Opt<P, I>
 where
     P: Parser<I>,
     I: Input + ?Sized,

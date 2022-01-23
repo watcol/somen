@@ -54,7 +54,9 @@ pub trait ParserExt<I: Positioned + ?Sized>: Parser<I> + private::Sealed<I> {
         ParseFuture::new(self, input)
     }
 
-    fn opt(self) -> Opt<Self, I::Marker>
+    /// Returns [`Some`] when parsing was successed.
+    #[inline]
+    fn opt(self) -> Opt<Self, I>
     where
         I: Input,
         Self: Sized,
