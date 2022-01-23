@@ -5,6 +5,7 @@ pub mod streamed;
 mod any;
 mod future;
 mod opt;
+mod repeat;
 
 #[cfg(feature = "alloc")]
 mod boxed;
@@ -13,6 +14,7 @@ pub use any::{Any, AnyError};
 #[cfg(feature = "alloc")]
 pub use boxed::{BoxError, BoxParser};
 pub use opt::Opt;
+pub use repeat::Repeat;
 
 #[cfg(feature = "alloc")]
 use alloc::boxed::Box;
@@ -62,6 +64,18 @@ pub trait ParserExt<I: Positioned + ?Sized>: Parser<I> + private::Sealed<I> {
         Self: Sized,
     {
         Opt::new(self)
+    }
+
+    /// Returns a [`StreamedParser`] by repeating the parser while successing.
+    ///
+    /// [`StreamedParser`]: streamed::StreamedParser
+    #[inline]
+    fn repeat(self) -> Repeat<Self, I>
+    where
+        I: Input,
+        Self: Sized,
+    {
+        Repeat::new(self)
     }
 
     /// Wrapping the parser in a [`Box`].
