@@ -52,6 +52,7 @@ pub trait StreamedParserExt<I: Positioned + ?Sized>: StreamedParser<I> {
     ///
     /// [`Parser`]: super::Parser
     #[inline]
+    // fn collect<E: Default + Extend<Self::Item>>(self) -> Collect<Self, I, E>
     fn collect<E: Default + Extend<Self::Item>>(self) -> Collect<Self, E>
     where
         Self: Sized,
@@ -79,3 +80,5 @@ pub trait StreamedParserExt<I: Positioned + ?Sized>: StreamedParser<I> {
         BoxError::new(self)
     }
 }
+
+impl<P: StreamedParser<I>, I: Positioned + ?Sized> StreamedParserExt<I> for P {}
