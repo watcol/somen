@@ -1,50 +1,124 @@
-use core::convert::Infallible;
+use core::fmt;
+use core::mem;
+use core::ops::{Bound, RangeBounds};
 use core::pin::Pin;
 use core::task::{Context, Poll};
+use futures_core::ready;
 
-use crate::error::StreamedResult;
+use crate::error::{ParseError, StreamedResult};
 use crate::parser::Parser;
 use crate::prelude::StreamedParser;
 use crate::stream::{Input, Rewind};
 
-use super::Opt;
-
 /// A streamed parser generated from method [`repeat`].
 ///
 /// [`repeat`]: super::ParserExt::repeat
-pub struct Repeat<P, I: Rewind + ?Sized> {
-    inner: Opt<P, I>,
+pub struct Repeat<P, I: Rewind + ?Sized, R> {
+    inner: P,
+    range: R,
+    queued_marker: Option<I::Marker>,
+    count: usize,
 }
 
-impl<P, I: Rewind + ?Sized> Repeat<P, I> {
+impl<P, I: Rewind + ?Sized, R> Repeat<P, I, R> {
     /// Creating a new instance.
     #[inline]
-    pub fn new(parser: P) -> Self {
+    pub fn new(inner: P, range: R) -> Self {
         Self {
-            inner: Opt::new(parser),
+            inner,
+            range,
+            queued_marker: None,
+            count: 0,
         }
     }
 
     /// Extracting the inner parser.
     #[inline]
     pub fn into_inner(self) -> P {
-        self.inner.into_inner()
+        self.inner
     }
 }
 
-impl<P, I> StreamedParser<I> for Repeat<P, I>
+/// An error type for method [`repeat`].
+///
+/// This error will returned when the number of items is not enough as the lower bound.
+#[derive(Debug)]
+pub struct RepeatError<E> {
+    /// An error from the internal parser.
+    pub inner: E,
+    /// The number of succeeded items.
+    pub suc_count: usize,
+    /// The minimum bound for the number of items.
+    pub min_bound: usize,
+}
+
+impl<E: fmt::Display> fmt::Display for RepeatError<E> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{}", self.inner)
+    }
+}
+
+#[cfg(feature = "std")]
+impl<E: std::error::Error + 'static> std::error::Error for RepeatError<E> {
+    fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
+        Some(&self.inner)
+    }
+}
+
+impl<P, I, R> StreamedParser<I> for Repeat<P, I, R>
 where
     P: Parser<I>,
+    R: RangeBounds<usize>,
     I: Input + ?Sized,
 {
     type Item = P::Output;
-    type Error = Infallible;
+    type Error = RepeatError<P::Error>;
 
     fn poll_parse_next(
         &mut self,
-        input: Pin<&mut I>,
+        mut input: Pin<&mut I>,
         cx: &mut Context<'_>,
     ) -> Poll<StreamedResult<Self, I>> {
-        self.inner.poll_parse(input, cx)
+        // Return `None` if the number of items already reached `end_bound`.
+        if match self.range.end_bound() {
+            Bound::Included(i) => self.count + 1 > *i,
+            Bound::Excluded(i) => self.count + 1 >= *i,
+            Bound::Unbounded => false,
+        } {
+            return Poll::Ready(Ok(None));
+        }
+
+        // Reserve the marker.
+        if self.queued_marker.is_none() {
+            self.queued_marker = Some(input.as_mut().mark().map_err(ParseError::Stream)?);
+        }
+
+        Poll::Ready(match ready!(self.inner.poll_parse(input.as_mut(), cx)) {
+            Ok(output) => {
+                self.count += 1;
+                Ok(Some(output))
+            }
+            // Return `None` if `count` already satisfies the minimal bound.
+            Err(ParseError::Parser(_, _)) if self.range.contains(&self.count) => {
+                input
+                    .rewind(mem::take(&mut self.queued_marker).unwrap())
+                    .map_err(ParseError::Stream)?;
+                Ok(None)
+            }
+            // else, the parser returns an error.
+            Err(ParseError::Parser(e, p)) => Err(ParseError::Parser(
+                RepeatError {
+                    inner: e,
+                    suc_count: self.count,
+                    min_bound: match self.range.start_bound() {
+                        Bound::Included(i) => *i,
+                        Bound::Excluded(i) => *i - 1,
+                        Bound::Unbounded => 0,
+                    },
+                },
+                p,
+            )),
+            Err(ParseError::Stream(e)) => return Poll::Ready(Err(ParseError::Stream(e))),
+        })
     }
 }
