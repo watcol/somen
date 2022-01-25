@@ -23,10 +23,13 @@ pub struct Repeat<P, I: Rewind + ?Sized, R> {
 impl<P, I: Rewind + ?Sized, R> Repeat<P, I, R> {
     /// Creating a new instance.
     #[inline]
-    pub fn new(inner: P, range: R) -> Self {
+    pub fn new<T>(inner: P, range: T) -> Self
+    where
+        T: RangeArgument<Target = R>,
+    {
         Self {
             inner,
-            range,
+            range: range.into_range_bounds(),
             queued_marker: None,
             count: 0,
         }
@@ -122,3 +125,41 @@ where
         })
     }
 }
+
+/// Arguments for method [`repeat`] which is convertable to an object implements
+/// [`RangeBounds`]`<usize>`.
+///
+/// [`repeat`]: super::Parser::repeat
+pub trait RangeArgument {
+    /// The type of converted [`RangeBounds`] object.
+    type Target: RangeBounds<usize>;
+
+    /// Convert to a [`RangeBounds`] object.
+    fn into_range_bounds(self) -> Self::Target;
+}
+
+impl RangeArgument for usize {
+    type Target = core::ops::RangeInclusive<usize>;
+    fn into_range_bounds(self) -> Self::Target {
+        self..=self
+    }
+}
+
+macro_rules! impl_argument {
+    ($t:ty) => {
+        impl RangeArgument for $t {
+            type Target = Self;
+
+            fn into_range_bounds(self) -> Self::Target {
+                self
+            }
+        }
+    };
+}
+
+impl_argument! { core::ops::Range<usize> }
+impl_argument! { core::ops::RangeInclusive<usize> }
+impl_argument! { core::ops::RangeFrom<usize> }
+impl_argument! { core::ops::RangeTo<usize> }
+impl_argument! { core::ops::RangeToInclusive<usize> }
+impl_argument! { core::ops::RangeFull }

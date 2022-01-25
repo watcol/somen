@@ -14,11 +14,10 @@ pub use any::{Any, AnyError};
 #[cfg(feature = "alloc")]
 pub use boxed::{BoxError, BoxParser};
 pub use opt::Opt;
-pub use repeat::Repeat;
+pub use repeat::{RangeArgument, Repeat, RepeatError};
 
 #[cfg(feature = "alloc")]
 use alloc::boxed::Box;
-use core::ops::RangeBounds;
 use core::pin::Pin;
 use core::task::{Context, Poll};
 
@@ -71,7 +70,7 @@ pub trait ParserExt<I: Positioned + ?Sized>: Parser<I> + private::Sealed<I> {
     ///
     /// [`StreamedParser`]: streamed::StreamedParser
     #[inline]
-    fn repeat<R: RangeBounds<usize>>(self, range: R) -> Repeat<Self, I, R>
+    fn repeat<R: RangeArgument>(self, range: R) -> Repeat<Self, I, R::Target>
     where
         I: Input,
         Self: Sized,
