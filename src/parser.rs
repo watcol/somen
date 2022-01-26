@@ -46,7 +46,7 @@ pub trait Parser<I: Positioned + ?Sized> {
 }
 
 /// An extension trait for [`Parser`].
-pub trait ParserExt<I: Positioned + ?Sized>: Parser<I> + private::Sealed<I> {
+pub trait ParserExt<I: Positioned + ?Sized>: Parser<I> {
     /// An asynchronous version of [`poll_parse`], which returns a [`Future`].
     ///
     /// [`poll_parse`]: self::Parser::poll_parse
@@ -101,12 +101,3 @@ pub trait ParserExt<I: Positioned + ?Sized>: Parser<I> + private::Sealed<I> {
 }
 
 impl<P: Parser<I>, I: Positioned + ?Sized> ParserExt<I> for P {}
-
-mod private {
-    use super::Parser;
-    use crate::stream::Positioned;
-
-    pub trait Sealed<I: ?Sized> {}
-
-    impl<P: Parser<I>, I: Positioned + ?Sized> Sealed<I> for P {}
-}
