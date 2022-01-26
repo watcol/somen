@@ -34,7 +34,10 @@ pub fn any() -> Any {
 
 /// A trait for parsers.
 pub trait Parser<I: Positioned + ?Sized> {
+    /// The output type for the parser.
     type Output;
+
+    /// The type of errors generated from the parser.
     type Error;
 
     /// Parses the `input`, give an output.
