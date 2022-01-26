@@ -7,6 +7,7 @@ use crate::error::{ParseError, ParseResult};
 use crate::stream::position::Positioned;
 
 /// The boxed parsers.
+#[cfg_attr(feature = "nightly", doc(cfg(feature = "alloc")))]
 pub type BoxParser<'a, I, O, E, C> = Box<dyn Parser<I, Output = O, Error = E, State = C> + 'a>;
 
 impl<I, O, E, C> Parser<I> for BoxParser<'_, I, O, E, C>
@@ -29,7 +30,8 @@ where
     }
 }
 
-/// A wrapper for parsers to box future objects.
+/// A wrapper for parsers to box errors.
+#[cfg_attr(feature = "nightly", doc(cfg(feature = "alloc")))]
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct BoxError<P> {
     inner: P,
@@ -75,7 +77,8 @@ where
     }
 }
 
-/// A wrapper for parsers to box future objects.
+/// A wrapper for parsers to box states.
+#[cfg_attr(feature = "nightly", doc(cfg(feature = "alloc")))]
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct BoxState<P> {
     inner: P,

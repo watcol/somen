@@ -95,6 +95,7 @@ pub trait ParserExt<I: Positioned + ?Sized>: Parser<I> {
 
     /// Wrapping the parser in a [`Box`].
     #[cfg(feature = "alloc")]
+    #[cfg_attr(feature = "nightly", doc(cfg(feature = "alloc")))]
     #[inline]
     fn boxed<'a>(self) -> BoxParser<'a, I, Self::Output, Self::Error, Self::State>
     where
@@ -105,6 +106,7 @@ pub trait ParserExt<I: Positioned + ?Sized>: Parser<I> {
 
     /// Wrapping errors in a [`Box`].
     #[cfg(feature = "alloc")]
+    #[cfg_attr(feature = "nightly", doc(cfg(feature = "alloc")))]
     #[inline]
     fn box_error(self) -> BoxError<Self>
     where
@@ -116,6 +118,7 @@ pub trait ParserExt<I: Positioned + ?Sized>: Parser<I> {
 
     /// Wrapping state in a [`Box`].
     #[cfg(feature = "alloc")]
+    #[cfg_attr(feature = "nightly", doc(cfg(feature = "alloc")))]
     #[inline]
     fn box_state(self) -> BoxState<Self>
     where
