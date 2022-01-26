@@ -1,4 +1,5 @@
 use core::fmt;
+use core::marker::PhantomData;
 use core::mem;
 use core::ops::{Bound, RangeBounds};
 use core::pin::Pin;
@@ -8,19 +9,18 @@ use futures_core::ready;
 use crate::error::{ParseError, StreamedResult};
 use crate::parser::Parser;
 use crate::prelude::StreamedParser;
-use crate::stream::{Input, Rewind};
+use crate::stream::Input;
 
 /// A streamed parser generated from method [`repeat`].
 ///
 /// [`repeat`]: super::ParserExt::repeat
-pub struct Repeat<P, I: Rewind + ?Sized, R> {
+pub struct Repeat<P, R, I: ?Sized> {
     inner: P,
     range: R,
-    queued_marker: Option<I::Marker>,
-    count: usize,
+    _phantom: PhantomData<I>,
 }
 
-impl<P, I: Rewind + ?Sized, R> Repeat<P, I, R> {
+impl<P, R, I: ?Sized> Repeat<P, R, I> {
     /// Creating a new instance.
     #[inline]
     pub fn new<T>(inner: P, range: T) -> Self
@@ -30,8 +30,7 @@ impl<P, I: Rewind + ?Sized, R> Repeat<P, I, R> {
         Self {
             inner,
             range: range.into_range_bounds(),
-            queued_marker: None,
-            count: 0,
+            _phantom: PhantomData,
         }
     }
 
@@ -70,7 +69,24 @@ impl<E: std::error::Error + 'static> std::error::Error for RepeatError<E> {
     }
 }
 
-impl<P, I, R> StreamedParser<I> for Repeat<P, I, R>
+#[derive(Debug)]
+pub struct RepeatState<C, M> {
+    inner: C,
+    queued_marker: Option<M>,
+    count: usize,
+}
+
+impl<C: Default, M> Default for RepeatState<C, M> {
+    fn default() -> Self {
+        Self {
+            inner: C::default(),
+            queued_marker: None,
+            count: 0,
+        }
+    }
+}
+
+impl<P, R, I> StreamedParser<I> for Repeat<P, R, I>
 where
     P: Parser<I>,
     R: RangeBounds<usize>,
@@ -78,53 +94,57 @@ where
 {
     type Item = P::Output;
     type Error = RepeatError<P::Error>;
+    type State = RepeatState<P::State, I::Marker>;
 
     fn poll_parse_next(
-        &mut self,
+        &self,
         mut input: Pin<&mut I>,
         cx: &mut Context<'_>,
+        state: &mut Self::State,
     ) -> Poll<StreamedResult<Self, I>> {
         // Return `None` if the number of items already reached `end_bound`.
         if match self.range.end_bound() {
-            Bound::Included(i) => self.count + 1 > *i,
-            Bound::Excluded(i) => self.count + 1 >= *i,
+            Bound::Included(i) => state.count + 1 > *i,
+            Bound::Excluded(i) => state.count + 1 >= *i,
             Bound::Unbounded => false,
         } {
             return Poll::Ready(Ok(None));
         }
 
         // Reserve the marker.
-        if self.queued_marker.is_none() {
-            self.queued_marker = Some(input.as_mut().mark().map_err(ParseError::Stream)?);
+        if state.queued_marker.is_none() {
+            state.queued_marker = Some(input.as_mut().mark().map_err(ParseError::Stream)?);
         }
 
-        Poll::Ready(match ready!(self.inner.poll_parse(input.as_mut(), cx)) {
-            Ok(output) => {
-                self.count += 1;
-                Ok(Some(output))
-            }
-            // Return `None` if `count` already satisfies the minimal bound.
-            Err(ParseError::Parser(_, _)) if self.range.contains(&self.count) => {
-                input
-                    .rewind(mem::take(&mut self.queued_marker).unwrap())
-                    .map_err(ParseError::Stream)?;
-                Ok(None)
-            }
-            // else, the parser returns an error.
-            Err(ParseError::Parser(e, p)) => Err(ParseError::Parser(
-                RepeatError {
-                    inner: e,
-                    suc_count: self.count,
-                    min_bound: match self.range.start_bound() {
-                        Bound::Included(i) => *i,
-                        Bound::Excluded(i) => *i - 1,
-                        Bound::Unbounded => 0,
+        Poll::Ready(
+            match ready!(self.inner.poll_parse(input.as_mut(), cx, &mut state.inner)) {
+                Ok(output) => {
+                    state.count += 1;
+                    Ok(Some(output))
+                }
+                // Return `None` if `count` already satisfies the minimal bound.
+                Err(ParseError::Parser(_, _)) if self.range.contains(&state.count) => {
+                    input
+                        .rewind(mem::take(&mut state.queued_marker).unwrap())
+                        .map_err(ParseError::Stream)?;
+                    Ok(None)
+                }
+                // else, the parser returns an error.
+                Err(ParseError::Parser(e, p)) => Err(ParseError::Parser(
+                    RepeatError {
+                        inner: e,
+                        suc_count: state.count,
+                        min_bound: match self.range.start_bound() {
+                            Bound::Included(i) => *i,
+                            Bound::Excluded(i) => *i - 1,
+                            Bound::Unbounded => 0,
+                        },
                     },
-                },
-                p,
-            )),
-            Err(ParseError::Stream(e)) => return Poll::Ready(Err(ParseError::Stream(e))),
-        })
+                    p,
+                )),
+                Err(ParseError::Stream(e)) => return Poll::Ready(Err(ParseError::Stream(e))),
+            },
+        )
     }
 }
 

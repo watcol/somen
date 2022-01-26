@@ -40,11 +40,20 @@ pub trait Parser<I: Positioned + ?Sized> {
     /// The type of errors generated from the parser.
     type Error;
 
+    /// The internal state used in [`poll_parse`].
+    ///
+    /// This state will be initialized by [`Default`] trait and stored in the [`Future`] object.
+    ///
+    /// [`poll_parse`]: Self::poll_parse
+    /// [`Future`]: core::future::Future
+    type State: Default;
+
     /// Parses the `input`, give an output.
     fn poll_parse(
-        &mut self,
+        &self,
         input: Pin<&mut I>,
         cx: &mut Context<'_>,
+        state: &mut Self::State,
     ) -> Poll<ParseResult<Self, I>>;
 }
 
@@ -55,7 +64,10 @@ pub trait ParserExt<I: Positioned + ?Sized>: Parser<I> {
     /// [`poll_parse`]: self::Parser::poll_parse
     /// [`Future`]: core::future::Future
     #[inline]
-    fn parse<'a, 'b>(&'a mut self, input: &'b mut I) -> ParseFuture<'a, 'b, Self, I> {
+    fn parse<'a, 'b>(&'a mut self, input: &'b mut I) -> ParseFuture<'a, 'b, Self, I, Self::State>
+    where
+        I: Unpin,
+    {
         ParseFuture::new(self, input)
     }
 
@@ -73,7 +85,7 @@ pub trait ParserExt<I: Positioned + ?Sized>: Parser<I> {
     ///
     /// [`StreamedParser`]: streamed::StreamedParser
     #[inline]
-    fn repeat<R: RangeArgument>(self, range: R) -> Repeat<Self, I, R::Target>
+    fn repeat<R: RangeArgument>(self, range: R) -> Repeat<Self, R::Target, I>
     where
         I: Input,
         Self: Sized,
@@ -84,7 +96,7 @@ pub trait ParserExt<I: Positioned + ?Sized>: Parser<I> {
     /// Wrapping the parser in a [`Box`].
     #[cfg(feature = "alloc")]
     #[inline]
-    fn boxed<'a>(self) -> BoxParser<'a, I, Self::Output, Self::Error>
+    fn boxed<'a>(self) -> BoxParser<'a, I, Self::Output, Self::Error, Self::State>
     where
         Self: Sized + 'a,
     {

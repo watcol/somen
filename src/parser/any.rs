@@ -39,11 +39,13 @@ impl std::error::Error for AnyError {}
 impl<I: Positioned + ?Sized> Parser<I> for Any {
     type Output = I::Ok;
     type Error = AnyError;
+    type State = ();
 
     fn poll_parse(
-        &mut self,
+        &self,
         mut input: Pin<&mut I>,
         cx: &mut Context<'_>,
+        _state: &mut Self::State,
     ) -> Poll<ParseResult<Self, I>> {
         let start = input.position();
         let parsed = ready!(input

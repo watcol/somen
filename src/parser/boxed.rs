@@ -7,22 +7,25 @@ use crate::error::{ParseError, ParseResult};
 use crate::stream::position::Positioned;
 
 /// The boxed parsers.
-pub type BoxParser<'a, I, O, E> = Box<dyn Parser<I, Output = O, Error = E> + 'a>;
+pub type BoxParser<'a, I, O, E, C> = Box<dyn Parser<I, Output = O, Error = E, State = C> + 'a>;
 
-impl<I, O, E> Parser<I> for BoxParser<'_, I, O, E>
+impl<I, O, E, C> Parser<I> for BoxParser<'_, I, O, E, C>
 where
     I: Positioned + ?Sized,
+    C: Default,
 {
     type Output = O;
     type Error = E;
+    type State = C;
 
     #[inline]
     fn poll_parse(
-        &mut self,
+        &self,
         input: Pin<&mut I>,
         cx: &mut Context<'_>,
+        state: &mut Self::State,
     ) -> Poll<ParseResult<Self, I>> {
-        (**self).poll_parse(input, cx)
+        (**self).poll_parse(input, cx, state)
     }
 }
 
@@ -54,16 +57,20 @@ where
 {
     type Output = P::Output;
     type Error = Box<dyn core::fmt::Display + 'static>;
+    type State = P::State;
 
     #[inline]
     fn poll_parse(
-        &mut self,
+        &self,
         input: Pin<&mut I>,
         cx: &mut Context<'_>,
+        state: &mut Self::State,
     ) -> Poll<ParseResult<Self, I>> {
-        self.inner.poll_parse(input, cx).map_err(|err| match err {
-            ParseError::Parser(e, p) => ParseError::Parser(Box::new(e) as _, p),
-            ParseError::Stream(e) => ParseError::Stream(e),
-        })
+        self.inner
+            .poll_parse(input, cx, state)
+            .map_err(|err| match err {
+                ParseError::Parser(e, p) => ParseError::Parser(Box::new(e) as _, p),
+                ParseError::Stream(e) => ParseError::Stream(e),
+            })
     }
 }

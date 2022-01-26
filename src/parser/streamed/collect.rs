@@ -1,3 +1,4 @@
+use core::marker::PhantomData;
 use core::mem;
 use core::pin::Pin;
 use core::task::{Context, Poll};
@@ -13,19 +14,16 @@ use super::StreamedParser;
 #[derive(Debug)]
 pub struct Collect<P, E> {
     inner: P,
-    collection: E,
+    _phantom: PhantomData<E>,
 }
 
-impl<P, E> Collect<P, E>
-where
-    E: Default,
-{
+impl<P, E> Collect<P, E> {
     /// Creating a new instance.
     #[inline]
-    pub fn new(parser: P) -> Self {
+    pub fn new(inner: P) -> Self {
         Self {
-            inner: parser,
-            collection: E::default(),
+            inner,
+            _phantom: PhantomData,
         }
     }
 
@@ -36,6 +34,12 @@ where
     }
 }
 
+#[derive(Debug, Default)]
+pub struct CollectState<C, E> {
+    inner: C,
+    collection: E,
+}
+
 impl<P, E, I> Parser<I> for Collect<P, E>
 where
     P: StreamedParser<I>,
@@ -44,16 +48,21 @@ where
 {
     type Output = E;
     type Error = P::Error;
+    type State = CollectState<P::State, E>;
 
     fn poll_parse(
-        &mut self,
+        &self,
         mut input: Pin<&mut I>,
         cx: &mut Context<'_>,
+        state: &mut Self::State,
     ) -> Poll<ParseResult<Self, I>> {
         loop {
-            match ready!(self.inner.poll_parse_next(input.as_mut(), cx)?) {
-                Some(x) => self.collection.extend(Some(x)),
-                None => break Poll::Ready(Ok(mem::take(&mut self.collection))),
+            match ready!(self
+                .inner
+                .poll_parse_next(input.as_mut(), cx, &mut state.inner)?)
+            {
+                Some(x) => state.collection.extend(Some(x)),
+                None => break Poll::Ready(Ok(mem::take(&mut state.collection))),
             }
         }
     }
