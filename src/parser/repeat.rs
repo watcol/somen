@@ -45,6 +45,8 @@ impl<P, I: Rewind + ?Sized, R> Repeat<P, I, R> {
 /// An error type for method [`repeat`].
 ///
 /// This error will returned when the number of items is not enough as the lower bound.
+///
+/// [`repeat`]: super::ParserExt::repeat
 #[derive(Debug)]
 pub struct RepeatError<E> {
     /// An error from the internal parser.
@@ -129,7 +131,7 @@ where
 /// Arguments for method [`repeat`] which is convertable to an object implements
 /// [`RangeBounds`]`<usize>`.
 ///
-/// [`repeat`]: super::Parser::repeat
+/// [`repeat`]: super::ParserExt::repeat
 pub trait RangeArgument {
     /// The type of converted [`RangeBounds`] object.
     type Target: RangeBounds<usize>;
