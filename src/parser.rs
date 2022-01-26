@@ -12,7 +12,7 @@ mod boxed;
 
 pub use any::{Any, AnyError};
 #[cfg(feature = "alloc")]
-pub use boxed::{BoxError, BoxParser};
+pub use boxed::{BoxError, BoxParser, BoxState};
 pub use opt::Opt;
 pub use repeat::{RangeArgument, Repeat, RepeatError};
 
@@ -112,6 +112,16 @@ pub trait ParserExt<I: Positioned + ?Sized>: Parser<I> {
         Self::Error: core::fmt::Display + 'static,
     {
         BoxError::new(self)
+    }
+
+    /// Wrapping state in a [`Box`].
+    #[cfg(feature = "alloc")]
+    #[inline]
+    fn box_state(self) -> BoxState<Self>
+    where
+        Self: Sized,
+    {
+        BoxState::new(self)
     }
 }
 

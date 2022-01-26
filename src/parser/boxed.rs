@@ -74,3 +74,43 @@ where
             })
     }
 }
+
+/// A wrapper for parsers to box future objects.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct BoxState<P> {
+    inner: P,
+}
+
+impl<P> BoxState<P> {
+    /// Creating a new instance.
+    #[inline]
+    pub fn new(inner: P) -> Self {
+        Self { inner }
+    }
+
+    /// Extracting the inner parser.
+    #[inline]
+    pub fn into_inner(self) -> P {
+        self.inner
+    }
+}
+
+impl<P, I> Parser<I> for BoxState<P>
+where
+    P: Parser<I>,
+    I: Positioned + ?Sized,
+{
+    type Output = P::Output;
+    type Error = P::Error;
+    type State = Box<P::State>;
+
+    #[inline]
+    fn poll_parse(
+        &self,
+        input: Pin<&mut I>,
+        cx: &mut Context<'_>,
+        state: &mut Self::State,
+    ) -> Poll<ParseResult<Self, I>> {
+        self.inner.poll_parse(input, cx, state)
+    }
+}
