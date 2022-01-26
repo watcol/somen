@@ -77,3 +77,14 @@ impl Locator<char> for LineCol {
         }
     }
 }
+
+impl Locator<u8> for LineCol {
+    fn next(&mut self, token: &u8) {
+        if *token == b'\n' {
+            self.line += 1;
+            self.col = 1;
+        } else {
+            self.col += 1;
+        }
+    }
+}
