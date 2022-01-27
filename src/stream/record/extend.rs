@@ -93,10 +93,14 @@ where
         *this.recording_pos = Some(this.output.len());
     }
 
-    fn end(self: Pin<&mut Self>) -> Option<Cow<'_, Self::Borrowed>> {
+    fn end(self: Pin<&mut Self>) -> Cow<'_, Self::Borrowed> {
         let this = self.project();
-        let pos = mem::take(this.recording_pos)?;
-        this.output.get(pos..this.output.len()).map(Cow::from)
+        let pos = mem::take(this.recording_pos).unwrap_or_else(|| this.output.len());
+        Cow::from(
+            this.output
+                .get(pos..this.output.len())
+                .expect("recording_pos <= position"),
+        )
     }
 }
 
@@ -108,9 +112,13 @@ impl<S: TryStream<Ok = char>> Record for ExtendRecorder<'_, S, String> {
         *this.recording_pos = Some(this.output.len());
     }
 
-    fn end(self: Pin<&mut Self>) -> Option<Cow<'_, Self::Borrowed>> {
+    fn end(self: Pin<&mut Self>) -> Cow<'_, Self::Borrowed> {
         let this = self.project();
-        let pos = mem::take(this.recording_pos)?;
-        this.output.get(pos..this.output.len()).map(Cow::from)
+        let pos = mem::take(this.recording_pos).unwrap_or_else(|| this.output.len());
+        Cow::from(
+            this.output
+                .get(pos..this.output.len())
+                .expect("recording_pos <= position"),
+        )
     }
 }

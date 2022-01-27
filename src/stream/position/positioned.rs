@@ -107,7 +107,7 @@ impl<S: Record + TryStream, L: Locator<S::Ok>> Record for PositionedStream<S, L>
         self.project().inner.start()
     }
 
-    fn end(self: Pin<&mut Self>) -> Option<Cow<'_, Self::Borrowed>> {
+    fn end(self: Pin<&mut Self>) -> Cow<'_, Self::Borrowed> {
         self.project().inner.end()
     }
 }

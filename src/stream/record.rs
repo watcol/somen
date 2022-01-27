@@ -24,5 +24,5 @@ pub trait Record {
 
     /// Stop the recording, and returns a slice or an owned collection for the recorded items by
     /// [`Cow`].
-    fn end(self: Pin<&mut Self>) -> Option<Cow<'_, Self::Borrowed>>;
+    fn end(self: Pin<&mut Self>) -> Cow<'_, Self::Borrowed>;
 }

@@ -92,9 +92,13 @@ impl<T: Clone> Record for SliceStream<'_, T> {
         *this.recording_pos = Some(*this.position);
     }
 
-    fn end(self: Pin<&mut Self>) -> Option<Cow<'_, Self::Borrowed>> {
+    fn end(self: Pin<&mut Self>) -> Cow<'_, Self::Borrowed> {
         let this = self.project();
-        let pos = mem::take(this.recording_pos)?;
-        this.slice.get(pos..*this.position).map(Cow::from)
+        let pos = mem::take(this.recording_pos).unwrap_or(*this.position);
+        Cow::from(
+            this.slice
+                .get(pos..*this.position)
+                .expect("recording_pos <= position"),
+        )
     }
 }

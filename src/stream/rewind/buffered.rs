@@ -167,17 +167,19 @@ where
         *this.recording_pos = Some(*this.position);
     }
 
-    fn end(self: Pin<&mut Self>) -> Option<Cow<'_, Self::Borrowed>> {
+    fn end(self: Pin<&mut Self>) -> Cow<'_, Self::Borrowed> {
         let this = self.project();
-        let pos = mem::take(this.recording_pos)? - *this.buffer_offset;
+        let pos = mem::take(this.recording_pos).unwrap() - *this.buffer_offset;
         if this.markers.is_empty() {
-            this.buffer
-                .make_contiguous()
-                .get(pos..(*this.position - *this.buffer_offset))
-                .map(Cow::from)
+            Cow::from(
+                this.buffer
+                    .make_contiguous()
+                    .get(pos..(*this.position - *this.buffer_offset))
+                    .expect("recording_pos <= position"),
+            )
         } else {
             *this.buffer_offset += this.buffer.len();
-            Some(Cow::from(Vec::from(mem::take(this.buffer))))
+            Cow::from(Vec::from(mem::take(this.buffer)))
         }
     }
 }
