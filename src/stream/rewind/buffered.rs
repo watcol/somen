@@ -5,7 +5,6 @@ pub use error::BufferedError;
 
 use alloc::collections::VecDeque;
 use alloc::vec::Vec;
-use core::mem;
 use core::pin::Pin;
 use core::task::{Context, Poll};
 use futures_core::{ready, FusedStream, Stream, TryStream};
@@ -156,30 +155,19 @@ where
     }
 }
 
-impl<S: TryStream> Record for BufferedRewinder<S>
+impl<S: Record + TryStream> Record for BufferedRewinder<S>
 where
     S::Ok: Clone,
 {
-    type Borrowed = [S::Ok];
+    type Borrowed = S::Borrowed;
 
+    #[inline]
     fn start(self: Pin<&mut Self>) {
-        let this = self.project();
-        *this.recording_pos = Some(*this.position);
+        self.project().inner.start()
     }
 
+    #[inline]
     fn end(self: Pin<&mut Self>) -> Cow<'_, Self::Borrowed> {
-        let this = self.project();
-        let pos = mem::take(this.recording_pos).unwrap() - *this.buffer_offset;
-        if this.markers.is_empty() {
-            Cow::from(
-                this.buffer
-                    .make_contiguous()
-                    .get(pos..(*this.position - *this.buffer_offset))
-                    .expect("recording_pos <= position"),
-            )
-        } else {
-            *this.buffer_offset += this.buffer.len();
-            Cow::from(Vec::from(mem::take(this.buffer)))
-        }
+        self.project().inner.end()
     }
 }

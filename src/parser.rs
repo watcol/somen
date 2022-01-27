@@ -70,7 +70,7 @@ pub trait ParserExt<I: Positioned + ?Sized>: Parser<I> {
     /// [`poll_parse`]: self::Parser::poll_parse
     /// [`Future`]: core::future::Future
     #[inline]
-    fn parse<'a, 'b>(&'a mut self, input: &'b mut I) -> ParseFuture<'a, 'b, Self, I, Self::State>
+    fn parse<'a, 'b>(&'a self, input: &'b mut I) -> ParseFuture<'a, 'b, Self, I, Self::State>
     where
         I: Unpin,
     {

@@ -8,7 +8,7 @@ use crate::stream::Positioned;
 
 #[derive(Debug)]
 pub struct ParserStream<'a, 'b, P: ?Sized, I: ?Sized, C> {
-    parser: &'a mut P,
+    parser: &'a P,
     input: &'b mut I,
     state: C,
 }
@@ -18,7 +18,7 @@ impl<P: ?Sized, I: Unpin + ?Sized, C> Unpin for ParserStream<'_, '_, P, I, C> {}
 impl<'a, 'b, P: StreamedParser<I> + ?Sized, I: Positioned + Unpin + ?Sized>
     ParserStream<'a, 'b, P, I, P::State>
 {
-    pub fn new(parser: &'a mut P, input: &'b mut I) -> Self {
+    pub fn new(parser: &'a P, input: &'b mut I) -> Self {
         Self {
             parser,
             input,
@@ -35,8 +35,8 @@ impl<P: StreamedParser<I> + ?Sized, I: Positioned + Unpin + ?Sized> Stream
 
     fn poll_next(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Option<Self::Item>> {
         let Self {
-            ref parser,
-            ref mut input,
+            parser,
+            input,
             ref mut state,
         } = &mut *self;
         match ready!(parser.poll_parse_next(Pin::new(input), cx, state)?) {

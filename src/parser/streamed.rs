@@ -54,7 +54,7 @@ pub trait StreamedParserExt<I: Positioned + ?Sized>: StreamedParser<I> {
     /// [`poll_parse_next`]: self::StreamedParser::poll_parse_next
     #[inline]
     fn parse_streamed<'a, 'b>(
-        &'a mut self,
+        &'a self,
         input: &'b mut I,
     ) -> ParserStream<'a, 'b, Self, I, Self::State>
     where

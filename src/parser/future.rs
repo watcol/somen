@@ -8,7 +8,7 @@ use crate::stream::Positioned;
 
 #[derive(Debug)]
 pub struct ParseFuture<'a, 'b, P: ?Sized, I: ?Sized, C> {
-    parser: &'a mut P,
+    parser: &'a P,
     input: &'b mut I,
     state: C,
 }
@@ -18,7 +18,7 @@ impl<P: ?Sized, I: Unpin + ?Sized, C> Unpin for ParseFuture<'_, '_, P, I, C> {}
 impl<'a, 'b, P: Parser<I> + ?Sized, I: Positioned + Unpin + ?Sized>
     ParseFuture<'a, 'b, P, I, P::State>
 {
-    pub fn new(parser: &'a mut P, input: &'b mut I) -> Self {
+    pub fn new(parser: &'a P, input: &'b mut I) -> Self {
         Self {
             parser,
             input,
@@ -34,8 +34,8 @@ impl<P: Parser<I> + ?Sized, I: Positioned + Unpin + ?Sized> Future
 
     fn poll(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {
         let Self {
-            ref parser,
-            ref mut input,
+            parser,
+            input,
             ref mut state,
         } = &mut *self;
         parser.poll_parse(Pin::new(input), cx, state)
