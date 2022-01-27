@@ -1,26 +1,37 @@
+#[cfg(feature = "alloc")]
+use alloc::borrow::Cow;
 use core::convert::Infallible;
+#[cfg(feature = "alloc")]
+use core::mem;
 use core::pin::Pin;
 use core::task::{Context, Poll};
 use futures_core::Stream;
 use pin_project_lite::pin_project;
 
+#[cfg(feature = "alloc")]
+use crate::stream::record::Record;
 use crate::stream::{Positioned, Rewind};
 
 pin_project! {
-    /// Wrapping slices, implements [`TryStream`], [`Positioned`] and [`Rewind`] trait.
+    /// Wrapping slices, implements [`TryStream`], [`Positioned`], [`Rewind`] and [`Record`] trait.
     ///
     /// [`TryStream`]: futures_core::stream::TryStream
     #[derive(Debug)]
     pub struct SliceStream<'a, T> {
-        position: usize,
         slice: &'a [T],
+        position: usize,
+        recording_pos: Option<usize>,
     }
 }
 
 impl<'a, T: Clone> From<&'a [T]> for SliceStream<'a, T> {
     #[inline]
     fn from(slice: &'a [T]) -> Self {
-        Self { position: 0, slice }
+        Self {
+            slice,
+            position: 0,
+            recording_pos: None,
+        }
     }
 }
 impl<'a, T: Clone> SliceStream<'a, T> {
@@ -68,5 +79,22 @@ impl<T: Clone> Rewind for SliceStream<'_, T> {
     fn rewind(mut self: Pin<&mut Self>, marker: Self::Marker) -> Result<(), Self::Error> {
         self.position = marker;
         Ok(())
+    }
+}
+
+#[cfg(feature = "alloc")]
+#[cfg_attr(feature = "nightly", doc(cfg(feature = "alloc")))]
+impl<T: Clone> Record for SliceStream<'_, T> {
+    type Borrowed = [T];
+
+    fn start(self: Pin<&mut Self>) {
+        let this = self.project();
+        *this.recording_pos = Some(*this.position);
+    }
+
+    fn end(self: Pin<&mut Self>) -> Option<Cow<'_, Self::Borrowed>> {
+        let this = self.project();
+        let pos = mem::take(this.recording_pos)?;
+        this.slice.get(pos..*this.position).map(Cow::from)
     }
 }

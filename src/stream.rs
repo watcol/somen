@@ -14,20 +14,34 @@ pub use builder::*;
 pub use imp::*;
 
 pub mod position;
+#[cfg(feature = "alloc")]
+#[cfg_attr(feature = "nightly", doc(cfg(feature = "alloc")))]
 pub mod record;
 pub mod rewind;
 
 pub use position::Positioned;
+#[cfg(feature = "alloc")]
+#[cfg_attr(feature = "nightly", doc(cfg(feature = "alloc")))]
+pub use record::Record;
 pub use rewind::Rewind;
 
-/// An alias trait for [`Positioned`]` + `[`Rewind`], full-featured streams.
-///
-/// [`Positioned`]: self::position::Positioned
-/// [`Rewind`]: self::rewind::Rewind
-pub trait Input: Positioned + Rewind {
-    type Token;
-}
+/// An alias trait for [`Positioned`]` + `[`Rewind`].
+pub trait Input: Positioned + Rewind {}
 
-impl<T: Positioned + Rewind + ?Sized> Input for T {
-    type Token = T::Ok;
-}
+impl<T: Positioned + Rewind + ?Sized> Input for T {}
+
+/// An alias trait for [`Positioned`]` + `[`Record`].
+#[cfg(feature = "alloc")]
+#[cfg_attr(feature = "nightly", doc(cfg(feature = "alloc")))]
+pub trait NoRewindInput: Positioned + Record {}
+
+#[cfg(feature = "alloc")]
+impl<T: Positioned + Record + ?Sized> NoRewindInput for T {}
+
+/// An alias trait for [`Positioned`]` + `[`Rewind`]` + `[`Record`].
+#[cfg(feature = "alloc")]
+#[cfg_attr(feature = "nightly", doc(cfg(feature = "alloc")))]
+pub trait RecordInput: Positioned + Rewind + Record {}
+
+#[cfg(feature = "alloc")]
+impl<T: Positioned + Rewind + Record + ?Sized> RecordInput for T {}

@@ -1,20 +1,23 @@
+use alloc::borrow::Cow;
 use alloc::vec::Vec;
+use core::mem;
 use core::pin::Pin;
 use core::task::{Context, Poll};
 use futures_core::{ready, FusedStream, Stream, TryStream};
 use pin_project_lite::pin_project;
 
+use super::Record;
 use crate::stream::{Positioned, Rewind};
 
 pin_project! {
     /// Wrapping [`TryStream`],  implements [`Positioned`] and [`Rewind`] trait by storing
     /// the stream outputs to [`Vec`].
     #[derive(Debug)]
-    #[cfg_attr(feature = "nightly", doc(cfg(feature = "alloc")))]
     pub struct VecRecorder<S: TryStream> {
         #[pin]
         inner: S,
         position: usize,
+        recording_pos: Option<usize>,
         record: Vec<S::Ok>,
     }
 }
@@ -25,6 +28,7 @@ impl<S: TryStream> From<S> for VecRecorder<S> {
         Self {
             inner,
             position: 0,
+            recording_pos: None,
             record: Vec::new(),
         }
     }
@@ -126,5 +130,23 @@ where
     fn rewind(self: Pin<&mut Self>, marker: Self::Marker) -> Result<(), Self::Error> {
         *self.project().position = marker;
         Ok(())
+    }
+}
+
+impl<S: TryStream> Record for VecRecorder<S>
+where
+    S::Ok: Clone,
+{
+    type Borrowed = [S::Ok];
+
+    fn start(self: Pin<&mut Self>) {
+        let this = self.project();
+        *this.recording_pos = Some(*this.position);
+    }
+
+    fn end(self: Pin<&mut Self>) -> Option<Cow<'_, Self::Borrowed>> {
+        let this = self.project();
+        let pos = mem::take(this.recording_pos)?;
+        this.record.get(pos..*this.position).map(Cow::from)
     }
 }

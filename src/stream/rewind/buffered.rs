@@ -1,14 +1,17 @@
 mod error;
 
+use alloc::borrow::Cow;
 pub use error::BufferedError;
 
 use alloc::collections::VecDeque;
 use alloc::vec::Vec;
+use core::mem;
 use core::pin::Pin;
 use core::task::{Context, Poll};
 use futures_core::{ready, FusedStream, Stream, TryStream};
 use pin_project_lite::pin_project;
 
+use crate::stream::record::Record;
 use crate::stream::{Positioned, Rewind};
 
 pin_project! {
@@ -27,6 +30,7 @@ pin_project! {
         buffer: VecDeque<S::Ok>,
         buffer_offset: usize,
         markers: Vec<usize>,
+        recording_pos: Option<usize>,
     }
 }
 
@@ -39,6 +43,7 @@ impl<S: TryStream> From<S> for BufferedRewinder<S> {
             buffer: VecDeque::new(),
             buffer_offset: 0,
             markers: Vec::new(),
+            recording_pos: None,
         }
     }
 }
@@ -80,14 +85,17 @@ where
                 ready!(this.inner.try_poll_next(cx)).map(|r| r.map_err(BufferedError::Stream));
             if let Some(Ok(ref i)) = res {
                 *this.position += 1;
-                if !this.markers.is_empty() {
+                if !this.markers.is_empty() || this.recording_pos.is_some() {
                     this.buffer.push_back(i.clone());
                 } else {
                     *this.buffer_offset += 1;
                 }
             }
             Poll::Ready(res)
-        } else if *this.position == *this.buffer_offset && this.markers.is_empty() {
+        } else if *this.position == *this.buffer_offset
+            && this.markers.is_empty()
+            && this.recording_pos.is_none()
+        {
             let res = this.buffer.pop_front();
             *this.position += 1;
             *this.buffer_offset += 1;
@@ -144,6 +152,32 @@ where
             Ok(())
         } else {
             Err(BufferedError::Buffer)
+        }
+    }
+}
+
+impl<S: TryStream> Record for BufferedRewinder<S>
+where
+    S::Ok: Clone,
+{
+    type Borrowed = [S::Ok];
+
+    fn start(self: Pin<&mut Self>) {
+        let this = self.project();
+        *this.recording_pos = Some(*this.position);
+    }
+
+    fn end(self: Pin<&mut Self>) -> Option<Cow<'_, Self::Borrowed>> {
+        let this = self.project();
+        let pos = mem::take(this.recording_pos)? - *this.buffer_offset;
+        if this.markers.is_empty() {
+            this.buffer
+                .make_contiguous()
+                .get(pos..(*this.position - *this.buffer_offset))
+                .map(Cow::from)
+        } else {
+            *this.buffer_offset += this.buffer.len();
+            Some(Cow::from(Vec::from(mem::take(this.buffer))))
         }
     }
 }

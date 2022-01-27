@@ -3,11 +3,10 @@ use futures_core::{Stream, TryStream};
 use futures_io::AsyncRead;
 
 use super::position::{Locator, PositionedStream};
-use super::record::ExtendRecorder;
 use super::{InfallibleStream, IteratorStream, SliceStream};
 
 #[cfg(feature = "alloc")]
-use super::record::VecRecorder;
+use super::record::{ExtendRecorder, VecRecorder};
 #[cfg(feature = "alloc")]
 use super::rewind::BufferedRewinder;
 
@@ -88,7 +87,7 @@ pub trait StreamBuilder: TryStream {
         PositionedStream::new(self, initial)
     }
 
-    /// Implement [`Positioned`] and [`Rewind`] by buffering recent inputs.
+    /// Implement [`Positioned`], [`Rewind`] and [`Record`] by buffering recent inputs.
     ///
     /// # Examples
     /// ```
@@ -125,6 +124,7 @@ pub trait StreamBuilder: TryStream {
     ///
     /// [`Positioned`]: crate::stream::position::Positioned
     /// [`Rewind`]: crate::stream::rewind::Rewind
+    /// [`Record`]: crate::stream::record::Record
     #[cfg(feature = "alloc")]
     #[cfg_attr(feature = "nightly", doc(cfg(feature = "alloc")))]
     #[inline]
@@ -135,7 +135,7 @@ pub trait StreamBuilder: TryStream {
         BufferedRewinder::from(self)
     }
 
-    /// Recording stream outputs into a [`Vec`] and implements [`Positioned`], [`Rewind`].
+    /// Implements [`Positioned`], [`Rewind`] and [`Record`] by recording all the output to [`Vec`].
     ///
     /// # Examples
     /// ```
@@ -175,6 +175,7 @@ pub trait StreamBuilder: TryStream {
     /// [`Vec`]: alloc::vec::Vec
     /// [`Positioned`]: crate::stream::position::Positioned
     /// [`Rewind`]: crate::stream::rewind::Rewind
+    /// [`Record`]: crate::stream::record::Record
     #[cfg(feature = "alloc")]
     #[cfg_attr(feature = "nightly", doc(cfg(feature = "alloc")))]
     #[inline]
@@ -185,7 +186,7 @@ pub trait StreamBuilder: TryStream {
         VecRecorder::from(self)
     }
 
-    /// Recording stream outputs into any types implements [`Extend`].
+    /// Implements [`Record`] using types implements [`Extend`].
     ///
     /// # Examples
     /// ```
@@ -207,6 +208,9 @@ pub trait StreamBuilder: TryStream {
     /// ```
     ///
     /// [`Extend`]: core::iter::Extend
+    /// [`Record`]: crate::stream::record::Record
+    #[cfg(feature = "alloc")]
+    #[cfg_attr(feature = "nightly", doc(cfg(feature = "alloc")))]
     #[inline]
     fn record_to_extend<E>(self, extend: &mut E) -> ExtendRecorder<'_, Self, E>
     where

@@ -1,9 +1,13 @@
+#[cfg(feature = "alloc")]
+use alloc::borrow::Cow;
 use core::pin::Pin;
 use core::task::{Context, Poll};
 use futures_core::{ready, FusedStream, Stream, TryStream};
 use pin_project_lite::pin_project;
 
 use super::Locator;
+#[cfg(feature = "alloc")]
+use crate::stream::record::Record;
 use crate::stream::{Positioned, Rewind};
 
 pin_project! {
@@ -90,5 +94,20 @@ impl<S: Rewind, L: Locator<S::Ok>> Rewind for PositionedStream<S, L> {
     #[inline]
     fn drop_marker(self: Pin<&mut Self>, marker: Self::Marker) -> Result<(), Self::Error> {
         self.project().inner.drop_marker(marker)
+    }
+}
+
+#[cfg(feature = "alloc")]
+#[cfg_attr(feature = "nightly", doc(cfg(feature = "alloc")))]
+impl<S: Record + TryStream, L: Locator<S::Ok>> Record for PositionedStream<S, L> {
+    type Borrowed = S::Borrowed;
+
+    #[inline]
+    fn start(self: Pin<&mut Self>) {
+        self.project().inner.start()
+    }
+
+    fn end(self: Pin<&mut Self>) -> Option<Cow<'_, Self::Borrowed>> {
+        self.project().inner.end()
     }
 }
