@@ -9,11 +9,15 @@ mod repeat;
 
 #[cfg(feature = "alloc")]
 mod boxed;
+#[cfg(feature = "alloc")]
+mod record;
 
 pub use any::{Any, AnyError};
 #[cfg(feature = "alloc")]
 pub use boxed::{BoxError, BoxParser, BoxState};
 pub use opt::Opt;
+#[cfg(feature = "alloc")]
+pub use record::Record;
 pub use repeat::{RangeArgument, Repeat, RepeatError};
 
 #[cfg(feature = "alloc")]
@@ -24,6 +28,8 @@ use core::task::{Context, Poll};
 use future::ParseFuture;
 
 use crate::error::ParseResult;
+#[cfg(feature = "alloc")]
+use crate::stream::NoRewindInput;
 use crate::stream::{Input, Positioned};
 
 /// Parses any token.
@@ -71,28 +77,6 @@ pub trait ParserExt<I: Positioned + ?Sized>: Parser<I> {
         ParseFuture::new(self, input)
     }
 
-    /// Returns [`Some`] when parsing was successed.
-    #[inline]
-    fn opt(self) -> Opt<Self>
-    where
-        I: Input,
-        Self: Sized,
-    {
-        Opt::new(self)
-    }
-
-    /// Returns a [`StreamedParser`] by repeating the parser while successing.
-    ///
-    /// [`StreamedParser`]: streamed::StreamedParser
-    #[inline]
-    fn repeat<R: RangeArgument>(self, range: R) -> Repeat<Self, R::Target>
-    where
-        I: Input,
-        Self: Sized,
-    {
-        Repeat::new(self, range)
-    }
-
     /// Wrapping the parser in a [`Box`].
     #[cfg(feature = "alloc")]
     #[cfg_attr(feature = "nightly", doc(cfg(feature = "alloc")))]
@@ -125,6 +109,39 @@ pub trait ParserExt<I: Positioned + ?Sized>: Parser<I> {
         Self: Sized,
     {
         BoxState::new(self)
+    }
+
+    /// Returns consumed input
+    #[cfg(feature = "alloc")]
+    #[inline]
+    fn record(self) -> Record<Self>
+    where
+        I: NoRewindInput,
+        Self: Sized,
+    {
+        Record::new(self)
+    }
+
+    /// Returns [`Some`] when parsing was successed.
+    #[inline]
+    fn opt(self) -> Opt<Self>
+    where
+        I: Input,
+        Self: Sized,
+    {
+        Opt::new(self)
+    }
+
+    /// Returns a [`StreamedParser`] by repeating the parser while successing.
+    ///
+    /// [`StreamedParser`]: streamed::StreamedParser
+    #[inline]
+    fn repeat<R: RangeArgument>(self, range: R) -> Repeat<Self, R::Target>
+    where
+        I: Input,
+        Self: Sized,
+    {
+        Repeat::new(self, range)
     }
 }
 
