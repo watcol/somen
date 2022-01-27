@@ -28,7 +28,7 @@ use crate::stream::{Input, Positioned};
 
 /// Parses any token.
 #[inline]
-pub fn any() -> Any {
+pub fn any<I: Positioned + ?Sized>() -> Any<I> {
     Any::new()
 }
 
@@ -73,7 +73,7 @@ pub trait ParserExt<I: Positioned + ?Sized>: Parser<I> {
 
     /// Returns [`Some`] when parsing was successed.
     #[inline]
-    fn opt(self) -> Opt<Self, I>
+    fn opt(self) -> Opt<Self>
     where
         I: Input,
         Self: Sized,
@@ -85,7 +85,7 @@ pub trait ParserExt<I: Positioned + ?Sized>: Parser<I> {
     ///
     /// [`StreamedParser`]: streamed::StreamedParser
     #[inline]
-    fn repeat<R: RangeArgument>(self, range: R) -> Repeat<Self, R::Target, I>
+    fn repeat<R: RangeArgument>(self, range: R) -> Repeat<Self, R::Target>
     where
         I: Input,
         Self: Sized,

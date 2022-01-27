@@ -1,5 +1,4 @@
 use core::fmt;
-use core::marker::PhantomData;
 use core::mem;
 use core::ops::{Bound, RangeBounds};
 use core::pin::Pin;
@@ -14,13 +13,12 @@ use crate::stream::Input;
 /// A streamed parser generated from method [`repeat`].
 ///
 /// [`repeat`]: super::ParserExt::repeat
-pub struct Repeat<P, R, I: ?Sized> {
+pub struct Repeat<P, R> {
     inner: P,
     range: R,
-    _phantom: PhantomData<I>,
 }
 
-impl<P, R, I: ?Sized> Repeat<P, R, I> {
+impl<P, R> Repeat<P, R> {
     /// Creating a new instance.
     #[inline]
     pub fn new<T>(inner: P, range: T) -> Self
@@ -30,7 +28,6 @@ impl<P, R, I: ?Sized> Repeat<P, R, I> {
         Self {
             inner,
             range: range.into_range_bounds(),
-            _phantom: PhantomData,
         }
     }
 
@@ -86,7 +83,7 @@ impl<C: Default, M> Default for RepeatState<C, M> {
     }
 }
 
-impl<P, R, I> StreamedParser<I> for Repeat<P, R, I>
+impl<P, R, I> StreamedParser<I> for Repeat<P, R>
 where
     P: Parser<I>,
     R: RangeBounds<usize>,

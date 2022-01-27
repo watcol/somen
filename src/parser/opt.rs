@@ -1,5 +1,4 @@
 use core::convert::Infallible;
-use core::marker::PhantomData;
 use core::mem;
 use core::pin::Pin;
 use core::task::{Context, Poll};
@@ -13,19 +12,15 @@ use crate::stream::Input;
 ///
 /// [`opt`]: super::ParserExt::opt
 #[derive(Debug)]
-pub struct Opt<P, I: ?Sized> {
+pub struct Opt<P> {
     inner: P,
-    _phantom: PhantomData<I>,
 }
 
-impl<P, I: ?Sized> Opt<P, I> {
+impl<P> Opt<P> {
     /// Creating a new instance.
     #[inline]
     pub fn new(inner: P) -> Self {
-        Self {
-            inner,
-            _phantom: PhantomData,
-        }
+        Self { inner }
     }
 
     /// Extracting the inner parser.
@@ -50,7 +45,7 @@ impl<C: Default, M> Default for OptState<C, M> {
     }
 }
 
-impl<P, I> Parser<I> for Opt<P, I>
+impl<P, I> Parser<I> for Opt<P>
 where
     P: Parser<I>,
     I: Input + ?Sized,

@@ -1,4 +1,5 @@
 use core::fmt;
+use core::marker::PhantomData;
 use core::pin::Pin;
 use core::task::{Context, Poll};
 use futures_core::ready;
@@ -10,10 +11,16 @@ use crate::stream::Positioned;
 /// A parser for function [`any`].
 ///
 /// [`any`]: crate::parser::any
-#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
-pub struct Any;
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub struct Any<I: ?Sized>(PhantomData<I>);
 
-impl Any {
+impl<I: ?Sized> Default for Any<I> {
+    fn default() -> Self {
+        Any(PhantomData)
+    }
+}
+
+impl<I: ?Sized> Any<I> {
     /// Creating a new instance.
     #[inline]
     pub fn new() -> Self {
@@ -36,7 +43,7 @@ impl fmt::Display for AnyError {
 #[cfg(feature = "std")]
 impl std::error::Error for AnyError {}
 
-impl<I: Positioned + ?Sized> Parser<I> for Any {
+impl<I: Positioned + ?Sized> Parser<I> for Any<I> {
     type Output = I::Ok;
     type Error = AnyError;
     type State = ();
