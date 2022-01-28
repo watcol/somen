@@ -1,19 +1,12 @@
 //! Tools for parsers return multiple outputs.
 
-#[cfg(feature = "alloc")]
-mod boxed;
 mod collect;
 mod stream;
 
 use core::pin::Pin;
 use core::task::{Context, Poll};
 
-#[cfg(feature = "alloc")]
-pub use boxed::{BoxError, BoxStreamedParser};
 pub use collect::Collect;
-
-#[cfg(feature = "alloc")]
-use alloc::boxed::Box;
 
 use crate::error::StreamedResult;
 use crate::stream::position::Positioned;
@@ -72,26 +65,6 @@ pub trait StreamedParserExt<I: Positioned + ?Sized>: StreamedParser<I> {
         Self: Sized,
     {
         Collect::new(self)
-    }
-
-    /// Wraps the streamed parser into a [`Box`].
-    #[cfg(feature = "alloc")]
-    #[inline]
-    fn boxed<'a>(self) -> BoxStreamedParser<'a, I, Self::Item, Self::Error, Self::State>
-    where
-        Self: Sized + 'a,
-    {
-        Box::new(self)
-    }
-
-    /// Returns a new streamed parser by wrapping the error into a [`Box`].
-    #[cfg(feature = "alloc")]
-    #[inline]
-    fn box_error(self) -> BoxError<Self>
-    where
-        Self: Sized,
-    {
-        BoxError::new(self)
     }
 }
 

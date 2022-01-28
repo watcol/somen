@@ -8,20 +8,14 @@ mod opt;
 mod repeat;
 
 #[cfg(feature = "alloc")]
-mod boxed;
-#[cfg(feature = "alloc")]
 mod record;
 
 pub use any::{Any, AnyError};
-#[cfg(feature = "alloc")]
-pub use boxed::{BoxError, BoxParser, BoxState};
 pub use opt::Opt;
 #[cfg(feature = "alloc")]
 pub use record::{Record, WithRecord};
 pub use repeat::{RangeArgument, Repeat, RepeatError};
 
-#[cfg(feature = "alloc")]
-use alloc::boxed::Box;
 use core::pin::Pin;
 use core::task::{Context, Poll};
 
@@ -75,40 +69,6 @@ pub trait ParserExt<I: Positioned + ?Sized>: Parser<I> {
         I: Unpin,
     {
         ParseFuture::new(self, input)
-    }
-
-    /// Wrapping the parser in a [`Box`].
-    #[cfg(feature = "alloc")]
-    #[cfg_attr(feature = "nightly", doc(cfg(feature = "alloc")))]
-    #[inline]
-    fn boxed<'a>(self) -> BoxParser<'a, I, Self::Output, Self::Error, Self::State>
-    where
-        Self: Sized + 'a,
-    {
-        Box::new(self)
-    }
-
-    /// Wrapping errors in a [`Box`].
-    #[cfg(feature = "alloc")]
-    #[cfg_attr(feature = "nightly", doc(cfg(feature = "alloc")))]
-    #[inline]
-    fn box_error(self) -> BoxError<Self>
-    where
-        Self: Sized,
-        Self::Error: core::fmt::Display + 'static,
-    {
-        BoxError::new(self)
-    }
-
-    /// Wrapping state in a [`Box`].
-    #[cfg(feature = "alloc")]
-    #[cfg_attr(feature = "nightly", doc(cfg(feature = "alloc")))]
-    #[inline]
-    fn box_state(self) -> BoxState<Self>
-    where
-        Self: Sized,
-    {
-        BoxState::new(self)
     }
 
     /// Returns consumed items instead of an output.
