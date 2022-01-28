@@ -10,7 +10,9 @@ use crate::stream::Positioned;
 
 use super::StreamedParser;
 
-/// A parser collecting outputs from a [`StreamedParser`].
+/// A parser for method [`collect`].
+///
+/// [`collect`]: super::StreamedParser::collect
 #[derive(Debug)]
 pub struct Collect<P, E> {
     inner: P,

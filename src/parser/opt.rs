@@ -10,7 +10,7 @@ use crate::stream::Input;
 
 /// A parser for method [`opt`].
 ///
-/// [`opt`]: super::ParserExt::opt
+/// [`opt`]: super::Parser::opt
 #[derive(Debug)]
 pub struct Opt<P> {
     inner: P,

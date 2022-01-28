@@ -8,7 +8,7 @@ use crate::stream::NoRewindInput;
 
 /// A parser for method [`record`].
 ///
-/// [`record`]: super::ParserExt::opt
+/// [`record`]: super::Parser::opt
 #[derive(Debug)]
 pub struct Record<P> {
     inner: P,
@@ -65,7 +65,7 @@ where
 
 /// A parser for method [`with_record`].
 ///
-/// [`with_record`]: super::ParserExt::opt
+/// [`with_record`]: super::Parser::with_record
 #[derive(Debug)]
 pub struct WithRecord<P> {
     inner: P,

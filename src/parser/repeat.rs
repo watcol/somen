@@ -12,7 +12,7 @@ use crate::stream::Input;
 
 /// A streamed parser generated from method [`repeat`].
 ///
-/// [`repeat`]: super::ParserExt::repeat
+/// [`repeat`]: super::Parser::repeat
 pub struct Repeat<P, R> {
     inner: P,
     range: R,
@@ -42,7 +42,7 @@ impl<P, R> Repeat<P, R> {
 ///
 /// This error will returned when the number of items is not enough as the lower bound.
 ///
-/// [`repeat`]: super::ParserExt::repeat
+/// [`repeat`]: super::Parser::repeat
 #[derive(Debug)]
 pub struct RepeatError<E> {
     /// An error from the internal parser.
@@ -148,7 +148,7 @@ where
 /// Arguments for method [`repeat`] which is convertable to an object implements
 /// [`RangeBounds`]`<usize>`.
 ///
-/// [`repeat`]: super::ParserExt::repeat
+/// [`repeat`]: super::Parser::repeat
 pub trait RangeArgument {
     /// The type of converted [`RangeBounds`] object.
     type Target: RangeBounds<usize>;

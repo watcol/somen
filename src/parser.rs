@@ -55,13 +55,10 @@ pub trait Parser<I: Positioned + ?Sized> {
         cx: &mut Context<'_>,
         state: &mut Self::State,
     ) -> Poll<ParseResult<Self, I>>;
-}
 
-/// An extension trait for [`Parser`].
-pub trait ParserExt<I: Positioned + ?Sized>: Parser<I> {
     /// An asynchronous version of [`poll_parse`], which returns a [`Future`].
     ///
-    /// [`poll_parse`]: self::Parser::poll_parse
+    /// [`poll_parse`]: Self::poll_parse
     /// [`Future`]: core::future::Future
     #[inline]
     fn parse<'a, 'b>(&'a self, input: &'b mut I) -> ParseFuture<'a, 'b, Self, I, Self::State>
@@ -115,5 +112,3 @@ pub trait ParserExt<I: Positioned + ?Sized>: Parser<I> {
         Repeat::new(self, range)
     }
 }
-
-impl<P: Parser<I>, I: Positioned + ?Sized> ParserExt<I> for P {}

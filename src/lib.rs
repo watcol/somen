@@ -14,10 +14,6 @@ pub mod stream;
 /// Re-exports of commonly used items.
 pub mod prelude {
     #[doc(no_inline)]
-    pub use crate::parser::streamed::StreamedParserExt as _;
-    #[doc(no_inline)]
-    pub use crate::parser::ParserExt as _;
-    #[doc(no_inline)]
     pub use crate::stream::StreamBuilder as _;
 
     pub use crate::parser::streamed::StreamedParser;

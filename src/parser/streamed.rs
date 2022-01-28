@@ -37,14 +37,11 @@ pub trait StreamedParser<I: Positioned + ?Sized> {
         cx: &mut Context<'_>,
         state: &mut Self::State,
     ) -> Poll<StreamedResult<Self, I>>;
-}
 
-/// An extention trait for [`StreamedParser`].
-pub trait StreamedParserExt<I: Positioned + ?Sized>: StreamedParser<I> {
     /// Returning a [`TryStream`] by invoking [`poll_parse_next`].
     ///
     /// [`TryStream`]: futures_core::TryStream
-    /// [`poll_parse_next`]: self::StreamedParser::poll_parse_next
+    /// [`poll_parse_next`]: Self::poll_parse_next
     #[inline]
     fn parse_streamed<'a, 'b>(
         &'a self,
@@ -67,5 +64,3 @@ pub trait StreamedParserExt<I: Positioned + ?Sized>: StreamedParser<I> {
         Collect::new(self)
     }
 }
-
-impl<P: StreamedParser<I>, I: Positioned + ?Sized> StreamedParserExt<I> for P {}
