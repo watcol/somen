@@ -6,25 +6,29 @@ mod any;
 mod future;
 mod opt;
 mod repeat;
+mod tuples;
 
 #[cfg(feature = "alloc")]
 mod record;
 
+#[cfg(feature = "alloc")]
+use alloc::boxed::Box;
 pub use any::{Any, AnyError};
 pub use opt::Opt;
 #[cfg(feature = "alloc")]
 pub use record::{Record, WithRecord};
 pub use repeat::{RangeArgument, Repeat, RepeatError};
 
+use core::future::Future;
 use core::pin::Pin;
 use core::task::{Context, Poll};
+use futures_util::future::FutureExt;
 
-use future::ParseFuture;
-
-use crate::error::ParseResult;
+use crate::error::{ParseError, ParseResult};
 #[cfg(feature = "alloc")]
 use crate::stream::NoRewindInput;
 use crate::stream::{Input, Positioned};
+use future::ParseFuture;
 
 /// Parses any token.
 #[inline]
@@ -70,6 +74,7 @@ pub trait Parser<I: Positioned + ?Sized> {
 
     /// Returns consumed items instead of an output.
     #[cfg(feature = "alloc")]
+    #[cfg_attr(feature = "nightly", doc(cfg(feature = "alloc")))]
     #[inline]
     fn record(self) -> Record<Self>
     where
@@ -81,6 +86,7 @@ pub trait Parser<I: Positioned + ?Sized> {
 
     /// Returns an output beside consumed items.
     #[cfg(feature = "alloc")]
+    #[cfg_attr(feature = "nightly", doc(cfg(feature = "alloc")))]
     #[inline]
     fn with_record(self) -> WithRecord<Self>
     where
@@ -110,5 +116,81 @@ pub trait Parser<I: Positioned + ?Sized> {
         Self: Sized,
     {
         Repeat::new(self, range)
+    }
+}
+
+impl<'a, P: Parser<I> + ?Sized, I: Positioned + ?Sized> Parser<I> for &'a P {
+    type Output = P::Output;
+    type Error = P::Error;
+    type State = P::State;
+
+    fn poll_parse(
+        &self,
+        input: Pin<&mut I>,
+        cx: &mut Context<'_>,
+        state: &mut Self::State,
+    ) -> Poll<ParseResult<Self, I>> {
+        (**self).poll_parse(input, cx, state)
+    }
+}
+
+#[cfg(feature = "alloc")]
+#[cfg_attr(feature = "nightly", doc(cfg(feature = "alloc")))]
+impl<'a, P: Parser<I>, I: Positioned + ?Sized> Parser<I> for Box<P> {
+    type Output = P::Output;
+    type Error = P::Error;
+    type State = P::State;
+
+    fn poll_parse(
+        &self,
+        input: Pin<&mut I>,
+        cx: &mut Context<'_>,
+        state: &mut Self::State,
+    ) -> Poll<ParseResult<Self, I>> {
+        (**self).poll_parse(input, cx, state)
+    }
+}
+
+impl<'a, I: Positioned + ?Sized, O, E, C: Default> Parser<I>
+    for dyn Fn(
+            Pin<&mut I>,
+            &mut Context<'_>,
+            &mut C,
+        ) -> Poll<Result<O, ParseError<E, I::Error, I::Locator>>>
+        + 'a
+{
+    type Output = O;
+    type Error = E;
+    type State = C;
+
+    fn poll_parse(
+        &self,
+        input: Pin<&mut I>,
+        cx: &mut Context<'_>,
+        state: &mut Self::State,
+    ) -> Poll<ParseResult<Self, I>> {
+        self(input, cx, state)
+    }
+}
+
+#[cfg(feature = "alloc")]
+#[cfg_attr(feature = "nightly", doc(cfg(feature = "alloc")))]
+impl<'a, I, O, E, C, F> Parser<I> for dyn Fn(&mut I, &mut C) -> F + 'a
+where
+    I: Positioned + Unpin + ?Sized,
+    C: Default,
+    F: Future<Output = Result<O, ParseError<E, I::Error, I::Locator>>>,
+{
+    type Output = O;
+    type Error = E;
+    type State = C;
+
+    fn poll_parse(
+        &self,
+        input: Pin<&mut I>,
+        cx: &mut Context<'_>,
+        state: &mut Self::State,
+    ) -> Poll<ParseResult<Self, I>> {
+        Pin::new(&mut self(input.get_mut(), state).boxed_local()).poll(cx)
     }
 }

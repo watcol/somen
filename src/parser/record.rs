@@ -10,6 +10,7 @@ use crate::stream::NoRewindInput;
 ///
 /// [`record`]: super::Parser::opt
 #[derive(Debug)]
+#[cfg_attr(feature = "nightly", doc(cfg(feature = "alloc")))]
 pub struct Record<P> {
     inner: P,
 }
@@ -67,6 +68,7 @@ where
 ///
 /// [`with_record`]: super::Parser::with_record
 #[derive(Debug)]
+#[cfg_attr(feature = "nightly", doc(cfg(feature = "alloc")))]
 pub struct WithRecord<P> {
     inner: P,
 }
