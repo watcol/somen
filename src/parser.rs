@@ -17,7 +17,7 @@ pub use any::{Any, AnyError};
 pub use boxed::{BoxError, BoxParser, BoxState};
 pub use opt::Opt;
 #[cfg(feature = "alloc")]
-pub use record::Record;
+pub use record::{Record, WithRecord};
 pub use repeat::{RangeArgument, Repeat, RepeatError};
 
 #[cfg(feature = "alloc")]
@@ -111,7 +111,7 @@ pub trait ParserExt<I: Positioned + ?Sized>: Parser<I> {
         BoxState::new(self)
     }
 
-    /// Returns consumed input
+    /// Returns consumed items instead of an output.
     #[cfg(feature = "alloc")]
     #[inline]
     fn record(self) -> Record<Self>
@@ -120,6 +120,17 @@ pub trait ParserExt<I: Positioned + ?Sized>: Parser<I> {
         Self: Sized,
     {
         Record::new(self)
+    }
+
+    /// Returns an output beside consumed items.
+    #[cfg(feature = "alloc")]
+    #[inline]
+    fn with_record(self) -> WithRecord<Self>
+    where
+        I: NoRewindInput,
+        Self: Sized,
+    {
+        WithRecord::new(self)
     }
 
     /// Returns [`Some`] when parsing was successed.
