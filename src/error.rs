@@ -37,6 +37,29 @@ pub enum ParseError<E, F, L> {
     Stream(F),
 }
 
+impl<E, F, L> From<F> for ParseError<E, F, L> {
+    #[inline]
+    fn from(error: F) -> Self {
+        Self::Stream(error)
+    }
+}
+
+impl<E, F, L> ParseError<E, F, L> {
+    /// Converting the inner error in the variant [`Parser`] into another type.
+    ///
+    /// [`Parser`]: Self::Parser
+    #[inline]
+    pub fn map_parse<U, Fun>(self, f: Fun) -> ParseError<U, F, L>
+    where
+        Fun: FnOnce(E) -> U,
+    {
+        match self {
+            Self::Parser(e, p) => ParseError::Parser(f(e), p),
+            Self::Stream(e) => ParseError::Stream(e),
+        }
+    }
+}
+
 impl<E: fmt::Display, F: fmt::Display, L> fmt::Display for ParseError<E, F, L> {
     #[inline]
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {

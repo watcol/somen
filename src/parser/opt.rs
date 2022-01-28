@@ -61,24 +61,21 @@ where
         state: &mut Self::State,
     ) -> Poll<ParseResult<Self, I>> {
         if state.queued_marker.is_none() {
-            state.queued_marker = Some(input.as_mut().mark().map_err(ParseError::Stream)?);
+            state.queued_marker = Some(input.as_mut().mark()?);
         }
 
-        Poll::Ready(Ok(
+        Poll::Ready(
             match ready!(self.inner.poll_parse(input.as_mut(), cx, &mut state.inner)) {
                 Ok(i) => {
-                    input
-                        .drop_marker(mem::take(&mut state.queued_marker).unwrap())
-                        .map_err(ParseError::Stream)?;
-                    Some(i)
+                    input.drop_marker(mem::take(&mut state.queued_marker).unwrap())?;
+                    Ok(Some(i))
                 }
-                Err(_) => {
-                    input
-                        .rewind(mem::take(&mut state.queued_marker).unwrap())
-                        .map_err(ParseError::Stream)?;
-                    None
+                Err(ParseError::Parser(_, _)) => {
+                    input.rewind(mem::take(&mut state.queued_marker).unwrap())?;
+                    Ok(None)
                 }
+                Err(ParseError::Stream(e)) => Err(ParseError::Stream(e)),
             },
-        ))
+        )
     }
 }

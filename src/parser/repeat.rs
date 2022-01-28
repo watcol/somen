@@ -110,25 +110,24 @@ where
 
         // Reserve the marker.
         if state.queued_marker.is_none() {
-            state.queued_marker = Some(input.as_mut().mark().map_err(ParseError::Stream)?);
+            state.queued_marker = Some(input.as_mut().mark()?);
         }
 
         Poll::Ready(
             match ready!(self.inner.poll_parse(input.as_mut(), cx, &mut state.inner)) {
                 Ok(output) => {
+                    input.drop_marker(mem::take(&mut state.queued_marker).unwrap())?;
                     state.count += 1;
                     Ok(Some(output))
                 }
                 // Return `None` if `count` already satisfies the minimal bound.
                 Err(ParseError::Parser(_, _)) if self.range.contains(&state.count) => {
-                    input
-                        .rewind(mem::take(&mut state.queued_marker).unwrap())
-                        .map_err(ParseError::Stream)?;
+                    input.rewind(mem::take(&mut state.queued_marker).unwrap())?;
                     Ok(None)
                 }
-                // else, the parser returns an error.
-                Err(ParseError::Parser(e, p)) => Err(ParseError::Parser(
-                    RepeatError {
+                Err(err) => {
+                    input.drop_marker(mem::take(&mut state.queued_marker).unwrap())?;
+                    Err(err.map_parse(|e| RepeatError {
                         inner: e,
                         suc_count: state.count,
                         min_bound: match self.range.start_bound() {
@@ -136,10 +135,8 @@ where
                             Bound::Excluded(i) => *i - 1,
                             Bound::Unbounded => 0,
                         },
-                    },
-                    p,
-                )),
-                Err(ParseError::Stream(e)) => return Poll::Ready(Err(ParseError::Stream(e))),
+                    }))
+                }
             },
         )
     }

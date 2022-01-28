@@ -5,7 +5,7 @@ use core::task::{Context, Poll};
 use futures_core::ready;
 
 use super::Parser;
-use crate::error::{ParseError, ParseResult};
+use crate::error::ParseResult;
 use crate::stream::Positioned;
 
 macro_rules! tuple_parser {
@@ -83,13 +83,10 @@ macro_rules! tuple_parser {
                 let ($(ref $t),+,) = *self;
                 $(
                     if state.$t.0.is_none() {
-                        match ready!($t.poll_parse(input.as_mut(), cx, &mut state.$t.1)) {
-                            Ok(item) => state.$t.0 = Some(item),
-                            Err(ParseError::Parser(e, p)) => {
-                                return Poll::Ready(Err(ParseError::Parser($error::$t(e), p)));
-                            }
-                            Err(ParseError::Stream(e)) => return Poll::Ready(Err(ParseError::Stream(e))),
-                        }
+                        state.$t.0 = Some(
+                            ready!($t.poll_parse(input.as_mut(), cx, &mut state.$t.1))
+                                .map_err(|err| err.map_parse($error::$t))?
+                        );
                     }
                 )+
 

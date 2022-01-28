@@ -55,10 +55,7 @@ impl<I: Positioned + ?Sized> Parser<I> for Any<I> {
         _state: &mut Self::State,
     ) -> Poll<ParseResult<Self, I>> {
         let start = input.position();
-        let parsed = ready!(input
-            .as_mut()
-            .try_poll_next(cx)
-            .map_err(ParseError::Stream)?);
+        let parsed = ready!(input.as_mut().try_poll_next(cx)?);
         Poll::Ready(match parsed {
             Some(i) => Ok(i),
             None => Err(ParseError::Parser(AnyError, start..input.position())),
