@@ -8,6 +8,7 @@
 extern crate alloc;
 
 pub mod error;
+mod macros;
 pub mod parser;
 pub mod stream;
 
@@ -17,6 +18,6 @@ pub mod prelude {
     pub use crate::stream::StreamBuilder as _;
 
     pub use crate::parser::streamed::StreamedParser;
-    pub use crate::parser::{any, Parser};
+    pub use crate::parser::{any, function, Parser};
     pub use crate::stream::{self, Input, Positioned};
 }
