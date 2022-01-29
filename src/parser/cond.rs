@@ -8,10 +8,9 @@ use crate::error::{ParseError, ParseResult};
 use crate::parser::Parser;
 use crate::stream::Positioned;
 
-/// A parser for function [`is`], [`is_not`].
+/// A parser for function [`is`].
 ///
 /// [`is`]: crate::parser::is
-/// [`is_not`]: crate::parser::is_not
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct Cond<I: ?Sized, F> {
     cond: F,
@@ -29,10 +28,9 @@ impl<I: ?Sized, F> Cond<I, F> {
     }
 }
 
-/// An error type for parser [`is`], [`is_not`].
+/// An error type for parser [`is`].
 ///
 /// [`is`]: crate::parser::is
-/// [`is_not`]: crate::parser::is_not
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
 pub struct CondError;
 
