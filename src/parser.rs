@@ -11,6 +11,7 @@ mod opt;
 mod or;
 mod repeat;
 mod tuples;
+mod value;
 
 #[cfg(feature = "alloc")]
 mod record;
@@ -26,6 +27,7 @@ pub use or::Or;
 #[cfg(feature = "alloc")]
 pub use record::{Record, WithRecord};
 pub use repeat::{RangeArgument, Repeat, RepeatError};
+pub use value::Value;
 
 use core::pin::Pin;
 use core::task::{Context, Poll};
@@ -64,6 +66,7 @@ where
 }
 
 /// A parser calling a function.
+#[inline]
 pub fn function<F, I, O, E, C>(f: F) -> Function<F, I, C>
 where
     F: Fn(
@@ -75,6 +78,12 @@ where
     C: Default,
 {
     Function::new(f)
+}
+
+/// Produce a value without parsing tokens.
+#[inline]
+pub fn value<I: Positioned + ?Sized, T: Clone>(value: T) -> Value<I, T> {
+    Value::new(value)
 }
 
 /// A trait for parsers.

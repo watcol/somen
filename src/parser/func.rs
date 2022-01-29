@@ -18,6 +18,7 @@ pub struct Function<F, I: ?Sized, C> {
 
 impl<F, I: ?Sized, C> Function<F, I, C> {
     /// Creating a new instance.
+    #[inline]
     pub fn new(f: F) -> Self {
         Self {
             f,
