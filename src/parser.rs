@@ -10,6 +10,7 @@ mod map;
 mod opt;
 mod or;
 mod repeat;
+mod token;
 mod tuples;
 mod value;
 
@@ -27,6 +28,7 @@ pub use or::Or;
 #[cfg(feature = "alloc")]
 pub use record::{Record, WithRecord};
 pub use repeat::{RangeArgument, Repeat, RepeatError};
+pub use token::{Token, TokenError};
 pub use value::Value;
 
 use core::pin::Pin;
@@ -52,6 +54,16 @@ where
     F: Fn(&I::Ok) -> bool,
 {
     assert_parser(Cond::new(cond))
+}
+
+/// Parses a token.
+#[inline]
+pub fn token<I>(token: I::Ok) -> Token<I, I::Ok>
+where
+    I: Positioned + ?Sized,
+    I::Ok: Clone + Eq,
+{
+    assert_parser(Token::new(token))
 }
 
 /// A parser calling a function.
