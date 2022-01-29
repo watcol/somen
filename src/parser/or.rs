@@ -1,6 +1,6 @@
-use core::mem;
 use core::pin::Pin;
 use core::task::{Context, Poll};
+use core::{fmt, mem};
 use futures_core::ready;
 
 use crate::error::{ParseError, ParseResult};
@@ -27,6 +27,36 @@ impl<P, Q> Or<P, Q> {
     #[inline]
     pub fn into_inner(self) -> (P, Q) {
         (self.left, self.right)
+    }
+}
+
+#[derive(Debug)]
+pub enum OrError<E, F> {
+    Left(E),
+    Right(F),
+}
+
+impl<E: fmt::Display, F: fmt::Display> fmt::Display for OrError<E, F> {
+    #[inline]
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::Left(e) => e.fmt(f),
+            Self::Right(e) => e.fmt(f),
+        }
+    }
+}
+
+#[cfg(feature = "std")]
+impl<E, F> std::error::Error for OrError<E, F>
+where
+    E: std::error::Error + 'static,
+    F: std::error::Error + 'static,
+{
+    fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
+        match self {
+            Self::Left(e) => Some(e),
+            Self::Right(e) => Some(e),
+        }
     }
 }
 
@@ -58,7 +88,7 @@ where
     I: Input + ?Sized,
 {
     type Output = P::Output;
-    type Error = Q::Error;
+    type Error = OrError<P::Error, Q::Error>;
     type State = OrState<P::State, Q::State, I::Marker>;
 
     fn poll_parse(
@@ -83,15 +113,17 @@ where
                         .rewind(mem::take(&mut state.queued_marker).unwrap())?;
                     state.inner = EitherState::Right(Default::default());
                 }
-                Err(ParseError::Stream(e)) => {
+                Err(err) => {
                     input.drop_marker(mem::take(&mut state.queued_marker).unwrap())?;
-                    return Poll::Ready(Err(ParseError::Stream(e)));
+                    return Poll::Ready(Err(err.map_parse(OrError::Left)));
                 }
             }
         }
 
         if let EitherState::Right(ref mut inner) = state.inner {
-            self.right.poll_parse(input, cx, inner)
+            self.right
+                .poll_parse(input, cx, inner)
+                .map_err(|e| e.map_parse(OrError::Right))
         } else {
             unreachable!()
         }

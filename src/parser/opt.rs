@@ -1,4 +1,3 @@
-use core::convert::Infallible;
 use core::mem;
 use core::pin::Pin;
 use core::task::{Context, Poll};
@@ -51,7 +50,7 @@ where
     I: Input + ?Sized,
 {
     type Output = Option<P::Output>;
-    type Error = Infallible;
+    type Error = P::Error;
     type State = OptState<P::State, I::Marker>;
 
     fn poll_parse(
@@ -74,7 +73,10 @@ where
                     input.rewind(mem::take(&mut state.queued_marker).unwrap())?;
                     Ok(None)
                 }
-                Err(ParseError::Stream(e)) => Err(ParseError::Stream(e)),
+                Err(err) => {
+                    input.drop_marker(mem::take(&mut state.queued_marker).unwrap())?;
+                    Err(err)
+                }
             },
         )
     }
