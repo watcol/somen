@@ -24,7 +24,7 @@ pub use any::{Any, AnyError};
 pub use cond::{Cond, CondError};
 pub use eof::{Eof, EofError};
 pub use func::Function;
-pub use map::{Map, TryMap, TryMapError};
+pub use map::{Map, MapErr, TryMap, TryMapError};
 pub use opt::Opt;
 pub use or::Or;
 #[cfg(feature = "alloc")]
@@ -206,6 +206,16 @@ pub trait Parser<I: Positioned + ?Sized> {
         F: Fn(Self::Output) -> Result<O, E>,
     {
         assert_parser(TryMap::new(self, f))
+    }
+
+    /// Converting an error into the other type.
+    #[inline]
+    fn map_err<F, E>(self, f: F) -> MapErr<Self, F>
+    where
+        Self: Sized,
+        F: Fn(Self::Error) -> E,
+    {
+        assert_parser(MapErr::new(self, f))
     }
 }
 
