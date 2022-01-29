@@ -4,6 +4,7 @@ pub mod streamed;
 
 mod any;
 mod cond;
+mod eof;
 mod func;
 mod future;
 mod map;
@@ -21,6 +22,7 @@ mod record;
 use alloc::boxed::Box;
 pub use any::{Any, AnyError};
 pub use cond::{Cond, CondError};
+pub use eof::{Eof, EofError};
 pub use func::Function;
 pub use map::{Map, TryMap, TryMapError};
 pub use opt::Opt;
@@ -44,6 +46,12 @@ use future::ParseFuture;
 #[inline]
 pub fn any<I: Positioned + ?Sized>() -> Any<I> {
     assert_parser(Any::new())
+}
+
+/// Success if input reached the end.
+#[inline]
+pub fn eof<I: Positioned + ?Sized>() -> Eof<I> {
+    assert_parser(Eof::new())
 }
 
 /// Parses a token matches the condition.
