@@ -45,7 +45,11 @@ impl fmt::Display for CondError {
 #[cfg(feature = "std")]
 impl std::error::Error for CondError {}
 
-impl<I: Positioned + ?Sized, F: Fn(&I::Ok) -> bool> Parser<I> for Cond<I, F> {
+impl<I, F> Parser<I> for Cond<I, F>
+where
+    I: Positioned + ?Sized,
+    F: Fn(&I::Ok) -> bool,
+{
     type Output = I::Ok;
     type Error = CondError;
     type State = ();

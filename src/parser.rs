@@ -41,7 +41,7 @@ use future::ParseFuture;
 /// Parses any token.
 #[inline]
 pub fn any<I: Positioned + ?Sized>() -> Any<I> {
-    Any::new()
+    assert_parser(Any::new())
 }
 
 /// Parses a token matches the condition.
@@ -51,18 +51,7 @@ where
     I: Positioned + ?Sized,
     F: Fn(&I::Ok) -> bool,
 {
-    Cond::new(cond)
-}
-
-/// Parses a token matches the condition.
-#[inline]
-pub fn is_not<'a, I, F>(cond: F) -> Cond<I, impl Fn(&'a I::Ok) -> bool>
-where
-    I: Positioned + ?Sized,
-    I::Ok: 'a,
-    F: Fn(&'a I::Ok) -> bool,
-{
-    Cond::new(move |item| !cond(item))
+    assert_parser(Cond::new(cond))
 }
 
 /// A parser calling a function.
@@ -77,7 +66,7 @@ where
     I: Positioned + ?Sized,
     C: Default,
 {
-    Function::new(f)
+    assert_parser(Function::new(f))
 }
 
 /// Produce a value without parsing tokens.
@@ -131,7 +120,7 @@ pub trait Parser<I: Positioned + ?Sized> {
         Self: Sized,
         I: NoRewindInput,
     {
-        Record::new(self)
+        assert_parser(Record::new(self))
     }
 
     /// Returns an output beside consumed items.
@@ -143,7 +132,7 @@ pub trait Parser<I: Positioned + ?Sized> {
         Self: Sized,
         I: NoRewindInput,
     {
-        WithRecord::new(self)
+        assert_parser(WithRecord::new(self))
     }
 
     /// Trying another parser if the parser is failed.
@@ -154,7 +143,7 @@ pub trait Parser<I: Positioned + ?Sized> {
         I: Input,
         P: Parser<I, Output = Self::Output>,
     {
-        Or::new(self, other)
+        assert_parser(Or::new(self, other))
     }
 
     /// Returns [`Some`] when parsing was successed.
@@ -164,7 +153,7 @@ pub trait Parser<I: Positioned + ?Sized> {
         Self: Sized,
         I: Input,
     {
-        Opt::new(self)
+        assert_parser(Opt::new(self))
     }
 
     /// Returns a [`StreamedParser`] by repeating the parser while successing.
@@ -176,7 +165,7 @@ pub trait Parser<I: Positioned + ?Sized> {
         Self: Sized,
         I: Input,
     {
-        Repeat::new(self, range)
+        assert_streamed_parser(Repeat::new(self, range))
     }
 
     /// Converting an output value into another type.
@@ -186,7 +175,7 @@ pub trait Parser<I: Positioned + ?Sized> {
         Self: Sized,
         F: Fn(Self::Output) -> O,
     {
-        Map::new(self, f)
+        assert_parser(Map::new(self, f))
     }
 
     /// Converting an output value into another type with a failable function.
@@ -196,7 +185,7 @@ pub trait Parser<I: Positioned + ?Sized> {
         Self: Sized,
         F: Fn(Self::Output) -> Result<O, E>,
     {
-        TryMap::new(self, f)
+        assert_parser(TryMap::new(self, f))
     }
 }
 
@@ -230,4 +219,15 @@ impl<'a, P: Parser<I>, I: Positioned + ?Sized> Parser<I> for Box<P> {
     ) -> Poll<ParseResult<Self, I>> {
         (**self).poll_parse(input, cx, state)
     }
+}
+
+#[inline]
+fn assert_parser<P: Parser<I>, I: Positioned + ?Sized>(parser: P) -> P {
+    parser
+}
+
+use self::streamed::StreamedParser;
+#[inline]
+fn assert_streamed_parser<P: StreamedParser<I>, I: Positioned + ?Sized>(parser: P) -> P {
+    parser
 }
