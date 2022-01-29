@@ -36,7 +36,7 @@ pub struct AnyError;
 
 impl fmt::Display for AnyError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "expected EOF")
+        write!(f, "expected a token")
     }
 }
 
