@@ -3,7 +3,7 @@ use core::task::{Context, Poll};
 
 use crate::error::ParseResult;
 use crate::parser::Parser;
-use crate::stream::Input;
+use crate::stream::Positioned;
 
 /// A parser for method [`map`].
 ///
@@ -32,7 +32,7 @@ impl<P, F, I, O> Parser<I> for Map<P, F>
 where
     P: Parser<I>,
     F: Fn(P::Output) -> O,
-    I: Input + ?Sized,
+    I: Positioned + ?Sized,
 {
     type Output = O;
     type Error = P::Error;

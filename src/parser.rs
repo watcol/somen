@@ -7,6 +7,7 @@ mod func;
 mod future;
 mod map;
 mod opt;
+mod or;
 mod repeat;
 mod tuples;
 
@@ -19,6 +20,7 @@ pub use any::{Any, AnyError};
 pub use func::Function;
 pub use map::Map;
 pub use opt::Opt;
+pub use or::Or;
 #[cfg(feature = "alloc")]
 pub use record::{Record, WithRecord};
 pub use repeat::{RangeArgument, Repeat, RepeatError};
@@ -94,8 +96,8 @@ pub trait Parser<I: Positioned + ?Sized> {
     #[inline]
     fn record(self) -> Record<Self>
     where
-        I: NoRewindInput,
         Self: Sized,
+        I: NoRewindInput,
     {
         Record::new(self)
     }
@@ -106,29 +108,29 @@ pub trait Parser<I: Positioned + ?Sized> {
     #[inline]
     fn with_record(self) -> WithRecord<Self>
     where
-        I: NoRewindInput,
         Self: Sized,
+        I: NoRewindInput,
     {
         WithRecord::new(self)
     }
 
-    /// Converting an output value into another type.
+    /// Trying another parser if the parser is failed.
     #[inline]
-    fn map<F, O>(self, f: F) -> Map<Self, F>
+    fn or<P>(self, other: P) -> Or<Self, P>
     where
-        I: Input,
-        F: Fn(Self::Output) -> O,
         Self: Sized,
+        I: Input,
+        P: Parser<I, Output = Self::Output>,
     {
-        Map::new(self, f)
+        Or::new(self, other)
     }
 
     /// Returns [`Some`] when parsing was successed.
     #[inline]
     fn opt(self) -> Opt<Self>
     where
-        I: Input,
         Self: Sized,
+        I: Input,
     {
         Opt::new(self)
     }
@@ -139,10 +141,20 @@ pub trait Parser<I: Positioned + ?Sized> {
     #[inline]
     fn repeat<R: RangeArgument>(self, range: R) -> Repeat<Self, R::Target>
     where
-        I: Input,
         Self: Sized,
+        I: Input,
     {
         Repeat::new(self, range)
+    }
+
+    /// Converting an output value into another type.
+    #[inline]
+    fn map<F, O>(self, f: F) -> Map<Self, F>
+    where
+        Self: Sized,
+        F: Fn(Self::Output) -> O,
+    {
+        Map::new(self, f)
     }
 }
 

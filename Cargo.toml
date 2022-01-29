@@ -20,11 +20,10 @@ include = [
 nightly = []
 default = ['std']
 std = ['alloc', 'futures-core/std', 'futures-io']
-alloc = ['futures-core/alloc', 'futures-util/alloc']
+alloc = ['futures-core/alloc']
 
 [dependencies]
 futures-core = { version = "0.3", default_features = false }
-futures-util = { version = "0.3", default_features = false, optional = true }
 futures-io = { version = "0.3", optional = true }
 pin-project-lite = "0.2"
 
