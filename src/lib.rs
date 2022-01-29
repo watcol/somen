@@ -18,6 +18,6 @@ pub mod prelude {
     pub use crate::stream::StreamBuilder as _;
 
     pub use crate::parser::streamed::StreamedParser;
-    pub use crate::parser::{any, function, Parser};
+    pub use crate::parser::{any, function, is, is_not, Parser};
     pub use crate::stream::{self, Input, Positioned};
 }
