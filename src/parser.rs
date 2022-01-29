@@ -5,6 +5,7 @@ pub mod streamed;
 mod any;
 mod func;
 mod future;
+mod map;
 mod opt;
 mod repeat;
 mod tuples;
@@ -16,6 +17,7 @@ mod record;
 use alloc::boxed::Box;
 pub use any::{Any, AnyError};
 pub use func::Function;
+pub use map::Map;
 pub use opt::Opt;
 #[cfg(feature = "alloc")]
 pub use record::{Record, WithRecord};
@@ -108,6 +110,17 @@ pub trait Parser<I: Positioned + ?Sized> {
         Self: Sized,
     {
         WithRecord::new(self)
+    }
+
+    /// Converting an output value into another type.
+    #[inline]
+    fn map<F, O>(self, f: F) -> Map<Self, F>
+    where
+        I: Input,
+        F: Fn(Self::Output) -> O,
+        Self: Sized,
+    {
+        Map::new(self, f)
     }
 
     /// Returns [`Some`] when parsing was successed.
