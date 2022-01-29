@@ -18,7 +18,7 @@ mod record;
 use alloc::boxed::Box;
 pub use any::{Any, AnyError};
 pub use func::Function;
-pub use map::Map;
+pub use map::{Map, TryMap, TryMapError};
 pub use opt::Opt;
 pub use or::Or;
 #[cfg(feature = "alloc")]
@@ -155,6 +155,16 @@ pub trait Parser<I: Positioned + ?Sized> {
         F: Fn(Self::Output) -> O,
     {
         Map::new(self, f)
+    }
+
+    /// Converting an output value into another type with a failable function.
+    #[inline]
+    fn try_map<F, O, E>(self, f: F) -> TryMap<Self, F>
+    where
+        Self: Sized,
+        F: Fn(Self::Output) -> Result<O, E>,
+    {
+        TryMap::new(self, f)
     }
 }
 
