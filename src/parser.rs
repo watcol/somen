@@ -226,7 +226,7 @@ fn assert_parser<P: Parser<I>, I: Positioned + ?Sized>(parser: P) -> P {
     parser
 }
 
-use self::streamed::StreamedParser;
+use streamed::StreamedParser;
 #[inline]
 fn assert_streamed_parser<P: StreamedParser<I>, I: Positioned + ?Sized>(parser: P) -> P {
     parser
