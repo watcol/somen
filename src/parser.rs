@@ -3,6 +3,7 @@
 pub mod streamed;
 
 mod any;
+mod cond;
 mod func;
 mod future;
 mod map;
@@ -17,6 +18,7 @@ mod record;
 #[cfg(feature = "alloc")]
 use alloc::boxed::Box;
 pub use any::{Any, AnyError};
+pub use cond::{Cond, CondError};
 pub use func::Function;
 pub use map::{Map, TryMap, TryMapError};
 pub use opt::Opt;
@@ -38,6 +40,27 @@ use future::ParseFuture;
 #[inline]
 pub fn any<I: Positioned + ?Sized>() -> Any<I> {
     Any::new()
+}
+
+/// Parses a token matches the condition.
+#[inline]
+pub fn is<I, F>(cond: F) -> Cond<I, F>
+where
+    I: Positioned + ?Sized,
+    F: Fn(&I::Ok) -> bool,
+{
+    Cond::new(cond)
+}
+
+/// Parses a token matches the condition.
+#[inline]
+pub fn is_not<'a, I, F>(cond: F) -> Cond<I, impl Fn(&'a I::Ok) -> bool>
+where
+    I: Positioned + ?Sized,
+    I::Ok: 'a,
+    F: Fn(&'a I::Ok) -> bool,
+{
+    Cond::new(move |item| !cond(item))
 }
 
 /// A parser calling a function.
