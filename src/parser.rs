@@ -8,6 +8,7 @@ mod eof;
 mod func;
 mod future;
 mod map;
+mod no_state;
 mod opt;
 mod or;
 mod repeat;
@@ -25,6 +26,7 @@ pub use cond::{Cond, CondError};
 pub use eof::{Eof, EofError};
 pub use func::Function;
 pub use map::{Map, MapErr, TryMap, TryMapError};
+pub use no_state::NoState;
 pub use opt::Opt;
 pub use or::Or;
 #[cfg(feature = "alloc")]
@@ -129,6 +131,16 @@ pub trait Parser<I: Positioned + ?Sized> {
         I: Unpin,
     {
         ParseFuture::new(self, input)
+    }
+
+    /// Merges [`State`] into parser itself.
+    ///
+    /// [`State`]: Self::State
+    fn no_state(self) -> NoState<Self, Self::State>
+    where
+        Self: Sized,
+    {
+        NoState::new(self)
     }
 
     /// Returns consumed items instead of an output.
