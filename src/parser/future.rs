@@ -8,7 +8,7 @@ use crate::stream::Positioned;
 
 #[derive(Debug)]
 pub struct ParseFuture<'a, 'b, P: ?Sized, I: ?Sized, C> {
-    parser: &'a P,
+    parser: &'a mut P,
     input: &'b mut I,
     state: C,
 }
@@ -18,7 +18,7 @@ impl<P: ?Sized, I: Unpin + ?Sized, C> Unpin for ParseFuture<'_, '_, P, I, C> {}
 impl<'a, 'b, P: Parser<I> + ?Sized, I: Positioned + Unpin + ?Sized>
     ParseFuture<'a, 'b, P, I, P::State>
 {
-    pub fn new(parser: &'a P, input: &'b mut I) -> Self {
+    pub fn new(parser: &'a mut P, input: &'b mut I) -> Self {
         Self {
             parser,
             input,

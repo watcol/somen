@@ -46,14 +46,14 @@ impl std::error::Error for CondError {}
 impl<I, F> Parser<I> for Cond<I, F>
 where
     I: Positioned + ?Sized,
-    F: Fn(&I::Ok) -> bool,
+    F: FnMut(&I::Ok) -> bool,
 {
     type Output = I::Ok;
     type Error = CondError;
     type State = ();
 
     fn poll_parse(
-        &self,
+        &mut self,
         mut input: Pin<&mut I>,
         cx: &mut Context<'_>,
         _state: &mut Self::State,

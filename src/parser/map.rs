@@ -33,7 +33,7 @@ impl<P, F> Map<P, F> {
 impl<P, F, I, O> Parser<I> for Map<P, F>
 where
     P: Parser<I>,
-    F: Fn(P::Output) -> O,
+    F: FnMut(P::Output) -> O,
     I: Positioned + ?Sized,
 {
     type Output = O;
@@ -41,12 +41,12 @@ where
     type State = P::State;
 
     fn poll_parse(
-        &self,
+        &mut self,
         input: Pin<&mut I>,
         cx: &mut Context<'_>,
         state: &mut Self::State,
     ) -> Poll<ParseResult<Self, I>> {
-        self.inner.poll_parse(input, cx, state).map_ok(&self.f)
+        self.inner.poll_parse(input, cx, state).map_ok(&mut self.f)
     }
 }
 
@@ -76,7 +76,7 @@ impl<P, F> MapErr<P, F> {
 impl<P, F, I, E> Parser<I> for MapErr<P, F>
 where
     P: Parser<I>,
-    F: Fn(P::Error) -> E,
+    F: FnMut(P::Error) -> E,
     I: Positioned + ?Sized,
 {
     type Output = P::Output;
@@ -84,14 +84,14 @@ where
     type State = P::State;
 
     fn poll_parse(
-        &self,
+        &mut self,
         input: Pin<&mut I>,
         cx: &mut Context<'_>,
         state: &mut Self::State,
     ) -> Poll<ParseResult<Self, I>> {
         self.inner
             .poll_parse(input, cx, state)
-            .map_err(|e| e.map_parse(&self.f))
+            .map_err(|e| e.map_parse(&mut self.f))
     }
 }
 
@@ -153,7 +153,7 @@ where
 impl<P, F, I, O, E> Parser<I> for TryMap<P, F>
 where
     P: Parser<I>,
-    F: Fn(P::Output) -> Result<O, E>,
+    F: FnMut(P::Output) -> Result<O, E>,
     I: Positioned + ?Sized,
 {
     type Output = O;
@@ -161,7 +161,7 @@ where
     type State = P::State;
 
     fn poll_parse(
-        &self,
+        &mut self,
         mut input: Pin<&mut I>,
         cx: &mut Context<'_>,
         state: &mut Self::State,

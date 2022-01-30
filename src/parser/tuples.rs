@@ -74,13 +74,13 @@ macro_rules! tuple_parser {
             type State = $state<I, $($t),+>;
 
             fn poll_parse(
-                &self,
+                &mut self,
                 mut input: Pin<&mut I>,
                 cx: &mut Context<'_>,
                 state: &mut Self::State,
             ) -> Poll<ParseResult<Self, I>> {
                 #[allow(non_snake_case)]
-                let ($(ref $t),+,) = *self;
+                let ($(ref mut $t),+,) = *self;
                 $(
                     if state.$t.0.is_none() {
                         state.$t.0 = Some(

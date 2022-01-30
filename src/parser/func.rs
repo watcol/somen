@@ -29,7 +29,7 @@ impl<F, I: ?Sized, C> Function<F, I, C> {
 
 impl<F, I, O, E, C> Parser<I> for Function<F, I, C>
 where
-    F: Fn(
+    F: FnMut(
         Pin<&mut I>,
         &mut Context<'_>,
         &mut C,
@@ -42,7 +42,7 @@ where
     type State = C;
 
     fn poll_parse(
-        &self,
+        &mut self,
         input: Pin<&mut I>,
         cx: &mut Context<'_>,
         state: &mut Self::State,

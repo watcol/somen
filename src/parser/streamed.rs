@@ -32,7 +32,7 @@ pub trait StreamedParser<I: Positioned + ?Sized> {
 
     /// Takes an input, returns a next output or [`None`].
     fn poll_parse_next(
-        &self,
+        &mut self,
         input: Pin<&mut I>,
         cx: &mut Context<'_>,
         state: &mut Self::State,
@@ -44,7 +44,7 @@ pub trait StreamedParser<I: Positioned + ?Sized> {
     /// [`poll_parse_next`]: Self::poll_parse_next
     #[inline]
     fn parse_streamed<'a, 'b>(
-        &'a self,
+        &'a mut self,
         input: &'b mut I,
     ) -> ParserStream<'a, 'b, Self, I, Self::State>
     where

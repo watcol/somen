@@ -94,7 +94,7 @@ where
     type State = RepeatState<P::State, I::Marker>;
 
     fn poll_parse_next(
-        &self,
+        &mut self,
         mut input: Pin<&mut I>,
         cx: &mut Context<'_>,
         state: &mut Self::State,

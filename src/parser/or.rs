@@ -92,7 +92,7 @@ where
     type State = OrState<P::State, Q::State, I::Marker>;
 
     fn poll_parse(
-        &self,
+        &mut self,
         mut input: Pin<&mut I>,
         cx: &mut Context<'_>,
         state: &mut Self::State,

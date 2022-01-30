@@ -59,7 +59,7 @@ pub fn eof<I: Positioned + ?Sized>() -> Eof<I> {
 pub fn is<I, F>(cond: F) -> Cond<I, F>
 where
     I: Positioned + ?Sized,
-    F: Fn(&I::Ok) -> bool,
+    F: FnMut(&I::Ok) -> bool,
 {
     assert_parser(Cond::new(cond))
 }
@@ -78,7 +78,7 @@ where
 #[inline]
 pub fn function<F, I, O, E, C>(f: F) -> Function<F, I, C>
 where
-    F: Fn(
+    F: FnMut(
         Pin<&mut I>,
         &mut Context<'_>,
         &mut C,
@@ -113,7 +113,7 @@ pub trait Parser<I: Positioned + ?Sized> {
 
     /// Parses the `input`, give an output.
     fn poll_parse(
-        &self,
+        &mut self,
         input: Pin<&mut I>,
         cx: &mut Context<'_>,
         state: &mut Self::State,
@@ -124,7 +124,7 @@ pub trait Parser<I: Positioned + ?Sized> {
     /// [`poll_parse`]: Self::poll_parse
     /// [`Future`]: core::future::Future
     #[inline]
-    fn parse<'a, 'b>(&'a self, input: &'b mut I) -> ParseFuture<'a, 'b, Self, I, Self::State>
+    fn parse<'a, 'b>(&'a mut self, input: &'b mut I) -> ParseFuture<'a, 'b, Self, I, Self::State>
     where
         I: Unpin,
     {
@@ -193,7 +193,7 @@ pub trait Parser<I: Positioned + ?Sized> {
     fn map<F, O>(self, f: F) -> Map<Self, F>
     where
         Self: Sized,
-        F: Fn(Self::Output) -> O,
+        F: FnMut(Self::Output) -> O,
     {
         assert_parser(Map::new(self, f))
     }
@@ -203,7 +203,7 @@ pub trait Parser<I: Positioned + ?Sized> {
     fn try_map<F, O, E>(self, f: F) -> TryMap<Self, F>
     where
         Self: Sized,
-        F: Fn(Self::Output) -> Result<O, E>,
+        F: FnMut(Self::Output) -> Result<O, E>,
     {
         assert_parser(TryMap::new(self, f))
     }
@@ -213,19 +213,19 @@ pub trait Parser<I: Positioned + ?Sized> {
     fn map_err<F, E>(self, f: F) -> MapErr<Self, F>
     where
         Self: Sized,
-        F: Fn(Self::Error) -> E,
+        F: FnMut(Self::Error) -> E,
     {
         assert_parser(MapErr::new(self, f))
     }
 }
 
-impl<'a, P: Parser<I> + ?Sized, I: Positioned + ?Sized> Parser<I> for &'a P {
+impl<'a, P: Parser<I> + ?Sized, I: Positioned + ?Sized> Parser<I> for &'a mut P {
     type Output = P::Output;
     type Error = P::Error;
     type State = P::State;
 
     fn poll_parse(
-        &self,
+        &mut self,
         input: Pin<&mut I>,
         cx: &mut Context<'_>,
         state: &mut Self::State,
@@ -242,7 +242,7 @@ impl<'a, P: Parser<I>, I: Positioned + ?Sized> Parser<I> for Box<P> {
     type State = P::State;
 
     fn poll_parse(
-        &self,
+        &mut self,
         input: Pin<&mut I>,
         cx: &mut Context<'_>,
         state: &mut Self::State,

@@ -53,7 +53,7 @@ where
     type State = ();
 
     fn poll_parse(
-        &self,
+        &mut self,
         mut input: Pin<&mut I>,
         cx: &mut Context<'_>,
         _state: &mut Self::State,
