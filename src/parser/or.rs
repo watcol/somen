@@ -9,7 +9,7 @@ use crate::stream::Input;
 
 /// A parser for method [`or`].
 ///
-/// [`or`]: super::Parser::or
+/// [`or`]: super::ParserExt::or
 #[derive(Debug)]
 pub struct Or<P, Q> {
     left: P,
@@ -30,6 +30,9 @@ impl<P, Q> Or<P, Q> {
     }
 }
 
+/// An error for method [`or`].
+///
+/// [`or`]: super::ParserExt::or
 #[derive(Debug)]
 pub enum OrError<E, F> {
     Left(E),

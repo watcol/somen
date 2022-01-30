@@ -120,10 +120,12 @@ pub trait Parser<I: Positioned + ?Sized> {
         cx: &mut Context<'_>,
         state: &mut Self::State,
     ) -> Poll<ParseResult<Self, I>>;
+}
 
+pub trait ParserExt<I: Positioned + ?Sized>: Parser<I> {
     /// An asynchronous version of [`poll_parse`], which returns a [`Future`].
     ///
-    /// [`poll_parse`]: Self::poll_parse
+    /// [`poll_parse`]: Parser::poll_parse
     /// [`Future`]: core::future::Future
     #[inline]
     fn parse<'a, 'b>(&'a mut self, input: &'b mut I) -> ParseFuture<'a, 'b, Self, I, Self::State>
@@ -133,9 +135,23 @@ pub trait Parser<I: Positioned + ?Sized> {
         ParseFuture::new(self, input)
     }
 
+    /// Box the parser into a [`Box`].
+    #[cfg(feature = "alloc")]
+    #[cfg_attr(feature = "nightly", doc(cfg(feature = "alloc")))]
+    #[inline]
+    fn boxed<'a>(
+        self,
+    ) -> Box<dyn Parser<I, Output = Self::Output, Error = Self::Error, State = ()> + 'a>
+    where
+        Self: Sized + 'a,
+        Self::State: 'a,
+    {
+        Box::new(NoState::new(self))
+    }
+
     /// Merges [`State`] into parser itself.
     ///
-    /// [`State`]: Self::State
+    /// [`State`]: Parser::State
     fn no_state(self) -> NoState<Self, Self::State>
     where
         Self: Sized,
@@ -230,6 +246,8 @@ pub trait Parser<I: Positioned + ?Sized> {
         assert_parser(MapErr::new(self, f))
     }
 }
+
+impl<P: Parser<I>, I: Positioned + ?Sized> ParserExt<I> for P {}
 
 impl<'a, P: Parser<I> + ?Sized, I: Positioned + ?Sized> Parser<I> for &'a mut P {
     type Output = P::Output;

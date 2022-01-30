@@ -7,7 +7,7 @@ use crate::stream::Positioned;
 
 /// A parser for method [`no_state`].
 ///
-/// [`no_state`]: super::Parser::no_state
+/// [`no_state`]: super::ParserExt::no_state
 #[derive(Debug)]
 pub struct NoState<P, C> {
     inner: P,

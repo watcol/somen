@@ -9,7 +9,7 @@ use crate::stream::Positioned;
 
 /// A parser for method [`map`].
 ///
-/// [`map`]: super::Parser::map
+/// [`map`]: super::ParserExt::map
 #[derive(Debug)]
 pub struct Map<P, F> {
     inner: P,
@@ -52,7 +52,7 @@ where
 
 /// A parser for method [`map_err`].
 ///
-/// [`map_err`]: super::Parser::map_err
+/// [`map_err`]: super::ParserExt::map_err
 #[derive(Debug)]
 pub struct MapErr<P, F> {
     inner: P,
@@ -97,7 +97,7 @@ where
 
 /// A parser for method [`try_map`].
 ///
-/// [`try_map`]: super::Parser::try_map
+/// [`try_map`]: super::ParserExt::try_map
 #[derive(Debug)]
 pub struct TryMap<P, F> {
     inner: P,
@@ -120,7 +120,7 @@ impl<P, F> TryMap<P, F> {
 
 /// An error type for method [`try_map`].
 ///
-/// [`try_map`]: super::Parser::try_map
+/// [`try_map`]: super::ParserExt::try_map
 #[derive(Debug)]
 pub enum TryMapError<E, F> {
     Parser(E),

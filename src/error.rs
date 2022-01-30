@@ -10,7 +10,7 @@ use crate::stream::Positioned;
 
 /// The Result type for [`parse`].
 ///
-/// [`parse`]: crate::parser::Parser::parse
+/// [`parse`]: crate::parser::ParserExt::parse
 pub type ParseResult<P, I> = core::result::Result<
     <P as Parser<I>>::Output,
     ParseError<<P as Parser<I>>::Error, <I as TryStream>::Error, <I as Positioned>::Locator>,
