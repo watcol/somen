@@ -146,7 +146,7 @@ pub trait ParserExt<I: Positioned + ?Sized>: Parser<I> {
         Self: Sized + 'a,
         Self::State: 'a,
     {
-        Box::new(NoState::new(self))
+        assert_parser(Box::new(NoState::new(self)))
     }
 
     /// Merges [`State`] into parser itself.
@@ -266,7 +266,7 @@ impl<'a, P: Parser<I> + ?Sized, I: Positioned + ?Sized> Parser<I> for &'a mut P 
 
 #[cfg(feature = "alloc")]
 #[cfg_attr(feature = "nightly", doc(cfg(feature = "alloc")))]
-impl<'a, P: Parser<I>, I: Positioned + ?Sized> Parser<I> for Box<P> {
+impl<P: Parser<I> + ?Sized, I: Positioned + ?Sized> Parser<I> for Box<P> {
     type Output = P::Output;
     type Error = P::Error;
     type State = P::State;

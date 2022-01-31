@@ -8,7 +8,6 @@
 extern crate alloc;
 
 pub mod error;
-mod macros;
 pub mod parser;
 pub mod stream;
 
