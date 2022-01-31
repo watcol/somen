@@ -3,7 +3,7 @@ use core::task::{Context, Poll};
 use futures_core::{ready, Stream};
 
 use super::StreamedParser;
-use crate::error::ParseError;
+use crate::error::ParseResult;
 use crate::stream::Positioned;
 
 #[derive(Debug)]
@@ -30,8 +30,7 @@ impl<'a, 'b, P: StreamedParser<I> + ?Sized, I: Positioned + Unpin + ?Sized>
 impl<P: StreamedParser<I> + ?Sized, I: Positioned + Unpin + ?Sized> Stream
     for ParserStream<'_, '_, P, I, P::State>
 {
-    #[allow(clippy::type_complexity)]
-    type Item = Result<P::Item, ParseError<P::Error, I::Error, I::Locator>>;
+    type Item = ParseResult<P::Item, I>;
 
     fn poll_next(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Option<Self::Item>> {
         let Self {

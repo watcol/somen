@@ -41,7 +41,6 @@ where
     I: NoRewindInput + ?Sized,
 {
     type Output = <I::Borrowed as ToOwned>::Owned;
-    type Error = P::Error;
     type State = RecordState<P::State>;
 
     fn poll_parse(
@@ -49,7 +48,7 @@ where
         mut input: Pin<&mut I>,
         cx: &mut Context<'_>,
         state: &mut Self::State,
-    ) -> Poll<ParseResult<Self, I>> {
+    ) -> Poll<ParseResult<Self::Output, I>> {
         if !state.started {
             input.as_mut().start();
             state.started = true;
@@ -93,7 +92,6 @@ where
     I: NoRewindInput + ?Sized,
 {
     type Output = (P::Output, <I::Borrowed as ToOwned>::Owned);
-    type Error = P::Error;
     type State = RecordState<P::State>;
 
     fn poll_parse(
@@ -101,7 +99,7 @@ where
         mut input: Pin<&mut I>,
         cx: &mut Context<'_>,
         state: &mut Self::State,
-    ) -> Poll<ParseResult<Self, I>> {
+    ) -> Poll<ParseResult<Self::Output, I>> {
         if !state.started {
             input.as_mut().start();
             state.started = true;

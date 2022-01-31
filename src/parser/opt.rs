@@ -50,7 +50,6 @@ where
     I: Input + ?Sized,
 {
     type Output = Option<P::Output>;
-    type Error = P::Error;
     type State = OptState<P::State, I::Marker>;
 
     fn poll_parse(
@@ -58,7 +57,7 @@ where
         mut input: Pin<&mut I>,
         cx: &mut Context<'_>,
         state: &mut Self::State,
-    ) -> Poll<ParseResult<Self, I>> {
+    ) -> Poll<ParseResult<Self::Output, I>> {
         if state.queued_marker.is_none() {
             state.queued_marker = Some(input.as_mut().mark()?);
         }

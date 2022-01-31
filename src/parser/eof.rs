@@ -1,10 +1,9 @@
-use core::fmt;
 use core::marker::PhantomData;
 use core::pin::Pin;
 use core::task::{Context, Poll};
 use futures_core::ready;
 
-use crate::error::{ParseError, ParseResult};
+use crate::error::{Expect, Expects, ParseError, ParseResult};
 use crate::parser::Parser;
 use crate::stream::Positioned;
 
@@ -28,24 +27,8 @@ impl<I: ?Sized> Eof<I> {
     }
 }
 
-/// An error type for parser [`eof`].
-///
-/// [`eof`]: crate::parser::eof
-#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
-pub struct EofError;
-
-impl fmt::Display for EofError {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "expected EOF")
-    }
-}
-
-#[cfg(feature = "std")]
-impl std::error::Error for EofError {}
-
 impl<I: Positioned + ?Sized> Parser<I> for Eof<I> {
     type Output = ();
-    type Error = EofError;
     type State = ();
 
     fn poll_parse(
@@ -53,10 +36,13 @@ impl<I: Positioned + ?Sized> Parser<I> for Eof<I> {
         mut input: Pin<&mut I>,
         cx: &mut Context<'_>,
         _state: &mut Self::State,
-    ) -> Poll<ParseResult<Self, I>> {
+    ) -> Poll<ParseResult<Self::Output, I>> {
         let start = input.position();
         Poll::Ready(match ready!(input.as_mut().try_poll_next(cx)?) {
-            Some(_) => Err(ParseError::Parser(EofError, start..input.position())),
+            Some(_) => Err(ParseError::Parser(
+                Expects::new(Expect::Eof),
+                start..input.position(),
+            )),
             None => Ok(()),
         })
     }

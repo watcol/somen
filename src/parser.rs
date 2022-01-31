@@ -22,25 +22,25 @@ mod record;
 
 #[cfg(feature = "alloc")]
 use alloc::boxed::Box;
-pub use any::{Any, AnyError};
-pub use cond::{Cond, CondError};
-pub use eof::{Eof, EofError};
+pub use any::Any;
+pub use cond::Cond;
+pub use eof::Eof;
 pub use func::Function;
 pub use lazy::Lazy;
-pub use map::{Map, MapErr};
+pub use map::Map;
 pub use no_state::NoState;
 pub use opt::Opt;
 pub use or::Or;
 #[cfg(feature = "alloc")]
 pub use record::{Record, WithRecord};
-pub use repeat::{RangeArgument, Repeat, RepeatError};
-pub use token::{Token, TokenError};
+pub use repeat::{RangeArgument, Repeat};
+pub use token::Token;
 pub use value::Value;
 
 use core::pin::Pin;
 use core::task::{Context, Poll};
 
-use crate::error::{ParseError, ParseResult};
+use crate::error::ParseResult;
 #[cfg(feature = "alloc")]
 use crate::stream::NoRewindInput;
 use crate::stream::{Input, Positioned};
@@ -82,11 +82,7 @@ where
 #[inline]
 pub fn function<F, I, O, E, C>(f: F) -> Function<F, I, C>
 where
-    F: FnMut(
-        Pin<&mut I>,
-        &mut Context<'_>,
-        &mut C,
-    ) -> Poll<Result<O, ParseError<E, I::Error, I::Locator>>>,
+    F: FnMut(Pin<&mut I>, &mut Context<'_>, &mut C) -> Poll<ParseResult<O, I>>,
     I: Positioned + ?Sized,
     C: Default,
 {
@@ -115,9 +111,6 @@ pub trait Parser<I: Positioned + ?Sized> {
     /// The output type for the parser.
     type Output;
 
-    /// The type of errors generated from the parser.
-    type Error;
-
     /// The internal state used in [`poll_parse`].
     ///
     /// This state will be initialized by [`Default`] trait and stored in the [`Future`] object.
@@ -132,7 +125,7 @@ pub trait Parser<I: Positioned + ?Sized> {
         input: Pin<&mut I>,
         cx: &mut Context<'_>,
         state: &mut Self::State,
-    ) -> Poll<ParseResult<Self, I>>;
+    ) -> Poll<ParseResult<Self::Output, I>>;
 }
 
 pub trait ParserExt<I: Positioned + ?Sized>: Parser<I> {
@@ -152,14 +145,10 @@ pub trait ParserExt<I: Positioned + ?Sized>: Parser<I> {
     #[cfg(feature = "alloc")]
     #[cfg_attr(feature = "nightly", doc(cfg(feature = "alloc")))]
     #[inline]
-    fn boxed<'a>(
-        self,
-    ) -> Box<dyn Parser<I, Output = Self::Output, Error = Self::Error, State = Self::State> + 'a>
+    fn boxed<'a>(self) -> Box<dyn Parser<I, Output = Self::Output, State = Self::State> + 'a>
     where
         Self: Sized + 'a,
-        // Self::State: 'a,
     {
-        // assert_parser(Box::new(NoState::new(self)))
         assert_parser(Box::new(self))
     }
 
@@ -239,23 +228,12 @@ pub trait ParserExt<I: Positioned + ?Sized>: Parser<I> {
     {
         assert_parser(Map::new(self, f))
     }
-
-    /// Converting an error into the other type.
-    #[inline]
-    fn map_err<F, E>(self, f: F) -> MapErr<Self, F>
-    where
-        Self: Sized,
-        F: FnMut(Self::Error) -> E,
-    {
-        assert_parser(MapErr::new(self, f))
-    }
 }
 
 impl<P: Parser<I>, I: Positioned + ?Sized> ParserExt<I> for P {}
 
 impl<'a, P: Parser<I> + ?Sized, I: Positioned + ?Sized> Parser<I> for &'a mut P {
     type Output = P::Output;
-    type Error = P::Error;
     type State = P::State;
 
     fn poll_parse(
@@ -263,7 +241,7 @@ impl<'a, P: Parser<I> + ?Sized, I: Positioned + ?Sized> Parser<I> for &'a mut P 
         input: Pin<&mut I>,
         cx: &mut Context<'_>,
         state: &mut Self::State,
-    ) -> Poll<ParseResult<Self, I>> {
+    ) -> Poll<ParseResult<Self::Output, I>> {
         (**self).poll_parse(input, cx, state)
     }
 }
@@ -272,7 +250,6 @@ impl<'a, P: Parser<I> + ?Sized, I: Positioned + ?Sized> Parser<I> for &'a mut P 
 #[cfg_attr(feature = "nightly", doc(cfg(feature = "alloc")))]
 impl<P: Parser<I> + ?Sized, I: Positioned + ?Sized> Parser<I> for Box<P> {
     type Output = P::Output;
-    type Error = P::Error;
     type State = P::State;
 
     fn poll_parse(
@@ -280,7 +257,7 @@ impl<P: Parser<I> + ?Sized, I: Positioned + ?Sized> Parser<I> for Box<P> {
         input: Pin<&mut I>,
         cx: &mut Context<'_>,
         state: &mut Self::State,
-    ) -> Poll<ParseResult<Self, I>> {
+    ) -> Poll<ParseResult<Self::Output, I>> {
         (**self).poll_parse(input, cx, state)
     }
 }

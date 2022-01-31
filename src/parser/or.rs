@@ -1,9 +1,10 @@
+use core::mem;
+use core::ops::Range;
 use core::pin::Pin;
 use core::task::{Context, Poll};
-use core::{fmt, mem};
 use futures_core::ready;
 
-use crate::error::{ParseError, ParseResult};
+use crate::error::{Expects, ParseError, ParseResult};
 use crate::parser::Parser;
 use crate::stream::Input;
 
@@ -30,39 +31,6 @@ impl<P, Q> Or<P, Q> {
     }
 }
 
-/// An error for method [`or`].
-///
-/// [`or`]: super::ParserExt::or
-#[derive(Debug)]
-pub enum OrError<E, F> {
-    Left(E),
-    Right(F),
-}
-
-impl<E: fmt::Display, F: fmt::Display> fmt::Display for OrError<E, F> {
-    #[inline]
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match self {
-            Self::Left(e) => e.fmt(f),
-            Self::Right(e) => e.fmt(f),
-        }
-    }
-}
-
-#[cfg(feature = "std")]
-impl<E, F> std::error::Error for OrError<E, F>
-where
-    E: std::error::Error + 'static,
-    F: std::error::Error + 'static,
-{
-    fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
-        match self {
-            Self::Left(e) => Some(e),
-            Self::Right(e) => Some(e),
-        }
-    }
-}
-
 #[derive(Debug)]
 enum EitherState<C, D> {
     Left(C),
@@ -70,15 +38,17 @@ enum EitherState<C, D> {
 }
 
 #[derive(Debug)]
-pub struct OrState<C, D, M> {
+pub struct OrState<C, D, T, L, M> {
     inner: EitherState<C, D>,
+    left_error: Option<(Expects<T>, Range<L>)>,
     queued_marker: Option<M>,
 }
 
-impl<C: Default, D, M> Default for OrState<C, D, M> {
+impl<C: Default, D, T, L, M> Default for OrState<C, D, T, L, M> {
     fn default() -> Self {
         Self {
             inner: EitherState::Left(C::default()),
+            left_error: None,
             queued_marker: None,
         }
     }
@@ -91,15 +61,15 @@ where
     I: Input + ?Sized,
 {
     type Output = P::Output;
-    type Error = OrError<P::Error, Q::Error>;
-    type State = OrState<P::State, Q::State, I::Marker>;
+    #[allow(clippy::type_complexity)]
+    type State = OrState<P::State, Q::State, I::Ok, I::Locator, I::Marker>;
 
     fn poll_parse(
         &mut self,
         mut input: Pin<&mut I>,
         cx: &mut Context<'_>,
         state: &mut Self::State,
-    ) -> Poll<ParseResult<Self, I>> {
+    ) -> Poll<ParseResult<Self::Output, I>> {
         if let EitherState::Left(ref mut inner) = state.inner {
             if state.queued_marker.is_none() {
                 state.queued_marker = Some(input.as_mut().mark()?);
@@ -110,15 +80,16 @@ where
                     input.drop_marker(mem::take(&mut state.queued_marker).unwrap())?;
                     return Poll::Ready(Ok(i));
                 }
-                Err(ParseError::Parser(_, _)) => {
+                Err(ParseError::Parser(ex, p)) => {
                     input
                         .as_mut()
                         .rewind(mem::take(&mut state.queued_marker).unwrap())?;
+                    state.left_error = Some((ex, p));
                     state.inner = EitherState::Right(Default::default());
                 }
                 Err(err) => {
                     input.drop_marker(mem::take(&mut state.queued_marker).unwrap())?;
-                    return Poll::Ready(Err(err.map_parse(OrError::Left)));
+                    return Poll::Ready(Err(err));
                 }
             }
         }
@@ -126,7 +97,17 @@ where
         if let EitherState::Right(ref mut inner) = state.inner {
             self.right
                 .poll_parse(input, cx, inner)
-                .map_err(|e| e.map_parse(OrError::Right))
+                .map_err(|err| match err {
+                    ParseError::Parser(ex, p) => {
+                        let (ex2, p2) = mem::take(&mut state.left_error).unwrap();
+                        if p.start == p2.start {
+                            ParseError::Parser(ex.merge(ex2), p.start..(p.end.max(p2.end)))
+                        } else {
+                            ParseError::Parser(ex, p)
+                        }
+                    }
+                    e => e,
+                })
         } else {
             unreachable!()
         }

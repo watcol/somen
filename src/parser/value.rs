@@ -1,4 +1,3 @@
-use core::convert::Infallible;
 use core::marker::PhantomData;
 use core::pin::Pin;
 use core::task::{Context, Poll};
@@ -29,7 +28,6 @@ impl<I: ?Sized, T> Value<I, T> {
 
 impl<I: Positioned + ?Sized, T: Clone> Parser<I> for Value<I, T> {
     type Output = T;
-    type Error = Infallible;
     type State = ();
 
     fn poll_parse(
@@ -37,7 +35,7 @@ impl<I: Positioned + ?Sized, T: Clone> Parser<I> for Value<I, T> {
         _input: Pin<&mut I>,
         _cx: &mut Context<'_>,
         _state: &mut Self::State,
-    ) -> Poll<ParseResult<Self, I>> {
+    ) -> Poll<ParseResult<Self::Output, I>> {
         Poll::Ready(Ok(self.value.clone()))
     }
 }

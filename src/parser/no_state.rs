@@ -40,7 +40,6 @@ where
     I: Positioned + ?Sized,
 {
     type Output = P::Output;
-    type Error = P::Error;
     type State = ();
 
     fn poll_parse(
@@ -48,7 +47,7 @@ where
         input: Pin<&mut I>,
         cx: &mut Context<'_>,
         _state: &mut Self::State,
-    ) -> Poll<ParseResult<Self, I>> {
+    ) -> Poll<ParseResult<Self::Output, I>> {
         match self.inner.poll_parse(input, cx, &mut self.state) {
             Poll::Ready(res) => {
                 self.state = Default::default();

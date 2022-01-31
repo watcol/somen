@@ -43,7 +43,6 @@ where
     I: Positioned + ?Sized,
 {
     type Output = P::Output;
-    type Error = P::Error;
     type State = LazyState<P, P::State>;
 
     fn poll_parse(
@@ -51,7 +50,7 @@ where
         input: Pin<&mut I>,
         cx: &mut Context<'_>,
         state: &mut Self::State,
-    ) -> Poll<ParseResult<Self, I>> {
+    ) -> Poll<ParseResult<Self::Output, I>> {
         state
             .parser
             .get_or_insert_with(&mut self.f)

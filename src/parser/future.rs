@@ -30,7 +30,7 @@ impl<'a, 'b, P: Parser<I> + ?Sized, I: Positioned + Unpin + ?Sized>
 impl<P: Parser<I> + ?Sized, I: Positioned + Unpin + ?Sized> Future
     for ParseFuture<'_, '_, P, I, P::State>
 {
-    type Output = ParseResult<P, I>;
+    type Output = ParseResult<P::Output, I>;
 
     fn poll(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {
         let Self {

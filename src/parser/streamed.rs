@@ -8,7 +8,7 @@ use core::task::{Context, Poll};
 
 pub use collect::Collect;
 
-use crate::error::StreamedResult;
+use crate::error::ParseResult;
 use crate::stream::position::Positioned;
 use stream::ParserStream;
 
@@ -18,9 +18,6 @@ use stream::ParserStream;
 pub trait StreamedParser<I: Positioned + ?Sized> {
     /// The type for items of input stream.
     type Item;
-
-    /// The error type that the stream will returns.
-    type Error;
 
     /// The internal state used in [`poll_parse_next`].
     ///
@@ -36,7 +33,7 @@ pub trait StreamedParser<I: Positioned + ?Sized> {
         input: Pin<&mut I>,
         cx: &mut Context<'_>,
         state: &mut Self::State,
-    ) -> Poll<StreamedResult<Self, I>>;
+    ) -> Poll<ParseResult<Option<Self::Item>, I>>;
 
     /// Returning a [`TryStream`] by invoking [`poll_parse_next`].
     ///

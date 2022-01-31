@@ -1,11 +1,10 @@
-use core::fmt;
 use core::mem;
 use core::ops::{Bound, RangeBounds};
 use core::pin::Pin;
 use core::task::{Context, Poll};
 use futures_core::ready;
 
-use crate::error::{ParseError, StreamedResult};
+use crate::error::{ParseError, ParseResult};
 use crate::parser::Parser;
 use crate::prelude::StreamedParser;
 use crate::stream::Input;
@@ -38,34 +37,6 @@ impl<P, R> Repeat<P, R> {
     }
 }
 
-/// An error type for method [`repeat`].
-///
-/// This error will returned when the number of items is not enough as the lower bound.
-///
-/// [`repeat`]: super::ParserExt::repeat
-#[derive(Debug)]
-pub struct RepeatError<E> {
-    /// An error from the internal parser.
-    pub inner: E,
-    /// The number of succeeded items.
-    pub suc_count: usize,
-    /// The minimum bound for the number of items.
-    pub min_bound: usize,
-}
-
-impl<E: fmt::Display> fmt::Display for RepeatError<E> {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "{}", self.inner)
-    }
-}
-
-#[cfg(feature = "std")]
-impl<E: std::error::Error + 'static> std::error::Error for RepeatError<E> {
-    fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
-        Some(&self.inner)
-    }
-}
-
 #[derive(Debug)]
 pub struct RepeatState<C, M> {
     inner: C,
@@ -90,7 +61,6 @@ where
     I: Input + ?Sized,
 {
     type Item = P::Output;
-    type Error = RepeatError<P::Error>;
     type State = RepeatState<P::State, I::Marker>;
 
     fn poll_parse_next(
@@ -98,7 +68,7 @@ where
         mut input: Pin<&mut I>,
         cx: &mut Context<'_>,
         state: &mut Self::State,
-    ) -> Poll<StreamedResult<Self, I>> {
+    ) -> Poll<ParseResult<Option<Self::Item>, I>> {
         // Return `None` if the number of items already reached `end_bound`.
         if match self.range.end_bound() {
             Bound::Included(i) => state.count + 1 > *i,
@@ -127,15 +97,7 @@ where
                 }
                 Err(err) => {
                     input.drop_marker(mem::take(&mut state.queued_marker).unwrap())?;
-                    Err(err.map_parse(|e| RepeatError {
-                        inner: e,
-                        suc_count: state.count,
-                        min_bound: match self.range.start_bound() {
-                            Bound::Included(i) => *i,
-                            Bound::Excluded(i) => *i - 1,
-                            Bound::Unbounded => 0,
-                        },
-                    }))
+                    Err(err)
                 }
             },
         )

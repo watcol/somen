@@ -1,10 +1,9 @@
-use core::fmt;
 use core::marker::PhantomData;
 use core::pin::Pin;
 use core::task::{Context, Poll};
 use futures_core::ready;
 
-use crate::error::{ParseError, ParseResult};
+use crate::error::{Expect, Expects, ParseError, ParseResult};
 use crate::parser::Parser;
 use crate::stream::Positioned;
 
@@ -28,24 +27,8 @@ impl<I: ?Sized> Any<I> {
     }
 }
 
-/// An error type for parser [`any`].
-///
-/// [`any`]: crate::parser::any
-#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
-pub struct AnyError;
-
-impl fmt::Display for AnyError {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "expected a token")
-    }
-}
-
-#[cfg(feature = "std")]
-impl std::error::Error for AnyError {}
-
 impl<I: Positioned + ?Sized> Parser<I> for Any<I> {
     type Output = I::Ok;
-    type Error = AnyError;
     type State = ();
 
     fn poll_parse(
@@ -53,12 +36,15 @@ impl<I: Positioned + ?Sized> Parser<I> for Any<I> {
         mut input: Pin<&mut I>,
         cx: &mut Context<'_>,
         _state: &mut Self::State,
-    ) -> Poll<ParseResult<Self, I>> {
+    ) -> Poll<ParseResult<Self::Output, I>> {
         let start = input.position();
         let parsed = ready!(input.as_mut().try_poll_next(cx)?);
         Poll::Ready(match parsed {
             Some(i) => Ok(i),
-            None => Err(ParseError::Parser(AnyError, start..input.position())),
+            None => Err(ParseError::Parser(
+                Expects::new(Expect::Static("a token")),
+                start..input.position(),
+            )),
         })
     }
 }

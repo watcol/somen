@@ -2,7 +2,7 @@ use core::marker::PhantomData;
 use core::pin::Pin;
 use core::task::{Context, Poll};
 
-use crate::error::{ParseError, ParseResult};
+use crate::error::ParseResult;
 use crate::stream::Positioned;
 
 use super::Parser;
@@ -27,18 +27,13 @@ impl<F, I: ?Sized, C> Function<F, I, C> {
     }
 }
 
-impl<F, I, O, E, C> Parser<I> for Function<F, I, C>
+impl<F, I, O, C> Parser<I> for Function<F, I, C>
 where
-    F: FnMut(
-        Pin<&mut I>,
-        &mut Context<'_>,
-        &mut C,
-    ) -> Poll<Result<O, ParseError<E, I::Error, I::Locator>>>,
+    F: FnMut(Pin<&mut I>, &mut Context<'_>, &mut C) -> Poll<ParseResult<O, I>>,
     I: Positioned + ?Sized,
     C: Default,
 {
     type Output = O;
-    type Error = E;
     type State = C;
 
     fn poll_parse(
@@ -46,7 +41,7 @@ where
         input: Pin<&mut I>,
         cx: &mut Context<'_>,
         state: &mut Self::State,
-    ) -> Poll<ParseResult<Self, I>> {
+    ) -> Poll<ParseResult<Self::Output, I>> {
         (self.f)(input, cx, state)
     }
 }
