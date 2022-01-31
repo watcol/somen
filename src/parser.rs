@@ -7,6 +7,7 @@ mod cond;
 mod eof;
 mod func;
 mod future;
+mod lazy;
 mod map;
 mod no_state;
 mod opt;
@@ -25,6 +26,7 @@ pub use any::{Any, AnyError};
 pub use cond::{Cond, CondError};
 pub use eof::{Eof, EofError};
 pub use func::Function;
+pub use lazy::Lazy;
 pub use map::{Map, MapErr, TryMap, TryMapError};
 pub use no_state::NoState;
 pub use opt::Opt;
@@ -91,6 +93,17 @@ where
     assert_parser(Function::new(f))
 }
 
+/// Produce the parser at the time of parsing.
+#[inline]
+pub fn lazy<F, P, I>(f: F) -> Lazy<F>
+where
+    F: FnMut() -> P,
+    P: Parser<I>,
+    I: Positioned + ?Sized,
+{
+    assert_parser(Lazy::new(f))
+}
+
 /// Produce a value without parsing tokens.
 #[inline]
 pub fn value<I: Positioned + ?Sized, T: Clone>(value: T) -> Value<I, T> {
@@ -141,12 +154,13 @@ pub trait ParserExt<I: Positioned + ?Sized>: Parser<I> {
     #[inline]
     fn boxed<'a>(
         self,
-    ) -> Box<dyn Parser<I, Output = Self::Output, Error = Self::Error, State = ()> + 'a>
+    ) -> Box<dyn Parser<I, Output = Self::Output, Error = Self::Error, State = Self::State> + 'a>
     where
         Self: Sized + 'a,
-        Self::State: 'a,
+        // Self::State: 'a,
     {
-        assert_parser(Box::new(NoState::new(self)))
+        // assert_parser(Box::new(NoState::new(self)))
+        assert_parser(Box::new(self))
     }
 
     /// Merges [`State`] into parser itself.
