@@ -33,13 +33,11 @@ pub type StreamedResult<P, I> = core::result::Result<
 pub enum ParseError<E, F, L> {
     /// A parsing error. (with position)
     Parser(E, Range<L>),
-    /// A fatal parsing error which should not be recovered with [`rewind`]. (with position)
-    ///
-    /// [`rewind`]: crate::stream::Rewind::rewind
-    Fatal(E, Range<L>),
     /// An error while reading streams.
     Stream(F),
 }
+
+pub trait Expect: fmt::Debug {}
 
 impl<E, F, L> From<F> for ParseError<E, F, L> {
     #[inline]
@@ -59,7 +57,6 @@ impl<E, F, L> ParseError<E, F, L> {
     {
         match self {
             Self::Parser(e, p) => ParseError::Parser(f(e), p),
-            Self::Fatal(e, p) => ParseError::Fatal(f(e), p),
             Self::Stream(e) => ParseError::Stream(e),
         }
     }
@@ -70,7 +67,6 @@ impl<E: fmt::Display, F: fmt::Display, L> fmt::Display for ParseError<E, F, L> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Self::Parser(e, _) => e.fmt(f),
-            Self::Fatal(e, _) => e.fmt(f),
             Self::Stream(e) => e.fmt(f),
         }
     }
@@ -88,7 +84,6 @@ where
     fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
         match self {
             Self::Parser(e, _) => Some(e),
-            Self::Fatal(e, _) => Some(e),
             Self::Stream(e) => Some(e),
         }
     }
