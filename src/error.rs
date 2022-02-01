@@ -133,10 +133,10 @@ impl<T: fmt::Display> fmt::Display for Expects<T> {
             Ok(())
         } else {
             for (c, i) in self.0.iter().enumerate() {
-                if c == len - 1 {
-                    write!(f, "or {}", i)?;
-                } else if c == 0 {
+                if c == 0 {
                     write!(f, "{}", i)?;
+                } else if c == len - 1 {
+                    write!(f, "or {}", i)?;
                 } else {
                     write!(f, ", {}", i)?;
                 }
