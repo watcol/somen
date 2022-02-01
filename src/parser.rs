@@ -52,7 +52,7 @@ pub fn any<I: Positioned + ?Sized>() -> Any<I> {
     assert_parser(Any::new())
 }
 
-/// Success if input reached the end.
+/// Successes if the input reached the end.
 #[inline]
 pub fn eof<I: Positioned + ?Sized>() -> Eof<I> {
     assert_parser(Eof::new())
@@ -78,7 +78,7 @@ where
     assert_parser(Token::new(token))
 }
 
-/// A parser calling a function.
+/// Wrapping the function into a parser.
 #[inline]
 pub fn function<F, I, O, E, C>(f: F) -> Function<F, I, C>
 where
@@ -89,7 +89,7 @@ where
     assert_parser(Function::new(f))
 }
 
-/// Produce the parser at the time of parsing.
+/// Produces the parser at the time of parsing.
 #[inline]
 pub fn lazy<F, P, I>(f: F) -> Lazy<F>
 where
@@ -100,7 +100,7 @@ where
     assert_parser(Lazy::new(f))
 }
 
-/// Produce a value without parsing tokens.
+/// Produces a value without parsing any tokens.
 #[inline]
 pub fn value<I: Positioned + ?Sized, T: Clone>(value: T) -> Value<I, T> {
     Value::new(value)
@@ -128,6 +128,7 @@ pub trait Parser<I: Positioned + ?Sized> {
     ) -> Poll<ParseResult<Self::Output, I>>;
 }
 
+/// An extension trait for [`Parser`].
 pub trait ParserExt<I: Positioned + ?Sized>: Parser<I> {
     /// An asynchronous version of [`poll_parse`], which returns a [`Future`].
     ///
@@ -141,7 +142,7 @@ pub trait ParserExt<I: Positioned + ?Sized>: Parser<I> {
         ParseFuture::new(self, input)
     }
 
-    /// Box the parser into a [`Box`].
+    /// Wraps the parser into a [`Box`].
     #[cfg(feature = "alloc")]
     #[cfg_attr(feature = "nightly", doc(cfg(feature = "alloc")))]
     #[inline]

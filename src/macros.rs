@@ -1,3 +1,4 @@
+/// Call recursive parsers.
 #[macro_export]
 macro_rules! call {
     ($func:expr) => {{

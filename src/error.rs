@@ -208,6 +208,9 @@ impl<T: fmt::Display> fmt::Display for Expect<T> {
 }
 
 impl<T> Expect<T> {
+    /// Converting the value of variant [`Token`]
+    ///
+    /// [`Token`]: Self::Token
     pub fn map_token<F, U>(self, f: F) -> Expect<U>
     where
         F: FnOnce(T) -> U,
