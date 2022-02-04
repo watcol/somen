@@ -103,6 +103,13 @@ where
 pub struct Expects<T>(Vec<Expect<T>>);
 
 #[cfg(feature = "alloc")]
+impl<B: IntoIterator<Item = Expect<T>>, T> From<B> for Expects<T> {
+    fn from(iter: B) -> Self {
+        Self(iter.into_iter().collect())
+    }
+}
+
+#[cfg(feature = "alloc")]
 impl<T> Expects<T> {
     /// Creating a new instance.
     pub fn new(first: Expect<T>) -> Self {
@@ -151,13 +158,25 @@ impl<T: fmt::Display> fmt::Display for Expects<T> {
 pub struct Expects<T>(Expect<T>);
 
 #[cfg(not(feature = "alloc"))]
+impl<B: IntoIterator<Item = Expect<T>>, T> From<B> for Expects<T> {
+    fn from(iter: B) -> Self {
+        let mut iter = iter.into_iter();
+        match iter.next() {
+            Some(ex) if iter.next().is_none() => Self(ex),
+            _ => Self(Expect::Other),
+        }
+    }
+}
+
+#[cfg(not(feature = "alloc"))]
 impl<T> Expects<T> {
     pub fn new(first: Expect<T>) -> Self {
         Self(first)
     }
 
+    #[allow(unused_variables)]
     pub fn merge(self, other: Expects<T>) -> Self {
-        Self::Other
+        Self(Expect::Other)
     }
 
     pub fn sort(&mut self)
