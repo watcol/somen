@@ -27,7 +27,7 @@ pub use cond::Cond;
 pub use eof::Eof;
 pub use func::Function;
 pub use lazy::Lazy;
-pub use map::Map;
+pub use map::{Expect, Map, MapErr};
 pub use no_state::NoState;
 pub use opt::Opt;
 pub use or::Or;
@@ -40,7 +40,7 @@ pub use value::Value;
 use core::pin::Pin;
 use core::task::{Context, Poll};
 
-use crate::error::ParseResult;
+use crate::error::{Expects, ParseResult};
 #[cfg(feature = "alloc")]
 use crate::stream::NoRewindInput;
 use crate::stream::{Input, Positioned};
@@ -228,6 +228,34 @@ pub trait ParserExt<I: Positioned + ?Sized>: Parser<I> {
         F: FnMut(Self::Output) -> O,
     {
         assert_parser(Map::new(self, f))
+    }
+
+    /// Modifying values expected by the parser.
+    ///
+    /// It is more easy to use [`expect`] when you just want to override the message by a
+    /// `&'static str`.
+    ///
+    /// [`expect`]: Self::expect
+    #[inline]
+    fn map_err<F, O>(self, f: F) -> MapErr<Self, F>
+    where
+        Self: Sized,
+        F: FnMut(Expects<I::Ok>) -> Expects<I::Ok>,
+    {
+        assert_parser(MapErr::new(self, f))
+    }
+
+    /// Overriding expected values by `&'static str`.
+    ///
+    /// [`map_err`] can be used if you want more complicated operation to expected values.
+    ///
+    /// [`expect`]: Self::expect
+    #[inline]
+    fn expect<O>(self, message: &'static str) -> Expect<Self>
+    where
+        Self: Sized,
+    {
+        assert_parser(Expect::new(self, message))
     }
 }
 
