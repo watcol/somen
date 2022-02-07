@@ -249,7 +249,7 @@ pub trait ParserExt<I: Positioned + ?Sized>: Parser<I> {
     ///
     /// [`map_err`] can be used if you want more complicated operation to expected values.
     ///
-    /// [`expect`]: Self::expect
+    /// [`map_err`]: Self::map_err
     #[inline]
     fn expect<O>(self, message: &'static str) -> Expect<Self>
     where
