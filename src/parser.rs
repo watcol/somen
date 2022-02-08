@@ -4,6 +4,7 @@ pub mod streamed;
 
 mod any;
 mod cond;
+mod either;
 mod eof;
 mod func;
 mod future;
@@ -24,6 +25,7 @@ mod record;
 use alloc::boxed::Box;
 pub use any::Any;
 pub use cond::Cond;
+pub use either::Either;
 pub use eof::Eof;
 pub use func::Function;
 pub use lazy::Lazy;
@@ -160,7 +162,25 @@ pub trait ParserExt<I: Positioned + ?Sized>: Parser<I> {
     where
         Self: Sized,
     {
-        NoState::new(self)
+        assert_parser(NoState::new(self))
+    }
+
+    /// Wraps the parser into a [`Either`] to merge multiple types of parsers.
+    fn left<R>(self) -> Either<Self, R>
+    where
+        Self: Sized,
+        R: Parser<I, Output = Self::Output>,
+    {
+        assert_parser(Either::Left(self))
+    }
+
+    /// Wraps the parser into a [`Either`] to merge multiple types of parsers.
+    fn right<L>(self) -> Either<L, Self>
+    where
+        Self: Sized,
+        L: Parser<I, Output = Self::Output>,
+    {
+        assert_parser(Either::Right(self))
     }
 
     /// Returns consumed items instead of an output.
