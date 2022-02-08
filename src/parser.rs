@@ -207,6 +207,15 @@ pub trait ParserExt<I: Positioned + ?Sized>: Parser<I> {
         assert_parser(WithRecord::new(self))
     }
 
+    /// Parses with `self`, and then with `p`.
+    fn and<P>(self, p: P) -> (Self, P)
+    where
+        Self: Sized,
+        P: Parser<I>,
+    {
+        assert_parser((self, p))
+    }
+
     /// Trying another parser if the parser is failed.
     #[inline]
     fn or<P>(self, other: P) -> Or<Self, P>
