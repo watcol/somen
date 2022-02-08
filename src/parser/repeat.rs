@@ -88,6 +88,7 @@ where
             match ready!(self.inner.poll_parse(input.as_mut(), cx, &mut state.inner)) {
                 Ok(output) => {
                     input.drop_marker(mem::take(&mut state.queued_marker).unwrap())?;
+                    state.inner = Default::default();
                     state.count += 1;
                     Ok(Some(output))
                 }
