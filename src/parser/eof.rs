@@ -39,10 +39,11 @@ impl<I: Positioned + ?Sized> Parser<I> for Eof<I> {
     ) -> Poll<ParseResult<Self::Output, I>> {
         let start = input.position();
         Poll::Ready(match ready!(input.as_mut().try_poll_next(cx)?) {
-            Some(_) => Err(ParseError::Parser(
-                Expects::new(Expect::Eof),
-                start..input.position(),
-            )),
+            Some(_) => Err(ParseError::Parser {
+                expects: Expects::new(Expect::Eof),
+                position: start..input.position(),
+                fatal: false,
+            }),
             None => Ok(()),
         })
     }

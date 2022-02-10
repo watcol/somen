@@ -21,8 +21,15 @@ pub type ParseResult<O, I> = core::result::Result<
 /// The error type for this crate.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum ParseError<T, L, E> {
-    /// A parsing error with expected tokens and the position.
-    Parser(Expects<T>, Range<L>),
+    /// A parsing error.
+    Parser {
+        /// Expected tokens.
+        expects: Expects<T>,
+        /// The position where the error was occured in the input stream.
+        position: Range<L>,
+        /// Whether the error is fatal (= not rewindable), or not.
+        fatal: bool,
+    },
     /// An error while reading streams.
     Stream(E),
 }
@@ -40,8 +47,27 @@ impl<T, L, E> ParseError<T, L, E> {
     where
         T: Ord,
     {
-        if let ParseError::Parser(ref mut ex, _) = *self {
-            ex.sort();
+        if let ParseError::Parser {
+            ref mut expects, ..
+        } = *self
+        {
+            expects.sort();
+        }
+    }
+
+    /// Modifies the flag [`fatal`].
+    ///
+    /// [`fatal`]: Self::Parser::fatal
+    pub fn fatal(self, fatal: bool) -> Self {
+        match self {
+            Self::Parser {
+                expects, position, ..
+            } => Self::Parser {
+                expects,
+                position,
+                fatal,
+            },
+            err => err,
         }
     }
 }
@@ -50,21 +76,45 @@ impl<T, U, L, E> ParseError<T, L, ParseError<U, L, E>> {
     pub fn flatten(self) -> ParseError<Result<T, U>, L, E> {
         match self {
             #[cfg(feature = "alloc")]
-            Self::Parser(Expects(ex), p) => ParseError::Parser(
-                Expects(ex.into_iter().map(|e| e.map_token(Ok)).collect()),
-                p,
-            ),
+            Self::Parser {
+                expects: Expects(ex),
+                position,
+                fatal,
+            } => ParseError::Parser {
+                expects: Expects(ex.into_iter().map(|e| e.map_token(Ok)).collect()),
+                position,
+                fatal,
+            },
             #[cfg(not(feature = "alloc"))]
-            Self::Parser(Expects(ex), p) => ParseError::Parser(Expects(ex.map_token(Ok)), p),
+            Self::Parser {
+                expects: Expects(ex),
+                position,
+                fatal,
+            } => ParseError::Parser {
+                expects: Expects(ex.map_token(Ok)),
+                position,
+                fatal,
+            },
             #[cfg(feature = "alloc")]
-            Self::Stream(ParseError::Parser(Expects(ex), p)) => ParseError::Parser(
-                Expects(ex.into_iter().map(|e| e.map_token(Err)).collect()),
-                p,
-            ),
+            Self::Stream(ParseError::Parser {
+                expects: Expects(ex),
+                position,
+                fatal,
+            }) => ParseError::Parser {
+                expects: Expects(ex.into_iter().map(|e| e.map_token(Err)).collect()),
+                position,
+                fatal,
+            },
             #[cfg(not(feature = "alloc"))]
-            Self::Stream(ParseError::Parser(Expects(ex), p)) => {
-                ParseError::Parser(Expects(ex.map_token(Err)), p)
-            }
+            Self::Stream(ParseError::Parser {
+                expects: Expects(ex),
+                position,
+                fatal,
+            }) => ParseError::Parser {
+                expects: Expects(ex.map_token(Err)),
+                position,
+                fatal,
+            },
             Self::Stream(ParseError::Stream(e)) => ParseError::Stream(e),
         }
     }
@@ -74,7 +124,7 @@ impl<T: fmt::Display, L, E: fmt::Display> fmt::Display for ParseError<T, L, E> {
     #[inline]
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            Self::Parser(e, _) => write!(f, "expected {}.", e),
+            Self::Parser { expects, .. } => write!(f, "expected {}.", expects),
             Self::Stream(e) => e.fmt(f),
         }
     }
@@ -91,7 +141,7 @@ where
     #[inline]
     fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
         match self {
-            Self::Parser(_, _) => None,
+            Self::Parser { .. } => None,
             Self::Stream(e) => Some(e),
         }
     }

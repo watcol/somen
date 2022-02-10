@@ -1,5 +1,5 @@
 use core::mem;
-use core::ops::{Bound, Range, RangeBounds};
+use core::ops::{Bound, RangeBounds};
 use core::pin::Pin;
 use core::task::{Context, Poll};
 use futures_core::ready;
@@ -83,7 +83,6 @@ where
             state.queued_marker = Some(input.as_mut().mark()?);
         }
 
-        let pos_start = input.position();
         Poll::Ready(
             match ready!(self.inner.poll_parse(input.as_mut(), cx, &mut state.inner)) {
                 Ok(output) => {
@@ -93,15 +92,21 @@ where
                     Ok(Some(output))
                 }
                 // Return `None` if `count` already satisfies the minimal bound.
-                Err(ParseError::Parser(_, Range { start, .. }))
-                    if self.range.contains(&state.count) && start == pos_start =>
+                Err(ParseError::Parser { fatal: false, .. })
+                    if self.range.contains(&state.count) =>
                 {
                     input.rewind(mem::take(&mut state.queued_marker).unwrap())?;
                     Ok(None)
                 }
                 Err(err) => {
                     input.drop_marker(mem::take(&mut state.queued_marker).unwrap())?;
-                    Err(err)
+                    // If the parser has succeeded parsing at least once, rewinding the parser is
+                    // not appropriate.
+                    Err(if state.count > 0 {
+                        err.fatal(true)
+                    } else {
+                        err
+                    })
                 }
             },
         )

@@ -89,7 +89,11 @@ where
         let start = input.position();
         self.inner.poll_parse(input.as_mut(), cx, state).map(|res| {
             res.and_then(|val| {
-                (self.f)(val).map_err(|err| ParseError::Parser(err.into(), start..input.position()))
+                (self.f)(val).map_err(|err| ParseError::Parser {
+                    expects: err.into(),
+                    position: start..input.position(),
+                    fatal: true,
+                })
             })
         })
     }

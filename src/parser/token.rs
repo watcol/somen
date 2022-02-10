@@ -45,10 +45,11 @@ where
         let parsed = ready!(input.as_mut().try_poll_next(cx)?);
         Poll::Ready(match parsed {
             Some(i) if i == self.token => Ok(i),
-            _ => Err(ParseError::Parser(
-                Expects::new(Expect::Token(self.token.clone())),
-                start..input.position(),
-            )),
+            _ => Err(ParseError::Parser {
+                expects: Expects::new(Expect::Token(self.token.clone())),
+                position: start..input.position(),
+                fatal: false,
+            }),
         })
     }
 }

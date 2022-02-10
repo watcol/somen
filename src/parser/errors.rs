@@ -28,10 +28,11 @@ impl<P, F> MapErr<P, F> {
     }
 }
 
-impl<P, F, I> Parser<I> for MapErr<P, F>
+impl<P, F, E, I> Parser<I> for MapErr<P, F>
 where
     P: Parser<I>,
-    F: FnMut(Expects<I::Ok>) -> Expects<I::Ok>,
+    F: FnMut(Expects<I::Ok>) -> E,
+    E: Into<Expects<I::Ok>>,
     I: Positioned + ?Sized,
 {
     type Output = P::Output;
@@ -46,7 +47,15 @@ where
         self.inner
             .poll_parse(input, cx, state)
             .map_err(|err| match err {
-                ParseError::Parser(ex, pos) => ParseError::Parser((self.f)(ex), pos),
+                ParseError::Parser {
+                    expects,
+                    position,
+                    fatal,
+                } => ParseError::Parser {
+                    expects: (self.f)(expects).into(),
+                    position,
+                    fatal,
+                },
                 ParseError::Stream(e) => ParseError::Stream(e),
             })
     }
@@ -92,10 +101,13 @@ where
         self.inner
             .poll_parse(input, cx, state)
             .map_err(|err| match err {
-                ParseError::Parser(_, pos) => ParseError::Parser(
-                    Expects::new(crate::error::Expect::Static(self.message)),
-                    pos,
-                ),
+                ParseError::Parser {
+                    position, fatal, ..
+                } => ParseError::Parser {
+                    expects: Expects::new(crate::error::Expect::Static(self.message)),
+                    position,
+                    fatal,
+                },
                 ParseError::Stream(e) => ParseError::Stream(e),
             })
     }
@@ -141,7 +153,11 @@ where
         self.inner
             .poll_parse(input.as_mut(), cx, state)
             .map_err(|err| match err {
-                ParseError::Parser(ex, _) => ParseError::Parser(ex, start..input.position()),
+                ParseError::Parser { expects, fatal, .. } => ParseError::Parser {
+                    expects,
+                    position: start..input.position(),
+                    fatal,
+                },
                 ParseError::Stream(e) => ParseError::Stream(e),
             })
     }

@@ -1,5 +1,4 @@
 use core::mem;
-use core::ops::Range;
 use core::pin::Pin;
 use core::task::{Context, Poll};
 use futures_core::ready;
@@ -71,14 +70,13 @@ where
             if state.queued_marker.is_none() {
                 state.queued_marker = Some(input.as_mut().mark()?);
             }
-            let pos_start = input.position();
 
             match ready!(self.left.poll_parse(input.as_mut(), cx, inner)) {
                 Ok(i) => {
                     input.drop_marker(mem::take(&mut state.queued_marker).unwrap())?;
                     return Poll::Ready(Ok(i));
                 }
-                Err(ParseError::Parser(_, Range { start, .. })) if start == pos_start => {
+                Err(ParseError::Parser { fatal: false, .. }) => {
                     input
                         .as_mut()
                         .rewind(mem::take(&mut state.queued_marker).unwrap())?;

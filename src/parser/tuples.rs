@@ -4,38 +4,42 @@ use core::task::{Context, Poll};
 use futures_core::ready;
 
 use super::Parser;
-use crate::error::ParseResult;
+use crate::error::{ParseError, ParseResult};
 use crate::stream::Positioned;
 
 macro_rules! tuple_parser {
-    ($state:ident $(, $t:ident )+) => {
+    ($state:ident, $h:ident $(, $t:ident)*) => {
         #[derive(Debug)]
         #[allow(non_snake_case)]
-        pub struct $state <I: Positioned + ?Sized, $( $t: Parser<I> ),+ > {
+        pub struct $state <I: Positioned + ?Sized, $h: Parser<I>, $( $t: Parser<I> ),* > {
+            $h: (Option<$h::Output>, $h::State),
             $(
                 $t: (Option<$t::Output>, $t::State),
-            )+
+            )*
         }
 
-        impl<I, $($t),+> Default for $state<I, $($t),+>
+        impl<I, $h, $($t),*> Default for $state<I, $h, $($t),*>
         where I: Positioned + ?Sized,
-              $( $t: Parser<I> ),+
+              $h: Parser<I>,
+              $( $t: Parser<I>, )*
         {
             #[inline]
             fn default() -> Self {
                 Self {
-                    $( $t: (None, Default::default()), )+
+                    $h: (None, Default::default()),
+                    $( $t: (None, Default::default()), )*
                 }
             }
         }
 
-        impl<I, $($t),+> Parser<I> for ($($t),+,)
+        impl<I, $h, $($t),*> Parser<I> for ($h, $($t),*)
         where
             I: Positioned + ?Sized,
-            $( $t: Parser<I> ),+
+            $h: Parser<I>,
+            $( $t: Parser<I>, )*
         {
-            type Output = ($( $t::Output ),+,);
-            type State = $state<I, $($t),+>;
+            type Output = ($h::Output, $( $t::Output ),*);
+            type State = $state<I, $h, $($t),*>;
 
             fn poll_parse(
                 &mut self,
@@ -44,17 +48,36 @@ macro_rules! tuple_parser {
                 state: &mut Self::State,
             ) -> Poll<ParseResult<Self::Output, I>> {
                 #[allow(non_snake_case)]
-                let ($(ref mut $t),+,) = *self;
+                let (ref mut $h, $(ref mut $t),*) = *self;
+                if state.$h.0.is_none() {
+                    state.$h.0 = Some(
+                        ready!($h.poll_parse(input.as_mut(), cx, &mut state.$h.1))?
+                    );
+                }
+
                 $(
                     if state.$t.0.is_none() {
                         state.$t.0 = Some(
-                            ready!($t.poll_parse(input.as_mut(), cx, &mut state.$t.1))?
+                            ready!($t.poll_parse(input.as_mut(), cx, &mut state.$t.1))
+                                .map_err(|err| match err {
+                                    ParseError::Parser {
+                                        expects,
+                                        position,
+                                        ..
+                                    } => ParseError::Parser {
+                                        expects,
+                                        position,
+                                        fatal: true,
+                                    },
+                                    e => e,
+                                })?
                         );
                     }
-                )+
+                )*
 
                 Poll::Ready(Ok((
-                    $( mem::take(&mut state.$t.0).unwrap() ),+,
+                    mem::take(&mut state.$h.0).unwrap(),
+                    $( mem::take(&mut state.$t.0).unwrap() ),*
                 )))
             }
         }

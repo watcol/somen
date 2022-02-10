@@ -41,10 +41,11 @@ impl<I: Positioned + ?Sized> Parser<I> for Any<I> {
         let parsed = ready!(input.as_mut().try_poll_next(cx)?);
         Poll::Ready(match parsed {
             Some(i) => Ok(i),
-            None => Err(ParseError::Parser(
-                Expects::new(Expect::Static("a token")),
-                start..input.position(),
-            )),
+            None => Err(ParseError::Parser {
+                expects: Expects::new(Expect::Static("a token")),
+                position: start..input.position(),
+                fatal: false,
+            }),
         })
     }
 }
