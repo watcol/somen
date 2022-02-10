@@ -325,7 +325,7 @@ pub trait ParserExt<I: Positioned + ?Sized>: Parser<I> {
     /// [`map_err`]: Self::map_err
     /// [`fatal`]: crate::error::ParseError::Parser::fatal
     #[inline]
-    fn expect<O, E: Into<Expects<I::Ok>>>(self, expected: E) -> Expect<Self, Expects<I::Ok>>
+    fn expect<E: Into<Expects<I::Ok>>>(self, expected: E) -> Expect<Self, Expects<I::Ok>>
     where
         Self: Sized,
         I::Ok: Clone,

@@ -160,6 +160,16 @@ impl<T> FromIterator<Expect<T>> for Expects<T> {
 }
 
 #[cfg(feature = "alloc")]
+impl<T> IntoIterator for Expects<T> {
+    type Item = Expect<T>;
+    type IntoIter = alloc::vec::IntoIter<Expect<T>>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        self.0.into_iter()
+    }
+}
+
+#[cfg(feature = "alloc")]
 impl<T> Expects<T> {
     /// Creating a new instance.
     pub fn new(first: Expect<T>) -> Self {
@@ -240,6 +250,16 @@ impl<T> Expects<T> {
 impl<T: fmt::Display> fmt::Display for Expects<T> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         self.0.fmt(f)
+    }
+}
+
+#[cfg(not(feature = "alloc"))]
+impl<T> IntoIterator for Expects<T> {
+    type Item = Expect<T>;
+    type IntoIter = core::iter::Once<Expect<T>>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        core::iter::once(self.0)
     }
 }
 
