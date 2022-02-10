@@ -29,7 +29,7 @@ pub use either::Either;
 pub use eof::Eof;
 pub use func::Function;
 pub use lazy::Lazy;
-pub use map::{Expect, Map, MapErr, Spanned};
+pub use map::{Expect, Map, MapErr, Spanned, TryMap};
 pub use no_state::NoState;
 pub use opt::Opt;
 pub use or::Or;
@@ -257,6 +257,17 @@ pub trait ParserExt<I: Positioned + ?Sized>: Parser<I> {
         F: FnMut(Self::Output) -> O,
     {
         assert_parser(Map::new(self, f))
+    }
+
+    /// Converting an output value into another type with a failable function.
+    #[inline]
+    fn try_map<F, O, E>(self, f: F) -> TryMap<Self, F>
+    where
+        Self: Sized,
+        F: FnMut(Self::Output) -> Result<O, E>,
+        E: Into<Expects<I::Ok>>,
+    {
+        assert_parser(TryMap::new(self, f))
     }
 
     /// Modifying values expected by the parser.

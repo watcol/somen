@@ -47,6 +47,54 @@ where
     }
 }
 
+/// A parser for method [`try_map`].
+///
+/// [`try_map`]: super::ParserExt::try_map
+#[derive(Debug)]
+pub struct TryMap<P, F> {
+    inner: P,
+    f: F,
+}
+
+impl<P, F> TryMap<P, F> {
+    /// Creating a new instance.
+    #[inline]
+    pub fn new(inner: P, f: F) -> Self {
+        Self { inner, f }
+    }
+
+    /// Extracting the inner parser.
+    #[inline]
+    pub fn into_inner(self) -> P {
+        self.inner
+    }
+}
+
+impl<P, F, I, O, E> Parser<I> for TryMap<P, F>
+where
+    P: Parser<I>,
+    F: FnMut(P::Output) -> Result<O, E>,
+    E: Into<Expects<I::Ok>>,
+    I: Positioned + ?Sized,
+{
+    type Output = O;
+    type State = P::State;
+
+    fn poll_parse(
+        &mut self,
+        mut input: Pin<&mut I>,
+        cx: &mut Context<'_>,
+        state: &mut Self::State,
+    ) -> Poll<ParseResult<Self::Output, I>> {
+        let start = input.position();
+        self.inner.poll_parse(input.as_mut(), cx, state).map(|res| {
+            res.and_then(|val| {
+                (self.f)(val).map_err(|err| ParseError::Parser(err.into(), start..input.position()))
+            })
+        })
+    }
+}
+
 /// A parser for method [`map_err`].
 ///
 /// [`map_err`]: super::ParserExt::map_err
