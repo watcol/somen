@@ -61,58 +61,6 @@ where
     }
 }
 
-/// A parser for method [`expect`].
-///
-/// [`expect`]: super::ParserExt::expect
-#[derive(Debug)]
-pub struct Expect<P> {
-    inner: P,
-    message: &'static str,
-}
-
-impl<P> Expect<P> {
-    /// Creating a new instance.
-    #[inline]
-    pub fn new(inner: P, message: &'static str) -> Self {
-        Self { inner, message }
-    }
-
-    /// Extracting the inner parser.
-    #[inline]
-    pub fn into_inner(self) -> P {
-        self.inner
-    }
-}
-
-impl<P, I> Parser<I> for Expect<P>
-where
-    P: Parser<I>,
-    I: Positioned + ?Sized,
-{
-    type Output = P::Output;
-    type State = P::State;
-
-    fn poll_parse(
-        &mut self,
-        input: Pin<&mut I>,
-        cx: &mut Context<'_>,
-        state: &mut Self::State,
-    ) -> Poll<ParseResult<Self::Output, I>> {
-        self.inner
-            .poll_parse(input, cx, state)
-            .map_err(|err| match err {
-                ParseError::Parser {
-                    position, fatal, ..
-                } => ParseError::Parser {
-                    expects: Expects::new(crate::error::Expect::Static(self.message)),
-                    position,
-                    fatal,
-                },
-                ParseError::Stream(e) => ParseError::Stream(e),
-            })
-    }
-}
-
 /// A parser for method [`spanned`].
 ///
 /// [`spanned`]: super::ParserExt::spanned
@@ -157,6 +105,113 @@ where
                     expects,
                     position: start..input.position(),
                     fatal,
+                },
+                ParseError::Stream(e) => ParseError::Stream(e),
+            })
+    }
+}
+
+/// A parser for method [`fatal`].
+///
+/// [`fatal`]: super::ParserExt::fatal
+#[derive(Debug)]
+pub struct Fatal<P> {
+    inner: P,
+    fatal: bool,
+}
+
+impl<P> Fatal<P> {
+    /// Creating a new instance.
+    #[inline]
+    pub fn new(inner: P, fatal: bool) -> Self {
+        Self { inner, fatal }
+    }
+
+    /// Extracting the inner parser.
+    #[inline]
+    pub fn into_inner(self) -> P {
+        self.inner
+    }
+}
+
+impl<P, I> Parser<I> for Fatal<P>
+where
+    P: Parser<I>,
+    I: Positioned + ?Sized,
+{
+    type Output = P::Output;
+    type State = P::State;
+
+    fn poll_parse(
+        &mut self,
+        input: Pin<&mut I>,
+        cx: &mut Context<'_>,
+        state: &mut Self::State,
+    ) -> Poll<ParseResult<Self::Output, I>> {
+        self.inner
+            .poll_parse(input, cx, state)
+            .map_err(|err| match err {
+                ParseError::Parser {
+                    expects, position, ..
+                } => ParseError::Parser {
+                    expects,
+                    position,
+                    fatal: self.fatal,
+                },
+                ParseError::Stream(e) => ParseError::Stream(e),
+            })
+    }
+}
+
+/// A parser for method [`expect`].
+///
+/// [`expect`]: super::ParserExt::expect
+#[derive(Debug)]
+pub struct Expect<P, E> {
+    inner: P,
+    expects: E,
+}
+
+impl<P, E> Expect<P, E> {
+    /// Creating a new instance.
+    #[inline]
+    pub fn new<F: Into<E>>(inner: P, expects: F) -> Self {
+        Self {
+            inner,
+            expects: expects.into(),
+        }
+    }
+
+    /// Extracting the inner parser.
+    #[inline]
+    pub fn into_inner(self) -> P {
+        self.inner
+    }
+}
+
+impl<P, I> Parser<I> for Expect<P, Expects<I::Ok>>
+where
+    P: Parser<I>,
+    I: Positioned + ?Sized,
+    I::Ok: Clone,
+{
+    type Output = P::Output;
+    type State = P::State;
+
+    fn poll_parse(
+        &mut self,
+        mut input: Pin<&mut I>,
+        cx: &mut Context<'_>,
+        state: &mut Self::State,
+    ) -> Poll<ParseResult<Self::Output, I>> {
+        let start = input.position();
+        self.inner
+            .poll_parse(input.as_mut(), cx, state)
+            .map_err(|err| match err {
+                ParseError::Parser { .. } => ParseError::Parser {
+                    expects: self.expects.clone(),
+                    position: start..input.position(),
+                    fatal: false,
                 },
                 ParseError::Stream(e) => ParseError::Stream(e),
             })

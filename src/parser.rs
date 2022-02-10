@@ -28,7 +28,7 @@ pub use any::Any;
 pub use cond::Cond;
 pub use either::Either;
 pub use eof::Eof;
-pub use errors::{Expect, MapErr, Spanned};
+pub use errors::{Expect, Fatal, MapErr, Spanned};
 pub use func::Function;
 pub use lazy::Lazy;
 pub use map::{Map, TryMap};
@@ -218,7 +218,7 @@ pub trait ParserExt<I: Positioned + ?Sized>: Parser<I> {
         assert_parser((self, p))
     }
 
-    /// Trying another parser if the parser is failed.
+    /// Trying another parser if the parser failed parsing.
     #[inline]
     fn or<P>(self, other: P) -> Or<Self, P>
     where
@@ -229,7 +229,7 @@ pub trait ParserExt<I: Positioned + ?Sized>: Parser<I> {
         assert_parser(Or::new(self, other))
     }
 
-    /// Returns [`Some`] when parsing was successed.
+    /// Returns [`Some`] if parsing was successed.
     #[inline]
     fn opt(self) -> Opt<Self>
     where
@@ -287,27 +287,50 @@ pub trait ParserExt<I: Positioned + ?Sized>: Parser<I> {
         assert_parser(MapErr::new(self, f))
     }
 
-    /// Overriding expected values by `&'static str`.
-    ///
-    /// [`map_err`] can be used if you want more complicated operation to expected values.
-    ///
-    /// [`map_err`]: Self::map_err
-    #[inline]
-    fn expect<O>(self, message: &'static str) -> Expect<Self>
-    where
-        Self: Sized,
-    {
-        assert_parser(Expect::new(self, message))
-    }
-
-    /// Overriding the position for error reportings by the span from the start of the parser to the
-    /// end of it.
+    /// Overriding the error position with the span of tokens parsed by the parser.
     #[inline]
     fn spanned(self) -> Spanned<Self>
     where
         Self: Sized,
     {
         assert_parser(Spanned::new(self))
+    }
+
+    /// Modifying the flag [`fatal`] for the error.
+    ///
+    /// If the flag is `true`, combinators like [`opt`], [`or`] or [`repeat`] will give special
+    /// respects for errors originated by the parser so that the errors will not be ignored.
+    /// Otherwise, the error can be ignored in specific situations.
+    ///
+    /// For example, [`opt`] rewinds input and returns [`None`], or [`or`] tries other choices when
+    /// the parser returns an error.
+    ///
+    /// [`fatal`]: crate::error::ParseError::Parser::fatal
+    /// [`opt`]: Self::opt
+    /// [`or`]: Self::or
+    /// [`repeat`]: Self::repeat
+    #[inline]
+    fn fatal(self, fatal: bool) -> Fatal<Self>
+    where
+        Self: Sized,
+    {
+        assert_parser(Fatal::new(self, fatal))
+    }
+
+    /// A conventional function to override parsing errors.
+    ///
+    /// This function override expected values (by the passed value), the position (by the position of
+    /// parsed tokens), and [`fatal`] flag (by `false`) at once.
+    ///
+    /// [`map_err`]: Self::map_err
+    /// [`fatal`]: crate::error::ParseError::Parser::fatal
+    #[inline]
+    fn expect<O, E: Into<Expects<I::Ok>>>(self, expected: E) -> Expect<Self, Expects<I::Ok>>
+    where
+        Self: Sized,
+        I::Ok: Clone,
+    {
+        assert_parser(Expect::new(self, expected))
     }
 }
 
