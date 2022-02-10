@@ -103,8 +103,8 @@ where
 pub struct Expects<T>(Vec<Expect<T>>);
 
 #[cfg(feature = "alloc")]
-impl<B: IntoIterator<Item = Expect<T>>, T> From<B> for Expects<T> {
-    fn from(iter: B) -> Self {
+impl<T> FromIterator<Expect<T>> for Expects<T> {
+    fn from_iter<I: IntoIterator<Item = Expect<T>>>(iter: I) -> Self {
         Self(iter.into_iter().collect())
     }
 }
@@ -158,8 +158,8 @@ impl<T: fmt::Display> fmt::Display for Expects<T> {
 pub struct Expects<T>(Expect<T>);
 
 #[cfg(not(feature = "alloc"))]
-impl<B: IntoIterator<Item = Expect<T>>, T> From<B> for Expects<T> {
-    fn from(iter: B) -> Self {
+impl<T> FromIterator<Expect<T>> for Expects<T> {
+    fn from_iter<I: IntoIterator<Item = Expect<T>>>(iter: I) -> Self {
         let mut iter = iter.into_iter();
         match iter.next() {
             Some(ex) if iter.next().is_none() => Self(ex),
@@ -190,6 +190,25 @@ impl<T> Expects<T> {
 impl<T: fmt::Display> fmt::Display for Expects<T> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         self.0.fmt(f)
+    }
+}
+
+impl<T> From<Expect<T>> for Expects<T> {
+    fn from(inner: Expect<T>) -> Self {
+        Expects::new(inner)
+    }
+}
+
+impl<T> From<&'static str> for Expects<T> {
+    fn from(msg: &'static str) -> Self {
+        Expects::new(Expect::Static(msg))
+    }
+}
+
+#[cfg(feature = "alloc")]
+impl<T> From<String> for Expects<T> {
+    fn from(msg: String) -> Self {
+        Expects::new(Expect::Owned(msg))
     }
 }
 
