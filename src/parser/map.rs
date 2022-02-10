@@ -142,3 +142,49 @@ where
             })
     }
 }
+
+/// A parser for method [`spanned`].
+///
+/// [`spanned`]: super::ParserExt::spanned
+#[derive(Debug)]
+pub struct Spanned<P> {
+    inner: P,
+}
+
+impl<P> Spanned<P> {
+    /// Creating a new instance.
+    #[inline]
+    pub fn new(inner: P) -> Self {
+        Self { inner }
+    }
+
+    /// Extracting the inner parser.
+    #[inline]
+    pub fn into_inner(self) -> P {
+        self.inner
+    }
+}
+
+impl<P, I> Parser<I> for Spanned<P>
+where
+    P: Parser<I>,
+    I: Positioned + ?Sized,
+{
+    type Output = P::Output;
+    type State = P::State;
+
+    fn poll_parse(
+        &mut self,
+        mut input: Pin<&mut I>,
+        cx: &mut Context<'_>,
+        state: &mut Self::State,
+    ) -> Poll<ParseResult<Self::Output, I>> {
+        let start = input.position();
+        self.inner
+            .poll_parse(input.as_mut(), cx, state)
+            .map_err(|err| match err {
+                ParseError::Parser(ex, _) => ParseError::Parser(ex, start..input.position()),
+                ParseError::Stream(e) => ParseError::Stream(e),
+            })
+    }
+}

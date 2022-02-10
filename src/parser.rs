@@ -29,7 +29,7 @@ pub use either::Either;
 pub use eof::Eof;
 pub use func::Function;
 pub use lazy::Lazy;
-pub use map::{Expect, Map, MapErr};
+pub use map::{Expect, Map, MapErr, Spanned};
 pub use no_state::NoState;
 pub use opt::Opt;
 pub use or::Or;
@@ -285,6 +285,16 @@ pub trait ParserExt<I: Positioned + ?Sized>: Parser<I> {
         Self: Sized,
     {
         assert_parser(Expect::new(self, message))
+    }
+
+    /// Overriding the position for error reportings by the span from the start of the parser to the
+    /// end of it.
+    #[inline]
+    fn spanned(self) -> Spanned<Self>
+    where
+        Self: Sized,
+    {
+        assert_parser(Spanned::new(self))
     }
 }
 
