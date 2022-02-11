@@ -4,8 +4,8 @@
 use alloc::string::String;
 #[cfg(feature = "alloc")]
 use alloc::vec::Vec;
-use core::fmt;
 use core::ops::Range;
+use core::{fmt, mem};
 use futures_core::TryStream;
 
 use crate::stream::Positioned;
@@ -355,5 +355,42 @@ impl<T> Expect<T> {
             #[cfg(not(feature = "alloc"))]
             Self::Other => Expect::Other,
         }
+    }
+}
+
+/// An error tracker for parsers.
+#[derive(Debug)]
+pub struct Tracker<T>(Option<Expects<T>>);
+
+impl<T> Default for Tracker<T> {
+    fn default() -> Self {
+        Self(None)
+    }
+}
+
+impl<T> Tracker<T> {
+    /// Creating an enabled instance.
+    pub fn new() -> Self {
+        Self(Some(Expects::empty()))
+    }
+
+    /// Clear all values.
+    pub fn clear(&mut self) {
+        if let Some(ex) = &mut self.0 {
+            *ex = Expects::empty();
+        }
+    }
+
+    /// Add values.
+    pub fn add(&mut self, expects: Expects<T>) {
+        let this = mem::take(self);
+        if let Some(ex) = this.0 {
+            *self = Self(Some(ex.merge(expects)));
+        }
+    }
+
+    /// Destructing the tracker into [`Expects`].
+    pub fn into_expects(self) -> Expects<T> {
+        self.0.unwrap_or_default()
     }
 }
