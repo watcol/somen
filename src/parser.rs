@@ -124,6 +124,10 @@ pub trait Parser<I: Positioned + ?Sized> {
     type State: Default;
 
     /// Parses the `input`, give an output.
+    ///
+    /// `tracker` is for tracking ignored errors. When an error has occured, tracked errors will be
+    /// merged to the original error. Tracked errors are valid only until a new token is consumed,
+    /// so you must invoke `tracker.clear` beside `input.try_poll_next`.
     fn poll_parse(
         &mut self,
         input: Pin<&mut I>,
@@ -140,7 +144,10 @@ pub trait ParserExt<I: Positioned + ?Sized>: Parser<I> {
     /// [`poll_parse`]: Parser::poll_parse
     /// [`Future`]: core::future::Future
     #[inline]
-    fn parse<'a, 'b>(&'a mut self, input: &'b mut I) -> ParseFuture<'a, 'b, Self, I, Self::State, I::Ok>
+    fn parse<'a, 'b>(
+        &'a mut self,
+        input: &'b mut I,
+    ) -> ParseFuture<'a, 'b, Self, I, Self::State, I::Ok>
     where
         I: Unpin,
     {
@@ -214,7 +221,6 @@ pub trait ParserExt<I: Positioned + ?Sized>: Parser<I> {
     fn and<P>(self, p: P) -> (Self, P)
     where
         Self: Sized,
-        I::Ok: Clone,
         P: Parser<I>,
     {
         assert_parser((self, p))

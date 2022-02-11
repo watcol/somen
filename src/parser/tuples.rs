@@ -35,7 +35,6 @@ macro_rules! tuple_parser {
         impl<I, $h, $($t),*> Parser<I> for ($h, $($t),*)
         where
             I: Positioned + ?Sized,
-            I::Ok: Clone,
             $h: Parser<I>,
             $( $t: Parser<I>, )*
         {
