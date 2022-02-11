@@ -2,7 +2,7 @@ use core::marker::PhantomData;
 use core::pin::Pin;
 use core::task::{Context, Poll};
 
-use crate::error::ParseResult;
+use crate::error::{ParseResult, Tracker};
 use crate::parser::Parser;
 use crate::stream::Positioned;
 
@@ -35,6 +35,7 @@ impl<I: Positioned + ?Sized, T: Clone> Parser<I> for Value<I, T> {
         _input: Pin<&mut I>,
         _cx: &mut Context<'_>,
         _state: &mut Self::State,
+        _tracker: &mut Tracker<I::Ok>,
     ) -> Poll<ParseResult<Self::Output, I>> {
         Poll::Ready(Ok(self.value.clone()))
     }

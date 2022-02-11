@@ -1,7 +1,7 @@
 use core::pin::Pin;
 use core::task::{Context, Poll};
 
-use crate::error::{Expects, ParseError, ParseResult};
+use crate::error::{Expects, ParseError, ParseResult, Tracker};
 use crate::parser::Parser;
 use crate::stream::Positioned;
 
@@ -42,8 +42,11 @@ where
         input: Pin<&mut I>,
         cx: &mut Context<'_>,
         state: &mut Self::State,
+        tracker: &mut Tracker<I::Ok>,
     ) -> Poll<ParseResult<Self::Output, I>> {
-        self.inner.poll_parse(input, cx, state).map_ok(&mut self.f)
+        self.inner
+            .poll_parse(input, cx, state, tracker)
+            .map_ok(&mut self.f)
     }
 }
 
@@ -85,16 +88,19 @@ where
         mut input: Pin<&mut I>,
         cx: &mut Context<'_>,
         state: &mut Self::State,
+        tracker: &mut Tracker<I::Ok>,
     ) -> Poll<ParseResult<Self::Output, I>> {
         let start = input.position();
-        self.inner.poll_parse(input.as_mut(), cx, state).map(|res| {
-            res.and_then(|val| {
-                (self.f)(val).map_err(|err| ParseError::Parser {
-                    expects: err.into(),
-                    position: start..input.position(),
-                    fatal: true,
+        self.inner
+            .poll_parse(input.as_mut(), cx, state, tracker)
+            .map(|res| {
+                res.and_then(|val| {
+                    (self.f)(val).map_err(|err| ParseError::Parser {
+                        expects: err.into(),
+                        position: start..input.position(),
+                        fatal: true,
+                    })
                 })
             })
-        })
     }
 }

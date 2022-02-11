@@ -2,7 +2,7 @@ use alloc::borrow::ToOwned;
 use core::pin::Pin;
 use core::task::{Context, Poll};
 
-use crate::error::ParseResult;
+use crate::error::{ParseResult, Tracker};
 use crate::parser::Parser;
 use crate::stream::NoRewindInput;
 
@@ -48,6 +48,7 @@ where
         mut input: Pin<&mut I>,
         cx: &mut Context<'_>,
         state: &mut Self::State,
+        tracker: &mut Tracker<I::Ok>,
     ) -> Poll<ParseResult<Self::Output, I>> {
         if !state.started {
             input.as_mut().start();
@@ -55,7 +56,7 @@ where
         }
 
         self.inner
-            .poll_parse(input.as_mut(), cx, &mut state.inner)
+            .poll_parse(input.as_mut(), cx, &mut state.inner, tracker)
             .map_ok(|_| {
                 state.started = false;
                 input.end().into_owned()
@@ -99,6 +100,7 @@ where
         mut input: Pin<&mut I>,
         cx: &mut Context<'_>,
         state: &mut Self::State,
+        tracker: &mut Tracker<I::Ok>,
     ) -> Poll<ParseResult<Self::Output, I>> {
         if !state.started {
             input.as_mut().start();
@@ -106,7 +108,7 @@ where
         }
 
         self.inner
-            .poll_parse(input.as_mut(), cx, &mut state.inner)
+            .poll_parse(input.as_mut(), cx, &mut state.inner, tracker)
             .map_ok(|o| {
                 state.started = false;
                 (o, input.end().into_owned())

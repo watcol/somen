@@ -44,7 +44,7 @@ pub use value::Value;
 use core::pin::Pin;
 use core::task::{Context, Poll};
 
-use crate::error::{Expects, ParseResult};
+use crate::error::{Expects, ParseResult, Tracker};
 #[cfg(feature = "alloc")]
 use crate::stream::NoRewindInput;
 use crate::stream::{Input, Positioned};
@@ -86,7 +86,7 @@ where
 #[inline]
 pub fn function<F, I, O, E, C>(f: F) -> Function<F, I, C>
 where
-    F: FnMut(Pin<&mut I>, &mut Context<'_>, &mut C) -> Poll<ParseResult<O, I>>,
+    F: FnMut(Pin<&mut I>, &mut Context<'_>, &mut C, &mut Tracker<I::Ok>) -> Poll<ParseResult<O, I>>,
     I: Positioned + ?Sized,
     C: Default,
 {
@@ -129,6 +129,7 @@ pub trait Parser<I: Positioned + ?Sized> {
         input: Pin<&mut I>,
         cx: &mut Context<'_>,
         state: &mut Self::State,
+        tracker: &mut Tracker<I::Ok>,
     ) -> Poll<ParseResult<Self::Output, I>>;
 }
 
@@ -139,7 +140,7 @@ pub trait ParserExt<I: Positioned + ?Sized>: Parser<I> {
     /// [`poll_parse`]: Parser::poll_parse
     /// [`Future`]: core::future::Future
     #[inline]
-    fn parse<'a, 'b>(&'a mut self, input: &'b mut I) -> ParseFuture<'a, 'b, Self, I, Self::State>
+    fn parse<'a, 'b>(&'a mut self, input: &'b mut I) -> ParseFuture<'a, 'b, Self, I, Self::State, I::Ok>
     where
         I: Unpin,
     {
@@ -213,6 +214,7 @@ pub trait ParserExt<I: Positioned + ?Sized>: Parser<I> {
     fn and<P>(self, p: P) -> (Self, P)
     where
         Self: Sized,
+        I::Ok: Clone,
         P: Parser<I>,
     {
         assert_parser((self, p))
@@ -345,8 +347,9 @@ impl<'a, P: Parser<I> + ?Sized, I: Positioned + ?Sized> Parser<I> for &'a mut P 
         input: Pin<&mut I>,
         cx: &mut Context<'_>,
         state: &mut Self::State,
+        tracker: &mut Tracker<I::Ok>,
     ) -> Poll<ParseResult<Self::Output, I>> {
-        (**self).poll_parse(input, cx, state)
+        (**self).poll_parse(input, cx, state, tracker)
     }
 }
 
@@ -361,8 +364,9 @@ impl<P: Parser<I> + ?Sized, I: Positioned + ?Sized> Parser<I> for Box<P> {
         input: Pin<&mut I>,
         cx: &mut Context<'_>,
         state: &mut Self::State,
+        tracker: &mut Tracker<I::Ok>,
     ) -> Poll<ParseResult<Self::Output, I>> {
-        (**self).poll_parse(input, cx, state)
+        (**self).poll_parse(input, cx, state, tracker)
     }
 }
 

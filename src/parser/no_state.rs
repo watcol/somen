@@ -1,7 +1,7 @@
 use core::pin::Pin;
 use core::task::{Context, Poll};
 
-use crate::error::ParseResult;
+use crate::error::{ParseResult, Tracker};
 use crate::parser::Parser;
 use crate::stream::Positioned;
 
@@ -47,8 +47,9 @@ where
         input: Pin<&mut I>,
         cx: &mut Context<'_>,
         _state: &mut Self::State,
+        tracker: &mut Tracker<I::Ok>,
     ) -> Poll<ParseResult<Self::Output, I>> {
-        match self.inner.poll_parse(input, cx, &mut self.state) {
+        match self.inner.poll_parse(input, cx, &mut self.state, tracker) {
             Poll::Ready(res) => {
                 self.state = Default::default();
                 Poll::Ready(res)

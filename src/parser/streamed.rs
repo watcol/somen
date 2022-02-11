@@ -8,7 +8,7 @@ use core::task::{Context, Poll};
 
 pub use collect::Collect;
 
-use crate::error::ParseResult;
+use crate::error::{ParseResult, Tracker};
 use crate::stream::position::Positioned;
 use stream::ParserStream;
 
@@ -33,6 +33,7 @@ pub trait StreamedParser<I: Positioned + ?Sized> {
         input: Pin<&mut I>,
         cx: &mut Context<'_>,
         state: &mut Self::State,
+        tracker: &mut Tracker<I::Ok>,
     ) -> Poll<ParseResult<Option<Self::Item>, I>>;
 
     /// Returning a [`TryStream`] by invoking [`poll_parse_next`].
@@ -43,7 +44,7 @@ pub trait StreamedParser<I: Positioned + ?Sized> {
     fn parse_streamed<'a, 'b>(
         &'a mut self,
         input: &'b mut I,
-    ) -> ParserStream<'a, 'b, Self, I, Self::State>
+    ) -> ParserStream<'a, 'b, Self, I, Self::State, I::Ok>
     where
         I: Unpin,
     {

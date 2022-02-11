@@ -1,7 +1,7 @@
 use core::pin::Pin;
 use core::task::{Context, Poll};
 
-use crate::error::{Expects, ParseError, ParseResult};
+use crate::error::{Expects, ParseError, ParseResult, Tracker};
 use crate::parser::Parser;
 use crate::stream::Positioned;
 
@@ -43,9 +43,10 @@ where
         input: Pin<&mut I>,
         cx: &mut Context<'_>,
         state: &mut Self::State,
+        tracker: &mut Tracker<I::Ok>,
     ) -> Poll<ParseResult<Self::Output, I>> {
         self.inner
-            .poll_parse(input, cx, state)
+            .poll_parse(input, cx, state, tracker)
             .map_err(|err| match err {
                 ParseError::Parser {
                     expects,
@@ -96,10 +97,11 @@ where
         mut input: Pin<&mut I>,
         cx: &mut Context<'_>,
         state: &mut Self::State,
+        tracker: &mut Tracker<I::Ok>,
     ) -> Poll<ParseResult<Self::Output, I>> {
         let start = input.position();
         self.inner
-            .poll_parse(input.as_mut(), cx, state)
+            .poll_parse(input.as_mut(), cx, state, tracker)
             .map_err(|err| match err {
                 ParseError::Parser { expects, fatal, .. } => ParseError::Parser {
                     expects,
@@ -147,9 +149,10 @@ where
         input: Pin<&mut I>,
         cx: &mut Context<'_>,
         state: &mut Self::State,
+        tracker: &mut Tracker<I::Ok>,
     ) -> Poll<ParseResult<Self::Output, I>> {
         self.inner
-            .poll_parse(input, cx, state)
+            .poll_parse(input, cx, state, tracker)
             .map_err(|err| match err {
                 ParseError::Parser {
                     expects, position, ..
@@ -203,10 +206,11 @@ where
         mut input: Pin<&mut I>,
         cx: &mut Context<'_>,
         state: &mut Self::State,
+        tracker: &mut Tracker<I::Ok>,
     ) -> Poll<ParseResult<Self::Output, I>> {
         let start = input.position();
         self.inner
-            .poll_parse(input.as_mut(), cx, state)
+            .poll_parse(input.as_mut(), cx, state, tracker)
             .map_err(|err| match err {
                 ParseError::Parser { .. } => ParseError::Parser {
                     expects: self.expects.clone(),

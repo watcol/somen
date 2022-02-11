@@ -3,32 +3,34 @@ use core::pin::Pin;
 use core::task::{Context, Poll};
 
 use super::Parser;
-use crate::error::ParseResult;
+use crate::error::{ParseError, ParseResult, Tracker};
 use crate::stream::Positioned;
 
 #[derive(Debug)]
-pub struct ParseFuture<'a, 'b, P: ?Sized, I: ?Sized, C> {
+pub struct ParseFuture<'a, 'b, P: ?Sized, I: ?Sized, C, T> {
     parser: &'a mut P,
     input: &'b mut I,
     state: C,
+    tracker: Tracker<T>,
 }
 
-impl<P: ?Sized, I: Unpin + ?Sized, C> Unpin for ParseFuture<'_, '_, P, I, C> {}
+impl<P: ?Sized, I: Unpin + ?Sized, C, T> Unpin for ParseFuture<'_, '_, P, I, C, T> {}
 
 impl<'a, 'b, P: Parser<I> + ?Sized, I: Positioned + Unpin + ?Sized>
-    ParseFuture<'a, 'b, P, I, P::State>
+    ParseFuture<'a, 'b, P, I, P::State, I::Ok>
 {
     pub fn new(parser: &'a mut P, input: &'b mut I) -> Self {
         Self {
             parser,
             input,
             state: Default::default(),
+            tracker: Tracker::default(),
         }
     }
 }
 
 impl<P: Parser<I> + ?Sized, I: Positioned + Unpin + ?Sized> Future
-    for ParseFuture<'_, '_, P, I, P::State>
+    for ParseFuture<'_, '_, P, I, P::State, I::Ok>
 {
     type Output = ParseResult<P::Output, I>;
 
@@ -37,7 +39,21 @@ impl<P: Parser<I> + ?Sized, I: Positioned + Unpin + ?Sized> Future
             parser,
             input,
             ref mut state,
+            ref mut tracker,
         } = &mut *self;
-        parser.poll_parse(Pin::new(input), cx, state)
+        parser
+            .poll_parse(Pin::new(input), cx, state, tracker)
+            .map_err(|err| match err {
+                ParseError::Parser {
+                    expects,
+                    position,
+                    fatal,
+                } => ParseError::Parser {
+                    expects: expects.merge(tracker.clear()),
+                    position,
+                    fatal,
+                },
+                err => err,
+            })
     }
 }

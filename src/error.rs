@@ -359,38 +359,38 @@ impl<T> Expect<T> {
 }
 
 /// An error tracker for parsers.
-#[derive(Debug)]
-pub struct Tracker<T>(Option<Expects<T>>);
+#[derive(Debug, Clone)]
+pub struct Tracker<T>(Expects<T>);
 
 impl<T> Default for Tracker<T> {
+    #[inline]
     fn default() -> Self {
-        Self(None)
+        Self(Expects::empty())
     }
 }
 
 impl<T> Tracker<T> {
     /// Creating an enabled instance.
+    #[inline]
     pub fn new() -> Self {
-        Self(Some(Expects::empty()))
+        Self::default()
     }
 
-    /// Clear all values.
-    pub fn clear(&mut self) {
-        if let Some(ex) = &mut self.0 {
-            *ex = Expects::empty();
-        }
+    /// Clear all values and take inner [`Expects`] out.
+    #[inline]
+    pub fn clear(&mut self) -> Expects<T> {
+        mem::replace(&mut self.0, Expects::empty())
     }
 
     /// Add values.
     pub fn add(&mut self, expects: Expects<T>) {
         let this = mem::take(self);
-        if let Some(ex) = this.0 {
-            *self = Self(Some(ex.merge(expects)));
-        }
+        *self = Self(this.0.merge(expects));
     }
 
-    /// Destructing the tracker into [`Expects`].
+    /// Takes [`Expects`] out of the tracker.
+    #[inline]
     pub fn into_expects(self) -> Expects<T> {
-        self.0.unwrap_or_default()
+        self.0
     }
 }

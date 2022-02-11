@@ -3,7 +3,7 @@ use core::pin::Pin;
 use core::task::{Context, Poll};
 use futures_core::ready;
 
-use crate::error::{ParseError, ParseResult};
+use crate::error::{ParseError, ParseResult, Tracker};
 use crate::parser::Parser;
 use crate::stream::Input;
 
@@ -65,21 +65,27 @@ where
         mut input: Pin<&mut I>,
         cx: &mut Context<'_>,
         state: &mut Self::State,
+        tracker: &mut Tracker<I::Ok>,
     ) -> Poll<ParseResult<Self::Output, I>> {
         if let EitherState::Left(ref mut inner) = state.inner {
             if state.queued_marker.is_none() {
                 state.queued_marker = Some(input.as_mut().mark()?);
             }
 
-            match ready!(self.left.poll_parse(input.as_mut(), cx, inner)) {
+            match ready!(self.left.poll_parse(input.as_mut(), cx, inner, tracker)) {
                 Ok(i) => {
                     input.drop_marker(mem::take(&mut state.queued_marker).unwrap())?;
                     return Poll::Ready(Ok(i));
                 }
-                Err(ParseError::Parser { fatal: false, .. }) => {
+                Err(ParseError::Parser {
+                    fatal: false,
+                    expects,
+                    ..
+                }) => {
                     input
                         .as_mut()
                         .rewind(mem::take(&mut state.queued_marker).unwrap())?;
+                    tracker.add(expects);
                     state.inner = EitherState::Right(Default::default());
                 }
                 Err(err) => {
@@ -90,7 +96,7 @@ where
         }
 
         if let EitherState::Right(ref mut inner) = state.inner {
-            self.right.poll_parse(input, cx, inner)
+            self.right.poll_parse(input, cx, inner, tracker)
         } else {
             unreachable!()
         }

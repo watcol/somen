@@ -4,7 +4,7 @@ use core::pin::Pin;
 use core::task::{Context, Poll};
 use futures_core::ready;
 
-use crate::error::ParseResult;
+use crate::error::{ParseResult, Tracker};
 use crate::parser::Parser;
 use crate::stream::Positioned;
 
@@ -56,12 +56,15 @@ where
         mut input: Pin<&mut I>,
         cx: &mut Context<'_>,
         state: &mut Self::State,
+        tracker: &mut Tracker<I::Ok>,
     ) -> Poll<ParseResult<Self::Output, I>> {
         loop {
-            match ready!(self
-                .inner
-                .poll_parse_next(input.as_mut(), cx, &mut state.inner)?)
-            {
+            match ready!(self.inner.poll_parse_next(
+                input.as_mut(),
+                cx,
+                &mut state.inner,
+                tracker
+            )?) {
                 Some(x) => state.collection.extend(Some(x)),
                 None => break Poll::Ready(Ok(mem::take(&mut state.collection))),
             }

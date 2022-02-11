@@ -3,7 +3,7 @@ use core::pin::Pin;
 use core::task::{Context, Poll};
 use futures_core::ready;
 
-use crate::error::{Expect, Expects, ParseError, ParseResult};
+use crate::error::{Expect, Expects, ParseError, ParseResult, Tracker};
 use crate::parser::Parser;
 use crate::stream::Positioned;
 
@@ -36,11 +36,15 @@ impl<I: Positioned + ?Sized> Parser<I> for Any<I> {
         mut input: Pin<&mut I>,
         cx: &mut Context<'_>,
         _state: &mut Self::State,
+        tracker: &mut Tracker<I::Ok>,
     ) -> Poll<ParseResult<Self::Output, I>> {
         let start = input.position();
         let parsed = ready!(input.as_mut().try_poll_next(cx)?);
         Poll::Ready(match parsed {
-            Some(i) => Ok(i),
+            Some(i) => {
+                tracker.clear();
+                Ok(i)
+            }
             None => Err(ParseError::Parser {
                 expects: Expects::new(Expect::Static("a token")),
                 position: start..input.position(),

@@ -2,7 +2,7 @@ use core::marker::PhantomData;
 use core::pin::Pin;
 use core::task::{Context, Poll};
 
-use crate::error::ParseResult;
+use crate::error::{ParseResult, Tracker};
 use crate::stream::Positioned;
 
 use super::Parser;
@@ -29,7 +29,7 @@ impl<F, I: ?Sized, C> Function<F, I, C> {
 
 impl<F, I, O, C> Parser<I> for Function<F, I, C>
 where
-    F: FnMut(Pin<&mut I>, &mut Context<'_>, &mut C) -> Poll<ParseResult<O, I>>,
+    F: FnMut(Pin<&mut I>, &mut Context<'_>, &mut C, &mut Tracker<I::Ok>) -> Poll<ParseResult<O, I>>,
     I: Positioned + ?Sized,
     C: Default,
 {
@@ -41,7 +41,8 @@ where
         input: Pin<&mut I>,
         cx: &mut Context<'_>,
         state: &mut Self::State,
+        tracker: &mut Tracker<I::Ok>,
     ) -> Poll<ParseResult<Self::Output, I>> {
-        (self.f)(input, cx, state)
+        (self.f)(input, cx, state, tracker)
     }
 }

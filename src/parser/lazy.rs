@@ -1,7 +1,7 @@
 use core::pin::Pin;
 use core::task::{Context, Poll};
 
-use crate::error::ParseResult;
+use crate::error::{ParseResult, Tracker};
 use crate::parser::Parser;
 use crate::stream::Positioned;
 
@@ -50,10 +50,13 @@ where
         input: Pin<&mut I>,
         cx: &mut Context<'_>,
         state: &mut Self::State,
+        tracker: &mut Tracker<I::Ok>,
     ) -> Poll<ParseResult<Self::Output, I>> {
-        state
-            .parser
-            .get_or_insert_with(&mut self.f)
-            .poll_parse(input, cx, &mut state.inner)
+        state.parser.get_or_insert_with(&mut self.f).poll_parse(
+            input,
+            cx,
+            &mut state.inner,
+            tracker,
+        )
     }
 }
