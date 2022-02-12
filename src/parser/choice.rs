@@ -3,7 +3,7 @@ use crate::stream::Input;
 
 /// A helper trait for function [`choice`].
 ///
-/// [`choice`]: crate::parser::choice()
+/// [`choice`]: crate::parser::choice
 pub trait ChoiceParser<I: Input + ?Sized> {
     type Parser: Parser<I>;
 

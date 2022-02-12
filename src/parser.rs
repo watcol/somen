@@ -69,7 +69,7 @@ pub fn any<I: Positioned + ?Sized>() -> Any<I> {
     assert_parser(Any::new())
 }
 
-/// Successes if the input reached the end.
+/// Succeeds if the input reached the end.
 #[inline]
 pub fn eof<I: Positioned + ?Sized>() -> Eof<I> {
     assert_parser(Eof::new())
@@ -85,7 +85,7 @@ where
     assert_parser(Cond::new(cond))
 }
 
-/// Parses a token, pass the token to the function and success if returned value is [`Some`].
+/// Parses a token, pass the token to the function and succeeds if the returned value is [`Some`].
 #[inline]
 pub fn is_some<I, F, O>(cond: F) -> CondMap<I, F>
 where
@@ -342,7 +342,7 @@ pub trait ParserExt<I: Positioned + ?Sized>: Parser<I> {
         assert_parser(Fail::new(self))
     }
 
-    /// Returns [`Some`] if parsing was successed.
+    /// Returns [`Some`] if parsing is succeeded.
     #[inline]
     fn opt(self) -> Opt<Self>
     where
@@ -352,7 +352,7 @@ pub trait ParserExt<I: Positioned + ?Sized>: Parser<I> {
         assert_parser(Opt::new(self))
     }
 
-    /// Returns a [`StreamedParser`] by repeating the parser while successing.
+    /// Returns a [`StreamedParser`] by repeating the parser while succeeding.
     ///
     /// [`StreamedParser`]: streamed::StreamedParser
     #[inline]
