@@ -47,11 +47,11 @@ impl<P: StreamedParser<I> + ?Sized, I: Positioned + Unpin + ?Sized> Stream
                 ParseError::Parser {
                     expects,
                     position,
-                    fatal,
+                    fatal: false,
                 } => ParseError::Parser {
                     expects: expects.merge(tracker.clear()),
                     position,
-                    fatal
+                    fatal: false,
                 },
                 err => err,
             })?) {
