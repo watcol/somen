@@ -1,3 +1,4 @@
+use core::mem;
 use core::pin::Pin;
 use core::task::{Context, Poll};
 use futures_core::ready;
@@ -5,6 +6,8 @@ use futures_core::ready;
 use crate::error::{Expects, ParseError, ParseResult, Tracker};
 use crate::parser::Parser;
 use crate::stream::Positioned;
+
+use super::utils::SpanState;
 
 /// A parser for method [`then`].
 ///
@@ -29,6 +32,7 @@ impl<P, F> Then<P, F> {
     }
 }
 
+#[derive(Debug)]
 pub enum ThenState<C, Q, D> {
     Left(C),
     Right(Q, D),
@@ -111,7 +115,7 @@ where
     I: Positioned + ?Sized,
 {
     type Output = Q::Output;
-    type State = ThenState<P::State, Q, Q::State>;
+    type State = SpanState<ThenState<P::State, Q, Q::State>, I::Locator>;
 
     fn poll_parse(
         &mut self,
@@ -120,9 +124,12 @@ where
         state: &mut Self::State,
         tracker: &mut Tracker<I::Ok>,
     ) -> Poll<ParseResult<Self::Output, I>> {
-        if let ThenState::Left(inner) = state {
-            let start = input.position();
-            *state = ThenState::Right(
+        if let ThenState::Left(inner) = &mut state.inner {
+            if state.start.is_none() {
+                state.start = Some(input.position());
+            }
+
+            state.inner = ThenState::Right(
                 (self.f)(ready!(self.inner.poll_parse(
                     input.as_mut(),
                     cx,
@@ -131,14 +138,14 @@ where
                 ))?)
                 .map_err(|ex| ParseError::Parser {
                     expects: ex.into(),
-                    position: start..input.position(),
+                    position: mem::take(&mut state.start).unwrap()..input.position(),
                     fatal: true,
                 })?,
                 Default::default(),
             );
         }
 
-        if let ThenState::Right(parser, inner) = state {
+        if let ThenState::Right(parser, inner) = &mut state.inner {
             parser
                 .poll_parse(input, cx, inner, tracker)
                 .map_err(|err| err.fatal(true))

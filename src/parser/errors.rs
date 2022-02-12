@@ -1,6 +1,7 @@
 use core::pin::Pin;
 use core::task::{Context, Poll};
 
+use super::utils::SpanState;
 use crate::error::{Expects, ParseError, ParseResult, Tracker};
 use crate::parser::Parser;
 use crate::stream::Positioned;
@@ -90,7 +91,7 @@ where
     I: Positioned + ?Sized,
 {
     type Output = P::Output;
-    type State = P::State;
+    type State = SpanState<P::State, I::Locator>;
 
     fn poll_parse(
         &mut self,
@@ -99,13 +100,13 @@ where
         state: &mut Self::State,
         tracker: &mut Tracker<I::Ok>,
     ) -> Poll<ParseResult<Self::Output, I>> {
-        let start = input.position();
+        state.set_start(|| input.position());
         self.inner
-            .poll_parse(input.as_mut(), cx, state, tracker)
+            .poll_parse(input.as_mut(), cx, &mut state.inner, tracker)
             .map_err(|err| match err {
                 ParseError::Parser { expects, fatal, .. } => ParseError::Parser {
                     expects,
-                    position: start..input.position(),
+                    position: state.take_start()..input.position(),
                     fatal,
                 },
                 ParseError::Stream(e) => ParseError::Stream(e),
@@ -199,7 +200,7 @@ where
     I::Ok: Clone,
 {
     type Output = P::Output;
-    type State = P::State;
+    type State = SpanState<P::State, I::Locator>;
 
     fn poll_parse(
         &mut self,
@@ -208,13 +209,13 @@ where
         state: &mut Self::State,
         tracker: &mut Tracker<I::Ok>,
     ) -> Poll<ParseResult<Self::Output, I>> {
-        let start = input.position();
+        state.set_start(|| input.position());
         self.inner
-            .poll_parse(input.as_mut(), cx, state, tracker)
+            .poll_parse(input.as_mut(), cx, &mut state.inner, tracker)
             .map_err(|err| match err {
                 ParseError::Parser { .. } => ParseError::Parser {
                     expects: self.expects.clone(),
-                    position: start..input.position(),
+                    position: state.take_start()..input.position(),
                     fatal: false,
                 },
                 ParseError::Stream(e) => ParseError::Stream(e),

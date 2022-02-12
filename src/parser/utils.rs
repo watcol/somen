@@ -1,3 +1,5 @@
+use core::mem;
+
 #[derive(Debug)]
 pub enum EitherState<C, D> {
     Left(C),
@@ -23,5 +25,32 @@ impl<C, D> EitherState<C, D> {
             Self::Left(_) => unreachable!(),
             Self::Right(right) => right,
         }
+    }
+}
+
+#[derive(Debug)]
+pub struct SpanState<C, L> {
+    pub inner: C,
+    pub start: Option<L>,
+}
+
+impl<C: Default, L> Default for SpanState<C, L> {
+    fn default() -> Self {
+        Self {
+            inner: Default::default(),
+            start: None,
+        }
+    }
+}
+
+impl<C, L> SpanState<C, L> {
+    pub fn set_start(&mut self, f: impl FnOnce() -> L) {
+        if self.start.is_none() {
+            self.start = Some(f())
+        }
+    }
+
+    pub fn take_start(&mut self) -> L {
+        mem::take(&mut self.start).unwrap()
     }
 }
