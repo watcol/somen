@@ -17,6 +17,7 @@ mod opt;
 mod or;
 mod repeat;
 mod skip;
+mod then;
 mod token;
 mod tuples;
 mod value;
@@ -44,6 +45,7 @@ pub use or::Or;
 pub use record::{Record, WithRecord};
 pub use repeat::{RangeArgument, Repeat};
 pub use skip::{Discard, Skip, SkipTo};
+pub use then::{Then, TryThen};
 pub use token::Token;
 pub use value::Value;
 
@@ -328,6 +330,29 @@ pub trait ParserExt<I: Positioned + ?Sized>: Parser<I> {
         E: Into<Expects<I::Ok>>,
     {
         assert_parser(TryMap::new(self, f))
+    }
+
+    /// Parses with `self`, passes output to the function `f` and parses with a returned parser.
+    #[inline]
+    fn then<F, Q>(self, f: F) -> Then<Self, F>
+    where
+        Self: Sized,
+        F: FnMut(Self::Output) -> Q,
+        Q: Parser<I>,
+    {
+        assert_parser(Then::new(self, f))
+    }
+
+    /// Parses with `self`, passes output to the failable function `f` and parses with a returned parser.
+    #[inline]
+    fn try_then<F, Q, E>(self, f: F) -> TryThen<Self, F>
+    where
+        Self: Sized,
+        F: FnMut(Self::Output) -> Result<Q, E>,
+        Q: Parser<I>,
+        E: Into<Expects<I::Ok>>,
+    {
+        assert_parser(TryThen::new(self, f))
     }
 
     /// Modifying values expected by the parser.
