@@ -1,12 +1,13 @@
 use core::mem;
 
-#[derive(Debug)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub enum EitherState<C, D> {
     Left(C),
     Right(D),
 }
 
 impl<C: Default, D> Default for EitherState<C, D> {
+    #[inline]
     fn default() -> Self {
         Self::Left(Default::default())
     }
@@ -28,13 +29,14 @@ impl<C, D> EitherState<C, D> {
     }
 }
 
-#[derive(Debug)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub struct SpanState<C, L> {
     pub inner: C,
     pub start: Option<L>,
 }
 
 impl<C: Default, L> Default for SpanState<C, L> {
+    #[inline]
     fn default() -> Self {
         Self {
             inner: Default::default(),

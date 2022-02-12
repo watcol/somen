@@ -9,7 +9,7 @@ use crate::stream::Positioned;
 
 macro_rules! tuple_parser {
     ($state:ident, $h:ident $(, $t:ident)*) => {
-        #[derive(Debug)]
+        #[derive(Clone, Debug, PartialEq, Eq)]
         #[allow(non_snake_case)]
         pub struct $state <I: Positioned + ?Sized, $h: Parser<I>, $( $t: Parser<I> ),* > {
             $h: (Option<$h::Output>, $h::State),

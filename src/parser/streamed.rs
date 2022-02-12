@@ -8,6 +8,7 @@ use core::task::{Context, Poll};
 
 pub use collect::Collect;
 
+use super::assert_parser;
 use crate::error::{ParseResult, Tracker};
 use crate::stream::position::Positioned;
 use stream::ParserStream;
@@ -59,6 +60,11 @@ pub trait StreamedParser<I: Positioned + ?Sized> {
     where
         Self: Sized,
     {
-        Collect::new(self)
+        assert_parser(Collect::new(self))
     }
+}
+
+#[inline]
+pub(super) fn assert_streamed_parser<P: StreamedParser<I>, I: Positioned + ?Sized>(parser: P) -> P {
+    parser
 }

@@ -11,7 +11,7 @@ use crate::stream::Input;
 /// A parser for method [`or`].
 ///
 /// [`or`]: super::ParserExt::or
-#[derive(Debug)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Or<P, Q> {
     left: P,
     right: Q,
@@ -31,13 +31,14 @@ impl<P, Q> Or<P, Q> {
     }
 }
 
-#[derive(Debug)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub struct OrState<C, D, M> {
     inner: EitherState<C, D>,
     queued_marker: Option<M>,
 }
 
 impl<C: Default, D, M> Default for OrState<C, D, M> {
+    #[inline]
     fn default() -> Self {
         Self {
             inner: EitherState::default(),

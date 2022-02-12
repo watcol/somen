@@ -8,7 +8,7 @@ use crate::stream::Positioned;
 /// A parser for method [`no_state`].
 ///
 /// [`no_state`]: super::ParserExt::no_state
-#[derive(Debug)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Lazy<F> {
     f: F,
 }
@@ -21,13 +21,14 @@ impl<F> Lazy<F> {
     }
 }
 
-#[derive(Debug)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub struct LazyState<P, C> {
     parser: Option<P>,
     inner: C,
 }
 
 impl<P, C: Default> Default for LazyState<P, C> {
+    #[inline]
     fn default() -> Self {
         Self {
             parser: None,

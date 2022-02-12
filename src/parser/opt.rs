@@ -10,7 +10,7 @@ use crate::stream::Input;
 /// A parser for method [`opt`].
 ///
 /// [`opt`]: super::ParserExt::opt
-#[derive(Debug)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Opt<P> {
     inner: P,
 }
@@ -29,13 +29,14 @@ impl<P> Opt<P> {
     }
 }
 
-#[derive(Debug)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub struct OptState<C, M> {
     inner: C,
     queued_marker: Option<M>,
 }
 
 impl<C: Default, M> Default for OptState<C, M> {
+    #[inline]
     fn default() -> Self {
         Self {
             inner: C::default(),

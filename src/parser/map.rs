@@ -9,7 +9,7 @@ use crate::stream::Positioned;
 /// A parser for method [`map`].
 ///
 /// [`map`]: super::ParserExt::map
-#[derive(Debug)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Map<P, F> {
     inner: P,
     f: F,
@@ -54,7 +54,7 @@ where
 /// A parser for method [`try_map`].
 ///
 /// [`try_map`]: super::ParserExt::try_map
-#[derive(Debug)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub struct TryMap<P, F> {
     inner: P,
     f: F,

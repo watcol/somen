@@ -9,7 +9,7 @@ use crate::stream::NoRewindInput;
 /// A parser for method [`record`].
 ///
 /// [`record`]: super::ParserExt::record
-#[derive(Debug)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 #[cfg_attr(feature = "nightly", doc(cfg(feature = "alloc")))]
 pub struct Record<P> {
     inner: P,
@@ -29,7 +29,7 @@ impl<P> Record<P> {
     }
 }
 
-#[derive(Debug, Default)]
+#[derive(Clone, Debug, Default, PartialEq, Eq)]
 pub struct RecordState<C> {
     inner: C,
     started: bool,
@@ -67,7 +67,7 @@ where
 /// A parser for method [`with_record`].
 ///
 /// [`with_record`]: super::ParserExt::with_record
-#[derive(Debug)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 #[cfg_attr(feature = "nightly", doc(cfg(feature = "alloc")))]
 pub struct WithRecord<P> {
     inner: P,

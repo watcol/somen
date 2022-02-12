@@ -11,7 +11,7 @@ use crate::stream::Positioned;
 /// A parser for method [`skip`].
 ///
 /// [`skip`]: super::ParserExt::skip
-#[derive(Debug)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Skip<P, Q> {
     left: P,
     right: Q,
@@ -31,13 +31,14 @@ impl<P, Q> Skip<P, Q> {
     }
 }
 
-#[derive(Debug)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub struct SkipState<C, D, O> {
     inner: EitherState<C, D>,
     output: Option<O>,
 }
 
 impl<C: Default, D, O> Default for SkipState<C, D, O> {
+    #[inline]
     fn default() -> Self {
         Self {
             inner: EitherState::default(),
@@ -82,7 +83,7 @@ where
 /// A parser for method [`skip_to`].
 ///
 /// [`skip_to`]: super::ParserExt::skip_to
-#[derive(Debug)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub struct SkipTo<P, Q> {
     left: P,
     right: Q,
@@ -132,7 +133,7 @@ where
 /// A parser for method [`discard`].
 ///
 /// [`discard`]: super::ParserExt::discard
-#[derive(Debug)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Discard<P> {
     inner: P,
 }

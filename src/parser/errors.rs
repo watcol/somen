@@ -9,7 +9,7 @@ use crate::stream::Positioned;
 /// A parser for method [`map_err`].
 ///
 /// [`map_err`]: super::ParserExt::map_err
-#[derive(Debug)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub struct MapErr<P, F> {
     inner: P,
     f: F,
@@ -66,7 +66,7 @@ where
 /// A parser for method [`spanned`].
 ///
 /// [`spanned`]: super::ParserExt::spanned
-#[derive(Debug)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Spanned<P> {
     inner: P,
 }
@@ -117,7 +117,7 @@ where
 /// A parser for method [`fatal`].
 ///
 /// [`fatal`]: super::ParserExt::fatal
-#[derive(Debug)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Fatal<P> {
     inner: P,
     fatal: bool,
@@ -170,7 +170,7 @@ where
 /// A parser for method [`expect`].
 ///
 /// [`expect`]: super::ParserExt::expect
-#[derive(Debug)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Expect<P, E> {
     inner: P,
     expects: E,

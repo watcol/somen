@@ -59,6 +59,7 @@ use crate::error::{Expects, ParseResult, Tracker};
 use crate::stream::NoRewindInput;
 use crate::stream::{Input, Positioned};
 use future::ParseFuture;
+use streamed::assert_streamed_parser;
 
 /// Parses any token.
 #[inline]
@@ -125,19 +126,19 @@ where
     C: ChoiceParser<I>,
     I: Input + ?Sized,
 {
-    choice.into_parser()
+    assert_parser(choice.into_parser())
 }
 
 /// Produces a value without parsing any tokens.
 #[inline]
 pub fn value<I: Positioned + ?Sized, T: Clone>(value: T) -> Value<I, T> {
-    Value::new(value)
+    assert_parser(Value::new(value))
 }
 
 /// Returns the current position of input.
 #[inline]
 pub fn position<I: Positioned + ?Sized>() -> Position<I> {
-    Position::new()
+    assert_parser(Position::new())
 }
 
 /// A trait for parsers.
@@ -198,6 +199,7 @@ pub trait ParserExt<I: Positioned + ?Sized>: Parser<I> {
     /// Merges [`State`] into parser itself.
     ///
     /// [`State`]: Parser::State
+    #[inline]
     fn no_state(self) -> NoState<Self, Self::State>
     where
         Self: Sized,
@@ -206,6 +208,7 @@ pub trait ParserExt<I: Positioned + ?Sized>: Parser<I> {
     }
 
     /// Wraps the parser into a [`Either`] to merge multiple types of parsers.
+    #[inline]
     fn left<R>(self) -> Either<Self, R>
     where
         Self: Sized,
@@ -215,6 +218,7 @@ pub trait ParserExt<I: Positioned + ?Sized>: Parser<I> {
     }
 
     /// Wraps the parser into a [`Either`] to merge multiple types of parsers.
+    #[inline]
     fn right<L>(self) -> Either<L, Self>
     where
         Self: Sized,
@@ -440,6 +444,7 @@ impl<'a, P: Parser<I> + ?Sized, I: Positioned + ?Sized> Parser<I> for &'a mut P 
     type Output = P::Output;
     type State = P::State;
 
+    #[inline]
     fn poll_parse(
         &mut self,
         input: Pin<&mut I>,
@@ -457,6 +462,7 @@ impl<P: Parser<I> + ?Sized, I: Positioned + ?Sized> Parser<I> for Box<P> {
     type Output = P::Output;
     type State = P::State;
 
+    #[inline]
     fn poll_parse(
         &mut self,
         input: Pin<&mut I>,
@@ -470,11 +476,5 @@ impl<P: Parser<I> + ?Sized, I: Positioned + ?Sized> Parser<I> for Box<P> {
 
 #[inline]
 fn assert_parser<P: Parser<I>, I: Positioned + ?Sized>(parser: P) -> P {
-    parser
-}
-
-use streamed::StreamedParser;
-#[inline]
-fn assert_streamed_parser<P: StreamedParser<I>, I: Positioned + ?Sized>(parser: P) -> P {
     parser
 }

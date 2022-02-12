@@ -14,6 +14,7 @@ use crate::stream::Positioned;
 pub struct Any<I: ?Sized>(PhantomData<I>);
 
 impl<I: ?Sized> Default for Any<I> {
+    #[inline]
     fn default() -> Self {
         Any(PhantomData)
     }

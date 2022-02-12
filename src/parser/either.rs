@@ -9,13 +9,14 @@ use crate::stream::Positioned;
 ///
 /// [`left`]: super::ParserExt::left
 /// [`right`]: super::ParserExt::right
-#[derive(Debug)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub enum Either<T, U> {
     Left(T),
     Right(U),
 }
 
 impl<T, U> Either<T, U> {
+    #[inline]
     fn unwrap_left(&mut self) -> &mut T {
         match self {
             Self::Left(left) => left,
@@ -23,6 +24,7 @@ impl<T, U> Either<T, U> {
         }
     }
 
+    #[inline]
     fn unwrap_right(&mut self) -> &mut U {
         match self {
             Self::Left(_) => unreachable!(),

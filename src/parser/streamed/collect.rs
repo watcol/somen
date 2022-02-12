@@ -13,7 +13,7 @@ use super::StreamedParser;
 /// A parser for method [`collect`].
 ///
 /// [`collect`]: super::StreamedParser::collect
-#[derive(Debug)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Collect<P, E> {
     inner: P,
     _phantom: PhantomData<E>,
@@ -36,7 +36,7 @@ impl<P, E> Collect<P, E> {
     }
 }
 
-#[derive(Debug, Default)]
+#[derive(Clone, Debug, Default, PartialEq, Eq)]
 pub struct CollectState<C, E> {
     inner: C,
     collection: E,

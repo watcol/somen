@@ -11,7 +11,7 @@ use crate::stream::Positioned;
 /// A parser for function [`position`].
 ///
 /// [`position`]: crate::parser::position
-#[derive(Debug)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Position<I: ?Sized>(PhantomData<I>);
 
 impl<I: ?Sized> Default for Position<I> {
@@ -50,7 +50,7 @@ where
 /// A parser for method [`with_position`].
 ///
 /// [`with_position`]: super::ParserExt::with_position
-#[derive(Debug)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub struct WithPosition<P> {
     inner: P,
 }

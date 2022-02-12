@@ -10,7 +10,7 @@ use crate::stream::Positioned;
 /// A parser for function [`is`].
 ///
 /// [`is`]: crate::parser::is
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Cond<I: ?Sized, F> {
     cond: F,
     _phantom: PhantomData<I>,

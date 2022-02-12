@@ -12,6 +12,7 @@ use crate::stream::Input;
 /// A streamed parser generated from method [`repeat`].
 ///
 /// [`repeat`]: super::ParserExt::repeat
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Repeat<P, R> {
     inner: P,
     range: R,
@@ -37,7 +38,7 @@ impl<P, R> Repeat<P, R> {
     }
 }
 
-#[derive(Debug)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub struct RepeatState<C, M> {
     inner: C,
     queued_marker: Option<M>,
@@ -45,6 +46,7 @@ pub struct RepeatState<C, M> {
 }
 
 impl<C: Default, M> Default for RepeatState<C, M> {
+    #[inline]
     fn default() -> Self {
         Self {
             inner: C::default(),

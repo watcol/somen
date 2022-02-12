@@ -14,6 +14,7 @@ use crate::stream::Positioned;
 pub struct Eof<I: ?Sized>(PhantomData<I>);
 
 impl<I: ?Sized> Default for Eof<I> {
+    #[inline]
     fn default() -> Self {
         Eof(PhantomData)
     }

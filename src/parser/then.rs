@@ -12,7 +12,7 @@ use super::utils::SpanState;
 /// A parser for method [`then`].
 ///
 /// [`then`]: super::ParserExt::then
-#[derive(Debug)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Then<P, F> {
     inner: P,
     f: F,
@@ -32,13 +32,14 @@ impl<P, F> Then<P, F> {
     }
 }
 
-#[derive(Debug)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub enum ThenState<C, Q, D> {
     Left(C),
     Right(Q, D),
 }
 
 impl<C: Default, Q, D> Default for ThenState<C, Q, D> {
+    #[inline]
     fn default() -> Self {
         Self::Left(Default::default())
     }
@@ -86,7 +87,7 @@ where
 /// A parser for method [`try_then`].
 ///
 /// [`try_then`]: super::ParserExt::try_then
-#[derive(Debug)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub struct TryThen<P, F> {
     inner: P,
     f: F,

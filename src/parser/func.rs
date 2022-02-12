@@ -10,7 +10,7 @@ use super::Parser;
 /// A parser for function [`function`].
 ///
 /// [`function`]: super::function
-#[derive(Debug)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Function<F, I: ?Sized, C> {
     f: F,
     _phantom: PhantomData<fn(I, C)>,
