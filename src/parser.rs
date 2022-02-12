@@ -16,9 +16,12 @@ mod no_state;
 mod opt;
 mod or;
 mod repeat;
+mod skip;
 mod token;
 mod tuples;
 mod value;
+
+mod utils;
 
 #[cfg(feature = "alloc")]
 mod record;
@@ -40,6 +43,7 @@ pub use or::Or;
 #[cfg(feature = "alloc")]
 pub use record::{Record, WithRecord};
 pub use repeat::{RangeArgument, Repeat};
+pub use skip::{Discard, Skip, SkipTo};
 pub use token::Token;
 pub use value::Value;
 
@@ -233,15 +237,6 @@ pub trait ParserExt<I: Positioned + ?Sized>: Parser<I> {
         assert_parser(WithRecord::new(self))
     }
 
-    /// Parses with `self`, and then with `p`.
-    fn and<P>(self, p: P) -> (Self, P)
-    where
-        Self: Sized,
-        P: Parser<I>,
-    {
-        assert_parser((self, p))
-    }
-
     /// Trying another parser if the parser failed parsing.
     #[inline]
     fn or<P>(self, other: P) -> Or<Self, P>
@@ -251,6 +246,45 @@ pub trait ParserExt<I: Positioned + ?Sized>: Parser<I> {
         P: Parser<I, Output = Self::Output>,
     {
         assert_parser(Or::new(self, other))
+    }
+
+    /// Parses with `self`, and then with `p`.
+    #[inline]
+    fn and<P>(self, p: P) -> (Self, P)
+    where
+        Self: Sized,
+        P: Parser<I>,
+    {
+        assert_parser((self, p))
+    }
+
+    /// Parses with `self`, then with `p`, and returns an output for `self`.
+    #[inline]
+    fn skip<P>(self, p: P) -> Skip<Self, P>
+    where
+        Self: Sized,
+        P: Parser<I>,
+    {
+        assert_parser(Skip::new(self, p))
+    }
+
+    /// Parses with `self`, then with `p`, and returns an output for `p`.
+    #[inline]
+    fn skip_to<P>(self, p: P) -> SkipTo<Self, P>
+    where
+        Self: Sized,
+        P: Parser<I>,
+    {
+        assert_parser(SkipTo::new(self, p))
+    }
+
+    /// Discarding the parse results.
+    #[inline]
+    fn discard(self) -> Discard<Self>
+    where
+        Self: Sized,
+    {
+        assert_parser(Discard::new(self))
     }
 
     /// Returns [`Some`] if parsing was successed.

@@ -3,6 +3,7 @@ use core::pin::Pin;
 use core::task::{Context, Poll};
 use futures_core::ready;
 
+use super::utils::EitherState;
 use crate::error::{ParseError, ParseResult, Tracker};
 use crate::parser::Parser;
 use crate::stream::Input;
@@ -31,12 +32,6 @@ impl<P, Q> Or<P, Q> {
 }
 
 #[derive(Debug)]
-enum EitherState<C, D> {
-    Left(C),
-    Right(D),
-}
-
-#[derive(Debug)]
 pub struct OrState<C, D, M> {
     inner: EitherState<C, D>,
     queued_marker: Option<M>,
@@ -45,7 +40,7 @@ pub struct OrState<C, D, M> {
 impl<C: Default, D, M> Default for OrState<C, D, M> {
     fn default() -> Self {
         Self {
-            inner: EitherState::Left(C::default()),
+            inner: EitherState::default(),
             queued_marker: None,
         }
     }
