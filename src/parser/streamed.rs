@@ -36,11 +36,13 @@ pub trait StreamedParser<I: Positioned + ?Sized> {
         state: &mut Self::State,
         tracker: &mut Tracker<I::Ok>,
     ) -> Poll<ParseResult<Option<Self::Item>, I>>;
+}
 
+pub trait StreamedParserExt<I: Positioned + ?Sized>: StreamedParser<I> {
     /// Returning a [`TryStream`] by invoking [`poll_parse_next`].
     ///
     /// [`TryStream`]: futures_core::TryStream
-    /// [`poll_parse_next`]: Self::poll_parse_next
+    /// [`poll_parse_next`]: StreamedParser::poll_parse_next
     #[inline]
     fn parse_streamed<'a, 'b>(
         &'a mut self,

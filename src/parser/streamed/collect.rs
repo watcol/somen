@@ -12,7 +12,7 @@ use super::StreamedParser;
 
 /// A parser for method [`collect`].
 ///
-/// [`collect`]: super::StreamedParser::collect
+/// [`collect`]: super::StreamedParserExt::collect
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Collect<P, E> {
     inner: P,

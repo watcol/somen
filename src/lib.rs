@@ -16,11 +16,15 @@ mod macros;
 /// Re-exports of commonly used items.
 pub mod prelude {
     #[doc(no_inline)]
+    pub use crate::parser::streamed::StreamedParserExt as _;
+    #[doc(no_inline)]
     pub use crate::parser::ParserExt as _;
     #[doc(no_inline)]
     pub use crate::stream::StreamBuilder as _;
 
     pub use crate::parser::streamed::StreamedParser;
-    pub use crate::parser::{any, choice, eof, function, is, lazy, token, value, Parser};
+    pub use crate::parser::{
+        any, choice, eof, function, is, lazy, none_of, one_of, token, value, Parser,
+    };
     pub use crate::stream::{self, Input, Positioned};
 }
