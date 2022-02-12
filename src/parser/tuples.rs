@@ -4,7 +4,7 @@ use core::task::{Context, Poll};
 use futures_core::ready;
 
 use super::Parser;
-use crate::error::{ParseError, ParseResult, Tracker};
+use crate::error::{ParseResult, Tracker};
 use crate::stream::Positioned;
 
 macro_rules! tuple_parser {
@@ -49,7 +49,7 @@ macro_rules! tuple_parser {
                 tracker: &mut Tracker<I::Ok>,
             ) -> Poll<ParseResult<Self::Output, I>> {
                 #[allow(non_snake_case)]
-                let (ref mut $h, $(ref mut $t),*) = *self;
+                let ($h, $($t),*) = self;
 
                 if state.$h.0.is_none() {
                     state.$h.0 = Some(
@@ -61,18 +61,7 @@ macro_rules! tuple_parser {
                     if state.$t.0.is_none() {
                         state.$t.0 = Some(
                             ready!($t.poll_parse(input.as_mut(), cx, &mut state.$t.1, tracker))
-                                .map_err(|err| match err {
-                                    ParseError::Parser {
-                                        expects,
-                                        position,
-                                        ..
-                                    } => ParseError::Parser {
-                                        expects,
-                                        position,
-                                        fatal: true,
-                                    },
-                                    e => e,
-                                })?
+                                .map_err(|err| err.fatal(true))?
                         );
                     }
                 )*

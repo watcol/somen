@@ -62,7 +62,7 @@ where
         state: &mut Self::State,
         tracker: &mut Tracker<I::Ok>,
     ) -> Poll<ParseResult<Self::Output, I>> {
-        if let EitherState::Left(ref mut inner) = state.inner {
+        if let EitherState::Left(inner) = &mut state.inner {
             if state.queued_marker.is_none() {
                 state.queued_marker = Some(input.as_mut().mark()?);
             }
@@ -90,10 +90,7 @@ where
             }
         }
 
-        if let EitherState::Right(ref mut inner) = state.inner {
-            self.right.poll_parse(input, cx, inner, tracker)
-        } else {
-            unreachable!()
-        }
+        self.right
+            .poll_parse(input, cx, state.inner.as_mut_right(), tracker)
     }
 }

@@ -72,14 +72,10 @@ where
             state.inner = EitherState::Right(Default::default());
         }
 
-        if let EitherState::Right(ref mut inner) = state.inner {
-            self.right
-                .poll_parse(input, cx, inner, tracker)
-                .map_ok(|_| mem::take(&mut state.output).unwrap())
-                .map_err(|err| err.fatal(true))
-        } else {
-            unreachable!()
-        }
+        self.right
+            .poll_parse(input, cx, state.inner.as_mut_right(), tracker)
+            .map_ok(|_| mem::take(&mut state.output).unwrap())
+            .map_err(|err| err.fatal(true))
     }
 }
 
@@ -127,13 +123,9 @@ where
             *state = EitherState::Right(Default::default());
         }
 
-        if let EitherState::Right(inner) = state {
-            self.right
-                .poll_parse(input, cx, inner, tracker)
-                .map_err(|err| err.fatal(true))
-        } else {
-            unreachable!()
-        }
+        self.right
+            .poll_parse(input, cx, state.as_mut_right(), tracker)
+            .map_err(|err| err.fatal(true))
     }
 }
 
