@@ -13,6 +13,9 @@ use crate::error::{ParseResult, Tracker};
 use crate::stream::position::Positioned;
 use stream::ParserStream;
 
+#[cfg(feature = "alloc")]
+use alloc::boxed::Box;
+
 /// A trait for parsers return multiple outputs with [`TryStream`].
 ///
 /// [`TryStream`]: futures_core::TryStream
@@ -54,6 +57,19 @@ pub trait StreamedParserExt<I: Positioned + ?Sized>: StreamedParser<I> {
         ParserStream::new(self, input)
     }
 
+    /// Returning a [`TryStream`] by invoking [`poll_parse_next`].
+    ///
+    /// [`TryStream`]: futures_core::TryStream
+    /// [`poll_parse_next`]: StreamedParser::poll_parse_next
+    #[cfg(feature = "alloc")]
+    #[inline]
+    fn boxed<'a>(self) -> Box<dyn StreamedParser<I, Item = Self::Item, State = Self::State> + 'a>
+    where
+        Self: Sized + 'a,
+    {
+        assert_streamed_parser(Box::new(self))
+    }
+
     /// Returns a [`Parser`] by collecting all the outputs.
     ///
     /// [`Parser`]: super::Parser
@@ -63,6 +79,42 @@ pub trait StreamedParserExt<I: Positioned + ?Sized>: StreamedParser<I> {
         Self: Sized,
     {
         assert_parser(Collect::new(self))
+    }
+}
+
+impl<P: StreamedParser<I> + ?Sized, I: Positioned + ?Sized> StreamedParserExt<I> for P {}
+
+impl<'a, P: StreamedParser<I> + ?Sized, I: Positioned + ?Sized> StreamedParser<I> for &'a mut P {
+    type Item = P::Item;
+    type State = P::State;
+
+    #[inline]
+    fn poll_parse_next(
+        &mut self,
+        input: Pin<&mut I>,
+        cx: &mut Context<'_>,
+        state: &mut Self::State,
+        tracker: &mut Tracker<I::Ok>,
+    ) -> Poll<ParseResult<Option<Self::Item>, I>> {
+        (**self).poll_parse_next(input, cx, state, tracker)
+    }
+}
+
+#[cfg(feature = "alloc")]
+#[cfg_attr(feature = "nightly", doc(cfg(feature = "alloc")))]
+impl<P: StreamedParser<I> + ?Sized, I: Positioned + ?Sized> StreamedParser<I> for Box<P> {
+    type Item = P::Item;
+    type State = P::State;
+
+    #[inline]
+    fn poll_parse_next(
+        &mut self,
+        input: Pin<&mut I>,
+        cx: &mut Context<'_>,
+        state: &mut Self::State,
+        tracker: &mut Tracker<I::Ok>,
+    ) -> Poll<ParseResult<Option<Self::Item>, I>> {
+        (**self).poll_parse_next(input, cx, state, tracker)
     }
 }
 
