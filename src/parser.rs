@@ -18,6 +18,7 @@ mod or;
 mod peek;
 mod position;
 mod repeat;
+mod set;
 mod skip;
 mod then;
 mod token;
@@ -48,6 +49,7 @@ pub use position::{Position, WithPosition};
 #[cfg(feature = "alloc")]
 pub use record::{Record, WithRecord};
 pub use repeat::{RangeArgument, Repeat};
+pub use set::Set;
 pub use skip::{Discard, Skip, SkipTo};
 pub use then::{Then, TryThen};
 pub use token::Token;
