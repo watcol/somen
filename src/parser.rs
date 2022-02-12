@@ -15,6 +15,7 @@ mod map;
 mod no_state;
 mod opt;
 mod or;
+mod position;
 mod repeat;
 mod skip;
 mod then;
@@ -41,6 +42,7 @@ pub use map::{Map, TryMap};
 pub use no_state::NoState;
 pub use opt::Opt;
 pub use or::Or;
+pub use position::{Position, WithPosition};
 #[cfg(feature = "alloc")]
 pub use record::{Record, WithRecord};
 pub use repeat::{RangeArgument, Repeat};
@@ -132,6 +134,12 @@ pub fn value<I: Positioned + ?Sized, T: Clone>(value: T) -> Value<I, T> {
     Value::new(value)
 }
 
+/// Returns the current position of input.
+#[inline]
+pub fn position<I: Positioned + ?Sized>() -> Position<I> {
+    Position::new()
+}
+
 /// A trait for parsers.
 pub trait Parser<I: Positioned + ?Sized> {
     /// The output type for the parser.
@@ -213,6 +221,15 @@ pub trait ParserExt<I: Positioned + ?Sized>: Parser<I> {
         L: Parser<I, Output = Self::Output>,
     {
         assert_parser(Either::Right(self))
+    }
+
+    /// Returns the position of parsed tokens with an output.
+    #[inline]
+    fn with_position(self) -> WithPosition<Self>
+    where
+        Self: Sized,
+    {
+        assert_parser(WithPosition::new(self))
     }
 
     /// Returns consumed items instead of an output.
