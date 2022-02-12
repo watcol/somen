@@ -1,8 +1,114 @@
+use core::marker::PhantomData;
 use core::ops::{
     Bound, Range, RangeBounds, RangeFrom, RangeFull, RangeInclusive, RangeTo, RangeToInclusive,
 };
+use core::pin::Pin;
+use core::task::{Context, Poll};
+use futures_core::ready;
 
-use crate::error::{Expect, Expects};
+use super::Parser;
+use crate::error::{Expect, Expects, ParseError, ParseResult, Tracker};
+use crate::stream::Positioned;
+
+/// A parser for function [`one_of`].
+///
+/// [`one_of`]: crate::parser::one_of
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct OneOf<I: ?Sized, S> {
+    set: S,
+    _phantom: PhantomData<I>,
+}
+
+impl<I: ?Sized, S> OneOf<I, S> {
+    /// Creating a new instance.
+    #[inline]
+    pub fn new(set: S) -> Self {
+        Self {
+            set,
+            _phantom: PhantomData,
+        }
+    }
+}
+
+impl<I, S> Parser<I> for OneOf<I, S>
+where
+    I: Positioned + ?Sized,
+    S: Set<I::Ok>,
+{
+    type Output = I::Ok;
+    type State = ();
+
+    fn poll_parse(
+        &mut self,
+        mut input: Pin<&mut I>,
+        cx: &mut Context<'_>,
+        _state: &mut Self::State,
+        tracker: &mut Tracker<I::Ok>,
+    ) -> Poll<ParseResult<Self::Output, I>> {
+        let start = input.position();
+        Poll::Ready(match ready!(input.as_mut().try_poll_next(cx)?) {
+            Some(i) if self.set.contains(&i) => {
+                tracker.clear();
+                Ok(i)
+            }
+            _ => Err(ParseError::Parser {
+                expects: self.set.to_expects(),
+                position: start..input.position(),
+                fatal: false,
+            }),
+        })
+    }
+}
+
+/// A parser for function [`none_of`].
+///
+/// [`none_of`]: crate::parser::none_of
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct NoneOf<I: ?Sized, S> {
+    set: S,
+    _phantom: PhantomData<I>,
+}
+
+impl<I: ?Sized, S> NoneOf<I, S> {
+    /// Creating a new instance.
+    #[inline]
+    pub fn new(set: S) -> Self {
+        Self {
+            set,
+            _phantom: PhantomData,
+        }
+    }
+}
+
+impl<I, S> Parser<I> for NoneOf<I, S>
+where
+    I: Positioned + ?Sized,
+    S: Set<I::Ok>,
+{
+    type Output = I::Ok;
+    type State = ();
+
+    fn poll_parse(
+        &mut self,
+        mut input: Pin<&mut I>,
+        cx: &mut Context<'_>,
+        _state: &mut Self::State,
+        tracker: &mut Tracker<I::Ok>,
+    ) -> Poll<ParseResult<Self::Output, I>> {
+        let start = input.position();
+        Poll::Ready(match ready!(input.as_mut().try_poll_next(cx)?) {
+            Some(i) if !self.set.contains(&i) => {
+                tracker.clear();
+                Ok(i)
+            }
+            _ => Err(ParseError::Parser {
+                expects: self.set.to_expects(),
+                position: start..input.position(),
+                fatal: false,
+            }),
+        })
+    }
+}
 
 /// A set for function [`one_of`], [`none_of`].
 ///

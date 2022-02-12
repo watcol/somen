@@ -49,7 +49,7 @@ pub use position::{Position, WithPosition};
 #[cfg(feature = "alloc")]
 pub use record::{Record, WithRecord};
 pub use repeat::{RangeArgument, Repeat};
-pub use set::Set;
+pub use set::{NoneOf, OneOf, Set};
 pub use skip::{Discard, Skip, SkipTo};
 pub use then::{Then, TryThen};
 pub use token::Token;
@@ -95,6 +95,26 @@ where
     F: FnMut(&I::Ok) -> Option<O>,
 {
     assert_parser(CondMap::new(cond))
+}
+
+/// Succeeds if a parsed token matches one of the set.
+#[inline]
+pub fn one_of<I, S>(set: S) -> OneOf<I, S>
+where
+    I: Positioned + ?Sized,
+    S: Set<I::Ok>,
+{
+    assert_parser(OneOf::new(set))
+}
+
+/// Succeeds if a parsed token doesn't match one of the set.
+#[inline]
+pub fn none_of<I, S>(set: S) -> NoneOf<I, S>
+where
+    I: Positioned + ?Sized,
+    S: Set<I::Ok>,
+{
+    assert_parser(NoneOf::new(set))
 }
 
 /// Parses a token.
