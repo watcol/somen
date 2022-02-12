@@ -15,6 +15,7 @@ mod map;
 mod no_state;
 mod opt;
 mod or;
+mod peek;
 mod position;
 mod repeat;
 mod skip;
@@ -42,6 +43,7 @@ pub use map::{Map, TryMap};
 pub use no_state::NoState;
 pub use opt::Opt;
 pub use or::Or;
+pub use peek::{Fail, Peek};
 pub use position::{Position, WithPosition};
 #[cfg(feature = "alloc")]
 pub use record::{Record, WithRecord};
@@ -308,6 +310,26 @@ pub trait ParserExt<I: Positioned + ?Sized>: Parser<I> {
         Self: Sized,
     {
         assert_parser(Discard::new(self))
+    }
+
+    /// Returns a parse result without consuming input.
+    #[inline]
+    fn peek(self) -> Peek<Self>
+    where
+        Self: Sized,
+        I: Input,
+    {
+        assert_parser(Peek::new(self))
+    }
+
+    /// Succeeds if the parser failed parsing. Never consumes input.
+    #[inline]
+    fn fail(self) -> Fail<Self>
+    where
+        Self: Sized,
+        I: Input,
+    {
+        assert_parser(Fail::new(self))
     }
 
     /// Returns [`Some`] if parsing was successed.
