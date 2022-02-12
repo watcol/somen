@@ -3,6 +3,7 @@
 pub mod streamed;
 
 mod any;
+mod choice;
 mod cond;
 mod either;
 mod eof;
@@ -25,6 +26,7 @@ mod record;
 #[cfg(feature = "alloc")]
 use alloc::boxed::Box;
 pub use any::Any;
+pub use choice::ChoiceParser;
 pub use cond::Cond;
 pub use either::Either;
 pub use eof::Eof;
@@ -102,6 +104,20 @@ where
     I: Positioned + ?Sized,
 {
     assert_parser(Lazy::new(f))
+}
+
+/// A conventional function to produce [`or`] parser from tuples.
+///
+/// For example, `choice((a, b, c))` is equivalent to `a.or(b).or(c)`.
+///
+/// [`or`]: ParserExt::or
+#[inline]
+pub fn choice<C, I>(choice: C) -> C::Parser
+where
+    C: ChoiceParser<I>,
+    I: Input + ?Sized,
+{
+    choice.into_parser()
 }
 
 /// Produces a value without parsing any tokens.
