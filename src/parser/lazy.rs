@@ -1,6 +1,7 @@
 use core::pin::Pin;
 use core::task::{Context, Poll};
 
+use super::streamed::StreamedParser;
 use crate::error::{ParseResult, Tracker};
 use crate::parser::Parser;
 use crate::stream::Positioned;
@@ -46,6 +47,7 @@ where
     type Output = P::Output;
     type State = LazyState<P, P::State>;
 
+    #[inline]
     fn poll_parse(
         &mut self,
         input: Pin<&mut I>,
@@ -59,5 +61,29 @@ where
             &mut state.inner,
             tracker,
         )
+    }
+}
+
+impl<F, P, I> StreamedParser<I> for Lazy<F>
+where
+    F: FnMut() -> P,
+    P: StreamedParser<I>,
+    I: Positioned + ?Sized,
+{
+    type Item = P::Item;
+    type State = LazyState<P, P::State>;
+
+    #[inline]
+    fn poll_parse_next(
+        &mut self,
+        input: Pin<&mut I>,
+        cx: &mut Context<'_>,
+        state: &mut Self::State,
+        tracker: &mut Tracker<I::Ok>,
+    ) -> Poll<ParseResult<Option<Self::Item>, I>> {
+        state
+            .parser
+            .get_or_insert_with(&mut self.f)
+            .poll_parse_next(input, cx, &mut state.inner, tracker)
     }
 }

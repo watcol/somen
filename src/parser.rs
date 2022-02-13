@@ -138,15 +138,13 @@ where
     assert_parser(Function::new(f))
 }
 
-/// Produces the parser at the time of parsing.
+/// Produces the parser (or streamed parser) at the time of parsing.
 #[inline]
-pub fn lazy<F, P, I>(f: F) -> Lazy<F>
+pub fn lazy<F, P>(f: F) -> Lazy<F>
 where
     F: FnMut() -> P,
-    P: Parser<I>,
-    I: Positioned + ?Sized,
 {
-    assert_parser(Lazy::new(f))
+    Lazy::new(f)
 }
 
 /// A conventional function to produce [`or`] parser from tuples.
