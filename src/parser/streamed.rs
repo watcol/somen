@@ -8,7 +8,7 @@ use core::task::{Context, Poll};
 
 pub use collect::Collect;
 
-use super::assert_parser;
+use super::{assert_parser, NoState};
 use crate::error::{ParseResult, Tracker};
 use crate::stream::position::Positioned;
 use stream::ParserStream;
@@ -57,10 +57,7 @@ pub trait StreamedParserExt<I: Positioned + ?Sized>: StreamedParser<I> {
         ParserStream::new(self, input)
     }
 
-    /// Returning a [`TryStream`] by invoking [`poll_parse_next`].
-    ///
-    /// [`TryStream`]: futures_core::TryStream
-    /// [`poll_parse_next`]: StreamedParser::poll_parse_next
+    /// Wraps the parser into a [`Box`].
     #[cfg(feature = "alloc")]
     #[inline]
     fn boxed<'a>(self) -> Box<dyn StreamedParser<I, Item = Self::Item, State = Self::State> + 'a>
@@ -68,6 +65,18 @@ pub trait StreamedParserExt<I: Positioned + ?Sized>: StreamedParser<I> {
         Self: Sized + 'a,
     {
         assert_streamed_parser(Box::new(self))
+    }
+
+    /// Merges [`State`] into the parser itself.
+    ///
+    /// [`State`]: StreamedParser::State
+    #[cfg(feature = "alloc")]
+    #[inline]
+    fn no_state(self) -> NoState<Self, Self::State>
+    where
+        Self: Sized,
+    {
+        assert_streamed_parser(NoState::new(self))
     }
 
     /// Returns a [`Parser`] by collecting all the outputs.

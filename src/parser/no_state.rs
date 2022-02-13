@@ -1,6 +1,8 @@
 use core::pin::Pin;
 use core::task::{Context, Poll};
+use futures_core::ready;
 
+use super::streamed::StreamedParser;
 use crate::error::{ParseResult, Tracker};
 use crate::parser::Parser;
 use crate::stream::Positioned;
@@ -56,5 +58,35 @@ where
             }
             Poll::Pending => Poll::Pending,
         }
+    }
+}
+
+impl<P, I> StreamedParser<I> for NoState<P, P::State>
+where
+    P: StreamedParser<I>,
+    I: Positioned + ?Sized,
+{
+    type Item = P::Item;
+    type State = ();
+
+    fn poll_parse_next(
+        &mut self,
+        input: Pin<&mut I>,
+        cx: &mut Context<'_>,
+        _state: &mut Self::State,
+        tracker: &mut Tracker<I::Ok>,
+    ) -> Poll<ParseResult<Option<Self::Item>, I>> {
+        Poll::Ready(
+            match ready!(self
+                .inner
+                .poll_parse_next(input, cx, &mut self.state, tracker))
+            {
+                Ok(Some(val)) => Ok(Some(val)),
+                res => {
+                    self.state = Default::default();
+                    res
+                }
+            },
+        )
     }
 }
