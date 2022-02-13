@@ -127,7 +127,7 @@ where
     assert_parser(Token::new(token))
 }
 
-/// Wrapping the function into a parser.
+/// Wrapping the function into a parser or a streaned parser.
 #[inline]
 pub fn function<F, I, O, E, C>(f: F) -> Function<F, I, C>
 where
