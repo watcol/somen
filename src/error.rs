@@ -208,7 +208,7 @@ impl<T: fmt::Display> fmt::Display for Expects<T> {
                 if c == 0 {
                     write!(f, "{}", i)?;
                 } else if c == len - 1 {
-                    write!(f, "or {}", i)?;
+                    write!(f, " or {}", i)?;
                 } else {
                     write!(f, ", {}", i)?;
                 }
