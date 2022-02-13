@@ -137,10 +137,13 @@ where
                     inner,
                     tracker
                 ))?)
-                .map_err(|ex| ParseError::Parser {
-                    expects: ex.into(),
-                    position: mem::take(&mut state.start).unwrap()..input.position(),
-                    fatal: true,
+                .map_err(|ex| {
+                    tracker.clear();
+                    ParseError::Parser {
+                        expects: ex.into(),
+                        position: mem::take(&mut state.start).unwrap()..input.position(),
+                        fatal: true,
+                    }
                 })?,
                 Default::default(),
             );

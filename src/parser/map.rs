@@ -96,10 +96,13 @@ where
             .poll_parse(input.as_mut(), cx, &mut state.inner, tracker)
             .map(|res| {
                 res.and_then(|val| {
-                    (self.f)(val).map_err(|err| ParseError::Parser {
-                        expects: err.into(),
-                        position: state.take_start()..input.position(),
-                        fatal: true,
+                    (self.f)(val).map_err(|err| {
+                        tracker.clear();
+                        ParseError::Parser {
+                            expects: err.into(),
+                            position: state.take_start()..input.position(),
+                            fatal: true,
+                        }
                     })
                 })
             })

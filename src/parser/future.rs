@@ -47,11 +47,11 @@ impl<P: Parser<I> + ?Sized, I: Positioned + Unpin + ?Sized> Future
                 ParseError::Parser {
                     expects,
                     position,
-                    fatal: false,
+                    fatal,
                 } => ParseError::Parser {
                     expects: expects.merge(tracker.clear()),
                     position,
-                    fatal: false,
+                    fatal,
                 },
                 err => err,
             })
