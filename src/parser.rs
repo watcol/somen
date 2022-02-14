@@ -35,7 +35,7 @@ mod record;
 use alloc::boxed::Box;
 pub use any::Any;
 pub use choice::ChoiceParser;
-pub use cond::{Cond, CondMap};
+pub use cond::{CondMap, Is, IsNot};
 pub use either::Either;
 pub use eof::Eof;
 pub use errors::{Expect, Fatal, MapErr, Spanned};
@@ -53,7 +53,7 @@ pub use repeat::{RangeArgument, Repeat};
 pub use set::{NoneOf, OneOf, Set};
 pub use skip::{Discard, Skip, SkipTo};
 pub use then::{Then, TryThen};
-pub use token::Token;
+pub use token::{Not, Token};
 pub use tokens::Tokens;
 pub use value::Value;
 
@@ -81,12 +81,22 @@ pub fn eof<I: Positioned + ?Sized>() -> Eof<I> {
 
 /// Parses a token matches the condition.
 #[inline]
-pub fn is<I, F>(cond: F) -> Cond<I, F>
+pub fn is<I, F>(cond: F) -> Is<I, F>
 where
     I: Positioned + ?Sized,
     F: FnMut(&I::Ok) -> bool,
 {
-    assert_parser(Cond::new(cond))
+    assert_parser(Is::new(cond))
+}
+
+/// Parses a token does not match the condition.
+#[inline]
+pub fn is_not<I, F>(cond: F) -> IsNot<I, F>
+where
+    I: Positioned + ?Sized,
+    F: FnMut(&I::Ok) -> bool,
+{
+    assert_parser(IsNot::new(cond))
 }
 
 /// Parses a token, pass the token to the function and succeeds if the returned value is [`Some`].
@@ -127,6 +137,16 @@ where
     I::Ok: Clone + PartialEq,
 {
     assert_parser(Token::new(token))
+}
+
+/// Parses any token except `token`.
+#[inline]
+pub fn not<I>(token: I::Ok) -> Not<I, I::Ok>
+where
+    I: Positioned + ?Sized,
+    I::Ok: Clone + PartialEq,
+{
+    assert_parser(Not::new(token))
 }
 
 /// Parses a sequence of tokens.
