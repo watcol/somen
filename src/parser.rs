@@ -51,7 +51,7 @@ pub use position::{Position, WithPosition};
 pub use record::{Record, WithRecord};
 pub use repeat::{RangeArgument, Repeat};
 pub use set::{NoneOf, OneOf, Set};
-pub use skip::{AheadOf, Behind, Discard};
+pub use skip::{AheadOf, Behind, Between, Discard};
 pub use then::{Then, TryThen};
 pub use token::{Not, Token};
 pub use tokens::Tokens;
@@ -344,6 +344,17 @@ pub trait ParserExt<I: Positioned + ?Sized>: Parser<I> {
         P: Parser<I>,
     {
         assert_parser((self, p))
+    }
+
+    /// Parses with `self` between `left` and `right`.
+    #[inline]
+    fn between<L, R>(self, left: L, right: R) -> Between<Self, L, R>
+    where
+        Self: Sized,
+        L: Parser<I>,
+        R: Parser<I>,
+    {
+        assert_parser(Between::new(self, left, right))
     }
 
     /// Parses with `self` ahead of `p`.

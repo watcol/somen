@@ -32,12 +32,12 @@ impl<P, Q> AheadOf<P, Q> {
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
-pub struct BeforeState<C, D, O> {
+pub struct AheadOfState<C, D, O> {
     inner: EitherState<C, D>,
     output: Option<O>,
 }
 
-impl<C: Default, D, O> Default for BeforeState<C, D, O> {
+impl<C: Default, D, O> Default for AheadOfState<C, D, O> {
     #[inline]
     fn default() -> Self {
         Self {
@@ -54,7 +54,7 @@ where
     I: Positioned + ?Sized,
 {
     type Output = P::Output;
-    type State = BeforeState<P::State, Q::State, P::Output>;
+    type State = AheadOfState<P::State, Q::State, P::Output>;
 
     fn poll_parse(
         &mut self,
@@ -130,6 +130,69 @@ where
     }
 }
 
+/// A parser for method [`between`].
+///
+/// [`between`]: super::ParserExt::between
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct Between<P, L, R> {
+    inner: P,
+    left: L,
+    right: R,
+}
+
+impl<P, L, R> Between<P, L, R> {
+    /// Creating a new instance.
+    #[inline]
+    pub fn new(inner: P, left: L, right: R) -> Self {
+        Self { inner, left, right }
+    }
+
+    /// Extracting the inner parser.
+    #[inline]
+    pub fn into_inner(self) -> (P, L, R) {
+        (self.inner, self.left, self.right)
+    }
+}
+
+type BetweenState<L, P, R, O> = EitherState<L, AheadOfState<P, R, O>>;
+
+impl<P, L, R, I> Parser<I> for Between<P, L, R>
+where
+    P: Parser<I>,
+    L: Parser<I>,
+    R: Parser<I>,
+    I: Positioned + ?Sized,
+{
+    type Output = P::Output;
+    type State = BetweenState<L::State, P::State, R::State, P::Output>;
+
+    fn poll_parse(
+        &mut self,
+        mut input: Pin<&mut I>,
+        cx: &mut Context<'_>,
+        state: &mut Self::State,
+        tracker: &mut Tracker<I::Ok>,
+    ) -> Poll<ParseResult<Self::Output, I>> {
+        if let EitherState::Left(inner) = state {
+            ready!(self.left.poll_parse(input.as_mut(), cx, inner, tracker))?;
+            *state = EitherState::Right(Default::default());
+        }
+
+        let state = state.as_mut_right();
+        if let EitherState::Left(inner) = &mut state.inner {
+            state.output = Some(
+                ready!(self.inner.poll_parse(input.as_mut(), cx, inner, tracker))
+                    .map_err(|err| err.fatal(true))?,
+            );
+            state.inner = EitherState::Right(Default::default());
+        }
+
+        self.right
+            .poll_parse(input, cx, state.inner.as_mut_right(), tracker)
+            .map_ok(|_| mem::take(&mut state.output).unwrap())
+            .map_err(|err| err.fatal(true))
+    }
+}
 /// A parser for method [`discard`].
 ///
 /// [`discard`]: super::ParserExt::discard
