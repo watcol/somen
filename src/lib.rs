@@ -24,7 +24,7 @@ pub mod prelude {
 
     pub use crate::parser::streamed::StreamedParser;
     pub use crate::parser::{
-        any, choice, eof, function, is, lazy, none_of, one_of, token, value, Parser,
+        any, choice, eof, function, is, lazy, none_of, one_of, token, tokens, value, Parser,
     };
     pub use crate::stream::{self, Input, Positioned};
 }

@@ -22,6 +22,7 @@ mod set;
 mod skip;
 mod then;
 mod token;
+mod tokens;
 mod tuples;
 mod value;
 
@@ -53,6 +54,7 @@ pub use set::{NoneOf, OneOf, Set};
 pub use skip::{Discard, Skip, SkipTo};
 pub use then::{Then, TryThen};
 pub use token::Token;
+pub use tokens::Tokens;
 pub use value::Value;
 
 use core::pin::Pin;
@@ -125,6 +127,17 @@ where
     I::Ok: Clone + Eq,
 {
     assert_parser(Token::new(token))
+}
+
+/// Parses a sequence of tokens.
+#[inline]
+pub fn tokens<'a, I, T>(tokens: T) -> Tokens<'a, I, T>
+where
+    I: Positioned + ?Sized,
+    I::Ok: PartialEq,
+    T: IntoIterator<Item = &'a I::Ok> + Clone,
+{
+    assert_parser(Tokens::new(tokens))
 }
 
 /// Wrapping the function into a parser or a streaned parser.
