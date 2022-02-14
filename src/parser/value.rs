@@ -30,6 +30,7 @@ impl<I: Positioned + ?Sized, T: Clone> Parser<I> for Value<I, T> {
     type Output = T;
     type State = ();
 
+    #[inline]
     fn poll_parse(
         &mut self,
         _input: Pin<&mut I>,

@@ -43,8 +43,7 @@ where
         tracker: &mut Tracker<I::Ok>,
     ) -> Poll<ParseResult<Self::Output, I>> {
         let start = input.position();
-        let parsed = ready!(input.as_mut().try_poll_next(cx)?);
-        Poll::Ready(match parsed {
+        Poll::Ready(match ready!(input.as_mut().try_poll_next(cx)?) {
             Some(i) if (self.cond)(&i) => {
                 tracker.clear();
                 Ok(i)

@@ -38,6 +38,7 @@ where
     type Output = O;
     type State = P::State;
 
+    #[inline]
     fn poll_parse(
         &mut self,
         input: Pin<&mut I>,

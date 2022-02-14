@@ -63,7 +63,7 @@ where
         state: &mut Self::State,
         tracker: &mut Tracker<I::Ok>,
     ) -> Poll<ParseResult<Self::Output, I>> {
-        if let EitherState::Left(ref mut inner) = state.inner {
+        if let EitherState::Left(inner) = &mut state.inner {
             state.output = Some(ready!(self.inner.poll_parse(
                 input.as_mut(),
                 cx,
@@ -193,6 +193,7 @@ where
             .map_err(|err| err.fatal(true))
     }
 }
+
 /// A parser for method [`discard`].
 ///
 /// [`discard`]: super::ParserExt::discard
