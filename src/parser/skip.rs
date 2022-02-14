@@ -8,36 +8,36 @@ use crate::error::{ParseResult, Tracker};
 use crate::parser::Parser;
 use crate::stream::Positioned;
 
-/// A parser for method [`skip`].
+/// A parser for method [`ahead_of`].
 ///
-/// [`skip`]: super::ParserExt::skip
+/// [`ahead_of`]: super::ParserExt::ahead_of
 #[derive(Clone, Debug, PartialEq, Eq)]
-pub struct Skip<P, Q> {
-    left: P,
-    right: Q,
+pub struct AheadOf<P, Q> {
+    inner: P,
+    skipped: Q,
 }
 
-impl<P, Q> Skip<P, Q> {
+impl<P, Q> AheadOf<P, Q> {
     /// Creating a new instance.
     #[inline]
-    pub fn new(left: P, right: Q) -> Self {
-        Self { left, right }
+    pub fn new(inner: P, skipped: Q) -> Self {
+        Self { inner, skipped }
     }
 
     /// Extracting the inner parser.
     #[inline]
     pub fn into_inner(self) -> (P, Q) {
-        (self.left, self.right)
+        (self.inner, self.skipped)
     }
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
-pub struct SkipState<C, D, O> {
+pub struct BeforeState<C, D, O> {
     inner: EitherState<C, D>,
     output: Option<O>,
 }
 
-impl<C: Default, D, O> Default for SkipState<C, D, O> {
+impl<C: Default, D, O> Default for BeforeState<C, D, O> {
     #[inline]
     fn default() -> Self {
         Self {
@@ -47,14 +47,14 @@ impl<C: Default, D, O> Default for SkipState<C, D, O> {
     }
 }
 
-impl<P, Q, I> Parser<I> for Skip<P, Q>
+impl<P, Q, I> Parser<I> for AheadOf<P, Q>
 where
     P: Parser<I>,
     Q: Parser<I>,
     I: Positioned + ?Sized,
 {
     type Output = P::Output;
-    type State = SkipState<P::State, Q::State, P::Output>;
+    type State = BeforeState<P::State, Q::State, P::Output>;
 
     fn poll_parse(
         &mut self,
@@ -64,7 +64,7 @@ where
         tracker: &mut Tracker<I::Ok>,
     ) -> Poll<ParseResult<Self::Output, I>> {
         if let EitherState::Left(ref mut inner) = state.inner {
-            state.output = Some(ready!(self.left.poll_parse(
+            state.output = Some(ready!(self.inner.poll_parse(
                 input.as_mut(),
                 cx,
                 inner,
@@ -73,44 +73,44 @@ where
             state.inner = EitherState::Right(Default::default());
         }
 
-        self.right
+        self.skipped
             .poll_parse(input, cx, state.inner.as_mut_right(), tracker)
             .map_ok(|_| mem::take(&mut state.output).unwrap())
             .map_err(|err| err.fatal(true))
     }
 }
 
-/// A parser for method [`skip_to`].
+/// A parser for method [`behind`].
 ///
-/// [`skip_to`]: super::ParserExt::skip_to
+/// [`behind`]: super::ParserExt::behind
 #[derive(Clone, Debug, PartialEq, Eq)]
-pub struct SkipTo<P, Q> {
-    left: P,
-    right: Q,
+pub struct Behind<P, Q> {
+    inner: P,
+    skipped: Q,
 }
 
-impl<P, Q> SkipTo<P, Q> {
+impl<P, Q> Behind<P, Q> {
     /// Creating a new instance.
     #[inline]
-    pub fn new(left: P, right: Q) -> Self {
-        Self { left, right }
+    pub fn new(inner: P, skipped: Q) -> Self {
+        Self { inner, skipped }
     }
 
     /// Extracting the inner parser.
     #[inline]
     pub fn into_inner(self) -> (P, Q) {
-        (self.left, self.right)
+        (self.inner, self.skipped)
     }
 }
 
-impl<P, Q, I> Parser<I> for SkipTo<P, Q>
+impl<P, Q, I> Parser<I> for Behind<P, Q>
 where
     P: Parser<I>,
     Q: Parser<I>,
     I: Positioned + ?Sized,
 {
-    type Output = Q::Output;
-    type State = EitherState<P::State, Q::State>;
+    type Output = P::Output;
+    type State = EitherState<Q::State, P::State>;
 
     fn poll_parse(
         &mut self,
@@ -120,11 +120,11 @@ where
         tracker: &mut Tracker<I::Ok>,
     ) -> Poll<ParseResult<Self::Output, I>> {
         if let EitherState::Left(inner) = state {
-            ready!(self.left.poll_parse(input.as_mut(), cx, inner, tracker))?;
+            ready!(self.skipped.poll_parse(input.as_mut(), cx, inner, tracker))?;
             *state = EitherState::Right(Default::default());
         }
 
-        self.right
+        self.inner
             .poll_parse(input, cx, state.as_mut_right(), tracker)
             .map_err(|err| err.fatal(true))
     }

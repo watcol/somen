@@ -51,7 +51,7 @@ pub use position::{Position, WithPosition};
 pub use record::{Record, WithRecord};
 pub use repeat::{RangeArgument, Repeat};
 pub use set::{NoneOf, OneOf, Set};
-pub use skip::{Discard, Skip, SkipTo};
+pub use skip::{AheadOf, Behind, Discard};
 pub use then::{Then, TryThen};
 pub use token::{Not, Token};
 pub use tokens::Tokens;
@@ -346,24 +346,24 @@ pub trait ParserExt<I: Positioned + ?Sized>: Parser<I> {
         assert_parser((self, p))
     }
 
-    /// Parses with `self`, then with `p`, and returns an output for `self`.
+    /// Parses with `self` ahead of `p`.
     #[inline]
-    fn skip<P>(self, p: P) -> Skip<Self, P>
+    fn ahead_of<P>(self, p: P) -> AheadOf<Self, P>
     where
         Self: Sized,
         P: Parser<I>,
     {
-        assert_parser(Skip::new(self, p))
+        assert_parser(AheadOf::new(self, p))
     }
 
-    /// Parses with `self`, then with `p`, and returns an output for `p`.
+    /// Parses with `self` behind `p`.
     #[inline]
-    fn skip_to<P>(self, p: P) -> SkipTo<Self, P>
+    fn behind<P>(self, p: P) -> Behind<Self, P>
     where
         Self: Sized,
         P: Parser<I>,
     {
-        assert_parser(SkipTo::new(self, p))
+        assert_parser(Behind::new(self, p))
     }
 
     /// Discarding the parse results.
