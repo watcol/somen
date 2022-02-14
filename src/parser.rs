@@ -124,7 +124,7 @@ where
 pub fn token<I>(token: I::Ok) -> Token<I, I::Ok>
 where
     I: Positioned + ?Sized,
-    I::Ok: Clone + Eq,
+    I::Ok: Clone + PartialEq,
 {
     assert_parser(Token::new(token))
 }

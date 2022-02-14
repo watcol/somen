@@ -30,7 +30,7 @@ impl<I: ?Sized, T> Token<I, T> {
 impl<I> Parser<I> for Token<I, I::Ok>
 where
     I: Positioned + ?Sized,
-    I::Ok: Clone + Eq,
+    I::Ok: Clone + PartialEq,
 {
     type Output = I::Ok;
     type State = ();
