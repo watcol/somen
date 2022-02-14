@@ -35,7 +35,7 @@ mod record;
 use alloc::boxed::Box;
 pub use any::Any;
 pub use choice::ChoiceParser;
-pub use cond::{CondMap, Is, IsNot};
+pub use cond::{Is, IsNot, IsSome};
 pub use either::Either;
 pub use eof::Eof;
 pub use errors::{Expect, Fatal, MapErr, Spanned};
@@ -101,12 +101,12 @@ where
 
 /// Parses a token, pass the token to the function and succeeds if the returned value is [`Some`].
 #[inline]
-pub fn is_some<I, F, O>(cond: F) -> CondMap<I, F>
+pub fn is_some<I, F, O>(cond: F) -> IsSome<I, F>
 where
     I: Positioned + ?Sized,
     F: FnMut(&I::Ok) -> Option<O>,
 {
-    assert_parser(CondMap::new(cond))
+    assert_parser(IsSome::new(cond))
 }
 
 /// Succeeds if a parsed token matches one of the set.

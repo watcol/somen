@@ -113,12 +113,12 @@ where
 ///
 /// [`is_some`]: crate::parser::is_some
 #[derive(Clone, Debug, PartialEq, Eq)]
-pub struct CondMap<I: ?Sized, F> {
+pub struct IsSome<I: ?Sized, F> {
     cond: F,
     _phantom: PhantomData<I>,
 }
 
-impl<I: ?Sized, F> CondMap<I, F> {
+impl<I: ?Sized, F> IsSome<I, F> {
     /// Creating a new instance.
     #[inline]
     pub fn new(cond: F) -> Self {
@@ -129,7 +129,7 @@ impl<I: ?Sized, F> CondMap<I, F> {
     }
 }
 
-impl<I, F, O> Parser<I> for CondMap<I, F>
+impl<I, F, O> Parser<I> for IsSome<I, F>
 where
     I: Positioned + ?Sized,
     F: FnMut(&I::Ok) -> Option<O>,
