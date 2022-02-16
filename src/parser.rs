@@ -21,6 +21,7 @@ mod repeat;
 mod set;
 mod skip;
 mod then;
+mod times;
 mod token;
 mod tokens;
 mod tuples;
@@ -53,6 +54,7 @@ pub use repeat::{RangeArgument, Repeat};
 pub use set::{NoneOf, OneOf, Set};
 pub use skip::{AheadOf, Behind, Between, Discard};
 pub use then::{Then, TryThen};
+pub use times::Times;
 pub use token::{Not, Token};
 pub use tokens::Tokens;
 pub use value::Value;
@@ -414,6 +416,32 @@ pub trait ParserExt<I: Positioned + ?Sized>: Parser<I> {
         I: Input,
     {
         assert_parser(Opt::new(self))
+    }
+
+    /// Returns a [`StreamedParser`] by wrapping the parser to return output exactly once.
+    ///
+    /// This method is equivalent to `self.times(1)`.
+    ///
+    /// [`StreamedParser`]: streamed::StreamedParser
+    #[inline]
+    fn once(self) -> Times<Self>
+    where
+        Self: Sized,
+        I: Positioned,
+    {
+        assert_streamed_parser(Times::new(self, 1))
+    }
+
+    /// Returns a [`StreamedParser`] by repeating the parser exactly `n` times.
+    ///
+    /// [`StreamedParser`]: streamed::StreamedParser
+    #[inline]
+    fn times(self, n: usize) -> Times<Self>
+    where
+        Self: Sized,
+        I: Positioned,
+    {
+        assert_streamed_parser(Times::new(self, n))
     }
 
     /// Returns a [`StreamedParser`] by repeating the parser while succeeding.
