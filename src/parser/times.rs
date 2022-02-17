@@ -78,4 +78,9 @@ where
             },
         )
     }
+
+    #[inline]
+    fn size_hint(&self) -> (usize, Option<usize>) {
+        (self.count, Some(self.count))
+    }
 }

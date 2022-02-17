@@ -39,6 +39,11 @@ pub trait StreamedParser<I: Positioned + ?Sized> {
         state: &mut Self::State,
         tracker: &mut Tracker<I::Ok>,
     ) -> Poll<ParseResult<Option<Self::Item>, I>>;
+
+    /// The estimated size of returned stream.
+    fn size_hint(&self) -> (usize, Option<usize>) {
+        (0, None)
+    }
 }
 
 pub trait StreamedParserExt<I: Positioned + ?Sized>: StreamedParser<I> {

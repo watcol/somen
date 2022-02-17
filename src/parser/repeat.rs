@@ -122,6 +122,22 @@ where
             },
         )
     }
+
+    fn size_hint(&self) -> (usize, Option<usize>) {
+        let start = match self.range.start_bound() {
+            Bound::Included(i) => *i,
+            Bound::Excluded(i) => *i + 1,
+            Bound::Unbounded => 0,
+        };
+
+        let end = match self.range.end_bound() {
+            Bound::Included(i) => Some(*i),
+            Bound::Excluded(i) => Some(*i - 1),
+            Bound::Unbounded => None,
+        };
+
+        (start, end)
+    }
 }
 
 /// Arguments for method [`repeat`] which is convertable to an object implements

@@ -59,4 +59,9 @@ impl<P: StreamedParser<I> + ?Sized, I: Positioned + Unpin + ?Sized> Stream
             None => Poll::Ready(None),
         }
     }
+
+    #[inline]
+    fn size_hint(&self) -> (usize, Option<usize>) {
+        self.parser.size_hint()
+    }
 }
