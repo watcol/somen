@@ -2,6 +2,7 @@ use core::pin::Pin;
 use core::task::{Context, Poll};
 
 use crate::error::{ParseResult, Tracker};
+use crate::parser::streamed::StreamedParser;
 use crate::parser::Parser;
 use crate::stream::Positioned;
 
@@ -62,6 +63,47 @@ where
                 }
                 right.poll_parse(input, cx, state.as_mut().unwrap().unwrap_right(), tracker)
             }
+        }
+    }
+}
+
+impl<P, Q, I> StreamedParser<I> for Either<P, Q>
+where
+    P: StreamedParser<I>,
+    Q: StreamedParser<I, Item = P::Item>,
+    I: Positioned + ?Sized,
+{
+    type Item = P::Item;
+    type State = Option<Either<P::State, Q::State>>;
+
+    fn poll_parse_next(
+        &mut self,
+        input: Pin<&mut I>,
+        cx: &mut Context<'_>,
+        state: &mut Self::State,
+        tracker: &mut Tracker<I::Ok>,
+    ) -> Poll<ParseResult<Option<Self::Item>, I>> {
+        match self {
+            Self::Left(left) => {
+                if !matches!(state, Some(Either::Left(_))) {
+                    *state = Some(Either::Left(Default::default()));
+                }
+                left.poll_parse_next(input, cx, state.as_mut().unwrap().unwrap_left(), tracker)
+            }
+            Self::Right(right) => {
+                if !matches!(state, Some(Either::Right(_))) {
+                    *state = Some(Either::Right(Default::default()));
+                }
+                right.poll_parse_next(input, cx, state.as_mut().unwrap().unwrap_right(), tracker)
+            }
+        }
+    }
+
+    #[inline]
+    fn size_hint(&self) -> (usize, Option<usize>) {
+        match self {
+            Self::Left(left) => left.size_hint(),
+            Self::Right(right) => right.size_hint(),
         }
     }
 }

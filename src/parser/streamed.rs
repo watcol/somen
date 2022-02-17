@@ -8,7 +8,7 @@ use core::task::{Context, Poll};
 
 pub use collect::Collect;
 
-use super::{assert_parser, NoState};
+use super::{assert_parser, Either, NoState};
 use crate::error::{ParseResult, Tracker};
 use crate::stream::position::Positioned;
 use stream::ParserStream;
@@ -82,6 +82,26 @@ pub trait StreamedParserExt<I: Positioned + ?Sized>: StreamedParser<I> {
         Self: Sized,
     {
         assert_streamed_parser(NoState::new(self))
+    }
+
+    /// Wraps the parser into a [`Either`] to merge multiple types of parsers.
+    #[inline]
+    fn left<R>(self) -> Either<Self, R>
+    where
+        Self: Sized,
+        R: StreamedParser<I, Item = Self::Item>,
+    {
+        assert_streamed_parser(Either::Left(self))
+    }
+
+    /// Wraps the parser into a [`Either`] to merge multiple types of parsers.
+    #[inline]
+    fn right<L>(self) -> Either<L, Self>
+    where
+        Self: Sized,
+        L: StreamedParser<I, Item = Self::Item>,
+    {
+        assert_streamed_parser(Either::Right(self))
     }
 
     /// Returns a [`Parser`] by collecting all the outputs.
