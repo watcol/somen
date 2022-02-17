@@ -52,7 +52,7 @@ pub use peek::{Fail, Peek};
 pub use position::{Position, WithPosition};
 #[cfg(feature = "alloc")]
 pub use record::{Record, WithRecord};
-pub use repeat::{RangeArgument, Repeat};
+pub use repeat::Repeat;
 pub use satisfy::Satisfy;
 pub use set::{NoneOf, OneOf, Set};
 pub use skip::{AheadOf, Behind, Between, Discard};
@@ -63,6 +63,7 @@ pub use tokens::Tokens;
 pub use until::Until;
 pub use value::Value;
 
+use core::ops::RangeBounds;
 use core::pin::Pin;
 use core::task::{Context, Poll};
 
@@ -452,9 +453,10 @@ pub trait ParserExt<I: Positioned + ?Sized>: Parser<I> {
     ///
     /// [`StreamedParser`]: streamed::StreamedParser
     #[inline]
-    fn repeat<R: RangeArgument>(self, range: R) -> Repeat<Self, R::Target>
+    fn repeat<R>(self, range: R) -> Repeat<Self, R>
     where
         Self: Sized,
+        R: RangeBounds<usize>,
         I: Input,
     {
         assert_streamed_parser(Repeat::new(self, range))
