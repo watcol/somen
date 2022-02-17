@@ -18,6 +18,7 @@ mod or;
 mod peek;
 mod position;
 mod repeat;
+mod satisfy;
 mod set;
 mod skip;
 mod then;
@@ -25,6 +26,7 @@ mod times;
 mod token;
 mod tokens;
 mod tuples;
+mod until;
 mod value;
 
 mod utils;
@@ -51,6 +53,7 @@ pub use position::{Position, WithPosition};
 #[cfg(feature = "alloc")]
 pub use record::{Record, WithRecord};
 pub use repeat::{RangeArgument, Repeat};
+pub use satisfy::Satisfy;
 pub use set::{NoneOf, OneOf, Set};
 pub use skip::{AheadOf, Behind, Between, Discard};
 pub use then::{Then, TryThen};
@@ -454,6 +457,16 @@ pub trait ParserExt<I: Positioned + ?Sized>: Parser<I> {
         I: Input,
     {
         assert_streamed_parser(Repeat::new(self, range))
+    }
+
+    /// Check an output value with the function.
+    #[inline]
+    fn satisfy<F, O>(self, f: F) -> Satisfy<Self, F>
+    where
+        Self: Sized,
+        F: FnMut(&Self::Output) -> bool,
+    {
+        assert_parser(Satisfy::new(self, f))
     }
 
     /// Converting an output value into another type.
