@@ -60,6 +60,7 @@ pub use then::{Then, TryThen};
 pub use times::Times;
 pub use token::{Not, Token};
 pub use tokens::Tokens;
+pub use until::Until;
 pub use value::Value;
 
 use core::pin::Pin;
@@ -457,6 +458,19 @@ pub trait ParserExt<I: Positioned + ?Sized>: Parser<I> {
         I: Input,
     {
         assert_streamed_parser(Repeat::new(self, range))
+    }
+
+    /// Returns a [`StreamedParser`] by repeating the parser until the parser `end` succeeds.
+    ///
+    /// [`StreamedParser`]: streamed::StreamedParser
+    #[inline]
+    fn until<P>(self, end: P) -> Until<Self, P>
+    where
+        Self: Sized,
+        P: Parser<I>,
+        I: Input,
+    {
+        assert_streamed_parser(Until::new(self, end))
     }
 
     /// Check an output value with the function.
