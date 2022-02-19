@@ -13,8 +13,8 @@ pub use choice::ChoiceStreamedParser;
 pub use collect::{Collect, Count, Discard};
 pub use fill::Fill;
 
-use super::{assert_parser, AheadOf, Behind, Between, Either, NoState, Or, Parser};
-use crate::error::{ParseResult, Tracker};
+use super::{assert_parser, AheadOf, Behind, Between, Either, Map, NoState, Or, Parser, TryMap};
+use crate::error::{Expects, ParseResult, Tracker};
 use crate::stream::{Input, Positioned};
 use stream::ParserStream;
 
@@ -219,6 +219,27 @@ pub trait StreamedParserExt<I: Positioned + ?Sized>: StreamedParser<I> {
         Self: Sized,
     {
         assert_parser(Fill::new(self))
+    }
+
+    /// Converting an output value into another type.
+    #[inline]
+    fn map<F, O>(self, f: F) -> Map<Self, F>
+    where
+        Self: Sized,
+        F: FnMut(Self::Item) -> O,
+    {
+        assert_streamed_parser(Map::new(self, f))
+    }
+
+    /// Converting an output value into another type.
+    #[inline]
+    fn try_map<F, O, E>(self, f: F) -> TryMap<Self, F>
+    where
+        Self: Sized,
+        F: FnMut(Self::Item) -> Result<O, E>,
+        E: Into<Expects<I::Ok>>,
+    {
+        assert_streamed_parser(TryMap::new(self, f))
     }
 }
 
