@@ -6,7 +6,7 @@ mod stream;
 use core::pin::Pin;
 use core::task::{Context, Poll};
 
-pub use collect::Collect;
+pub use collect::{Collect, Count, Discard};
 
 use super::{assert_parser, AheadOf, Behind, Between, Either, NoState, Parser};
 use crate::error::{ParseResult, Tracker};
@@ -133,6 +133,28 @@ pub trait StreamedParserExt<I: Positioned + ?Sized>: StreamedParser<I> {
         R: Parser<I>,
     {
         assert_streamed_parser(Between::new(self, left, right))
+    }
+
+    /// Returns a [`Parser`] parses all items and returns `()`.
+    ///
+    /// [`Parser`]: super::Parser
+    #[inline]
+    fn discard(self) -> Discard<Self>
+    where
+        Self: Sized,
+    {
+        assert_parser(Discard::new(self))
+    }
+
+    /// Returns a [`Parser`] outputs [`usize`] by couting up all items.
+    ///
+    /// [`Parser`]: super::Parser
+    #[inline]
+    fn count(self) -> Count<Self>
+    where
+        Self: Sized,
+    {
+        assert_parser(Count::new(self))
     }
 
     /// Returns a [`Parser`] by collecting all the outputs.
