@@ -2,6 +2,7 @@
 
 mod collect;
 mod stream;
+mod tuples;
 
 use core::pin::Pin;
 use core::task::{Context, Poll};
@@ -102,6 +103,16 @@ pub trait StreamedParserExt<I: Positioned + ?Sized>: StreamedParser<I> {
         L: StreamedParser<I, Item = Self::Item>,
     {
         assert_streamed_parser(Either::Right(self))
+    }
+
+    /// Chains two streams and parses items in sequence.
+    #[inline]
+    fn chain<P>(self, p: P) -> (Self, P)
+    where
+        Self: Sized,
+        P: StreamedParser<I, Item = Self::Item>,
+    {
+        assert_streamed_parser((self, p))
     }
 
     /// Parses with `self` ahead of `p`.
