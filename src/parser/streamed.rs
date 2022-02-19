@@ -2,6 +2,7 @@
 
 mod choice;
 mod collect;
+mod fill;
 mod stream;
 mod tuples;
 
@@ -10,6 +11,7 @@ use core::task::{Context, Poll};
 
 pub use choice::ChoiceStreamedParser;
 pub use collect::{Collect, Count, Discard};
+pub use fill::Fill;
 
 use super::{assert_parser, AheadOf, Behind, Between, Either, NoState, Or, Parser};
 use crate::error::{ParseResult, Tracker};
@@ -204,6 +206,19 @@ pub trait StreamedParserExt<I: Positioned + ?Sized>: StreamedParser<I> {
         Self: Sized,
     {
         assert_parser(Collect::new(self))
+    }
+
+    /// Returns a [`Parser`] by collecting exact `N` items into an array.
+    ///
+    /// If the number of items is not `N`, it returns a fatal error.
+    ///
+    /// [`Parser`]: super::Parser
+    #[inline]
+    fn fill<const N: usize>(self) -> Fill<Self, N>
+    where
+        Self: Sized,
+    {
+        assert_parser(Fill::new(self))
     }
 }
 
