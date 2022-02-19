@@ -55,7 +55,7 @@ pub use position::{Position, WithPosition};
 pub use record::{Record, WithRecord};
 pub use repeat::Repeat;
 pub use satisfy::Satisfy;
-pub use sep_by::SepBy;
+pub use sep_by::{SepBy, SepByEnd};
 pub use set::{NoneOf, OneOf, Set};
 pub use skip::{AheadOf, Behind, Between, Discard};
 pub use then::{Then, TryThen};
@@ -476,6 +476,21 @@ pub trait ParserExt<I: Positioned + ?Sized>: Parser<I> {
         I: Input,
     {
         assert_streamed_parser(SepBy::new(self, sep, range))
+    }
+
+    /// Returns a [`StreamedParser`] of sequenced the parser separated by `sep` (trailing separater is
+    /// allowed).
+    ///
+    /// [`StreamedParser`]: streamed::StreamedParser
+    #[inline]
+    fn sep_by_end<P, R>(self, sep: P, range: R) -> SepByEnd<Self, P, R>
+    where
+        Self: Sized,
+        P: Parser<I>,
+        R: RangeBounds<usize>,
+        I: Input,
+    {
+        assert_streamed_parser(SepByEnd::new(self, sep, range))
     }
 
     /// Returns a [`StreamedParser`] by repeating the parser until the parser `end` succeeds.

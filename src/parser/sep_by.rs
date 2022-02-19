@@ -160,3 +160,163 @@ where
         (start, end)
     }
 }
+
+/// A streamed parser generated from method [`sep_by_end`].
+///
+/// [`sep_by_end`]: super::ParserExt::sep_by_end
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct SepByEnd<P, Q, R> {
+    inner: P,
+    sep: Q,
+    range: R,
+}
+
+impl<P, Q, R> SepByEnd<P, Q, R> {
+    /// Creating a new instance.
+    #[inline]
+    pub fn new(inner: P, sep: Q, range: R) -> Self {
+        Self { inner, sep, range }
+    }
+
+    /// Extracting the inner parser.
+    #[inline]
+    pub fn into_inner(self) -> P {
+        self.inner
+    }
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct SepByEndState<C, D, O, M> {
+    inner: EitherState<C, D>,
+    output: Option<O>,
+    queued_marker: Option<M>,
+    count: usize,
+    ended: bool,
+}
+
+impl<C: Default, D, O, M> Default for SepByEndState<C, D, O, M> {
+    #[inline]
+    fn default() -> Self {
+        Self {
+            inner: EitherState::default(),
+            output: None,
+            queued_marker: None,
+            count: 0,
+            ended: false,
+        }
+    }
+}
+
+impl<P, Q, R, I> StreamedParser<I> for SepByEnd<P, Q, R>
+where
+    P: Parser<I>,
+    Q: Parser<I>,
+    R: RangeBounds<usize>,
+    I: Input + ?Sized,
+{
+    type Item = P::Output;
+    type State = SepByEndState<P::State, Q::State, P::Output, I::Marker>;
+
+    fn poll_parse_next(
+        &mut self,
+        mut input: Pin<&mut I>,
+        cx: &mut Context<'_>,
+        state: &mut Self::State,
+        tracker: &mut Tracker<I::Ok>,
+    ) -> Poll<ParseResult<Option<Self::Item>, I>> {
+        // Return `None` if the number of items already reached `end_bound`.
+        if match self.range.end_bound() {
+            Bound::Included(i) => state.count + 1 > *i,
+            Bound::Excluded(i) => state.count + 1 >= *i,
+            Bound::Unbounded => false,
+        } || state.ended
+        {
+            return Poll::Ready(Ok(None));
+        }
+
+        // Reserve the marker.
+        if state.queued_marker.is_none() {
+            state.queued_marker = Some(input.as_mut().mark()?);
+        }
+
+        if let EitherState::Left(inner) = &mut state.inner {
+            match ready!(self.inner.poll_parse(input.as_mut(), cx, inner, tracker)) {
+                Ok(output) => {
+                    input
+                        .as_mut()
+                        .drop_marker(mem::take(&mut state.queued_marker).unwrap())?;
+                    state.inner = EitherState::Right(Default::default());
+                    state.queued_marker = Some(input.as_mut().mark()?);
+                    state.output = Some(output);
+                }
+                // Return `None` if `count` already satisfies the minimal bound.
+                Err(ParseError::Parser {
+                    fatal: false,
+                    expects,
+                    ..
+                }) if self.range.contains(&state.count) => {
+                    input.rewind(mem::take(&mut state.queued_marker).unwrap())?;
+                    tracker.add(expects);
+                    return Poll::Ready(Ok(None));
+                }
+                Err(err) => {
+                    input.drop_marker(mem::take(&mut state.queued_marker).unwrap())?;
+                    // If the parser has succeeded parsing at least once, rewinding the parser is
+                    // not appropriate.
+                    return Poll::Ready(Err(if state.count > 0 {
+                        err.fatal(true)
+                    } else {
+                        err
+                    }));
+                }
+            }
+        }
+
+        Poll::Ready(
+            match ready!(self.sep.poll_parse(
+                input.as_mut(),
+                cx,
+                state.inner.as_mut_right(),
+                tracker
+            )) {
+                Ok(_) => {
+                    input.drop_marker(mem::take(&mut state.queued_marker).unwrap())?;
+                    state.count += 1;
+                    state.inner = EitherState::Left(Default::default());
+                    Ok(Some(mem::take(&mut state.output).unwrap()))
+                }
+                Err(ParseError::Parser {
+                    fatal: false,
+                    expects,
+                    ..
+                }) if self.range.contains(&(state.count + 1)) => {
+                    input.rewind(mem::take(&mut state.queued_marker).unwrap())?;
+                    tracker.add(expects);
+                    state.count += 1;
+                    state.ended = true;
+                    Ok(Some(mem::take(&mut state.output).unwrap()))
+                }
+                Err(err) => {
+                    input.drop_marker(mem::take(&mut state.queued_marker).unwrap())?;
+                    Err(err.fatal(true))
+                }
+            },
+        )
+    }
+
+    fn size_hint(&self) -> (usize, Option<usize>) {
+        let start = match self.range.start_bound() {
+            Bound::Included(i) => *i,
+            Bound::Excluded(i) => *i + 1,
+            Bound::Unbounded => 0,
+        };
+
+        let end = match self.range.end_bound() {
+            Bound::Included(i) => Some(*i),
+            Bound::Excluded(i) => Some(*i - 1),
+            Bound::Unbounded => None,
+        };
+
+        (start, end)
+    }
+}
