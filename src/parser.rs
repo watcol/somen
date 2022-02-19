@@ -19,6 +19,7 @@ mod peek;
 mod position;
 mod repeat;
 mod satisfy;
+mod sep_by;
 mod set;
 mod skip;
 mod then;
@@ -54,6 +55,7 @@ pub use position::{Position, WithPosition};
 pub use record::{Record, WithRecord};
 pub use repeat::Repeat;
 pub use satisfy::Satisfy;
+pub use sep_by::SepBy;
 pub use set::{NoneOf, OneOf, Set};
 pub use skip::{AheadOf, Behind, Between, Discard};
 pub use then::{Then, TryThen};
@@ -460,6 +462,20 @@ pub trait ParserExt<I: Positioned + ?Sized>: Parser<I> {
         I: Input,
     {
         assert_streamed_parser(Repeat::new(self, range))
+    }
+
+    /// Returns a [`StreamedParser`] of sequenced the parser separated by `sep`.
+    ///
+    /// [`StreamedParser`]: streamed::StreamedParser
+    #[inline]
+    fn sep_by<P, R>(self, sep: P, range: R) -> SepBy<Self, P, R>
+    where
+        Self: Sized,
+        P: Parser<I>,
+        R: RangeBounds<usize>,
+        I: Input,
+    {
+        assert_streamed_parser(SepBy::new(self, sep, range))
     }
 
     /// Returns a [`StreamedParser`] by repeating the parser until the parser `end` succeeds.
