@@ -5,6 +5,7 @@ use futures_core::ready;
 
 use super::utils::EitherState;
 use crate::error::{ParseResult, Tracker};
+use crate::parser::streamed::StreamedParser;
 use crate::parser::Parser;
 use crate::stream::Positioned;
 
@@ -80,6 +81,44 @@ where
     }
 }
 
+impl<P, Q, I> StreamedParser<I> for AheadOf<P, Q>
+where
+    P: StreamedParser<I>,
+    Q: Parser<I>,
+    I: Positioned + ?Sized,
+{
+    type Item = P::Item;
+    type State = (EitherState<P::State, Q::State>, bool);
+
+    fn poll_parse_next(
+        &mut self,
+        mut input: Pin<&mut I>,
+        cx: &mut Context<'_>,
+        state: &mut Self::State,
+        tracker: &mut Tracker<I::Ok>,
+    ) -> Poll<ParseResult<Option<Self::Item>, I>> {
+        if let EitherState::Left(inner) = &mut state.0 {
+            match ready!(self
+                .inner
+                .poll_parse_next(input.as_mut(), cx, inner, tracker))?
+            {
+                Some(val) => {
+                    state.1 = true;
+                    return Poll::Ready(Ok(Some(val)));
+                }
+                None => {
+                    state.0 = EitherState::Right(Default::default());
+                }
+            }
+        }
+
+        self.skipped
+            .poll_parse(input, cx, state.0.as_mut_right(), tracker)
+            .map_ok(|_| None)
+            .map_err(|err| if state.1 { err.fatal(true) } else { err })
+    }
+}
+
 /// A parser for method [`behind`].
 ///
 /// [`behind`]: super::ParserExt::behind
@@ -126,6 +165,33 @@ where
 
         self.inner
             .poll_parse(input, cx, state.as_mut_right(), tracker)
+            .map_err(|err| err.fatal(true))
+    }
+}
+
+impl<P, Q, I> StreamedParser<I> for Behind<P, Q>
+where
+    P: StreamedParser<I>,
+    Q: Parser<I>,
+    I: Positioned + ?Sized,
+{
+    type Item = P::Item;
+    type State = EitherState<Q::State, P::State>;
+
+    fn poll_parse_next(
+        &mut self,
+        mut input: Pin<&mut I>,
+        cx: &mut Context<'_>,
+        state: &mut Self::State,
+        tracker: &mut Tracker<I::Ok>,
+    ) -> Poll<ParseResult<Option<Self::Item>, I>> {
+        if let EitherState::Left(inner) = state {
+            ready!(self.skipped.poll_parse(input.as_mut(), cx, inner, tracker))?;
+            *state = EitherState::Right(Default::default());
+        }
+
+        self.inner
+            .poll_parse_next(input, cx, state.as_mut_right(), tracker)
             .map_err(|err| err.fatal(true))
     }
 }
@@ -190,6 +256,51 @@ where
         self.right
             .poll_parse(input, cx, state.inner.as_mut_right(), tracker)
             .map_ok(|_| mem::take(&mut state.output).unwrap())
+            .map_err(|err| err.fatal(true))
+    }
+}
+
+impl<P, L, R, I> StreamedParser<I> for Between<P, L, R>
+where
+    P: StreamedParser<I>,
+    L: Parser<I>,
+    R: Parser<I>,
+    I: Positioned + ?Sized,
+{
+    type Item = P::Item;
+    type State = EitherState<L::State, EitherState<P::State, R::State>>;
+
+    fn poll_parse_next(
+        &mut self,
+        mut input: Pin<&mut I>,
+        cx: &mut Context<'_>,
+        state: &mut Self::State,
+        tracker: &mut Tracker<I::Ok>,
+    ) -> Poll<ParseResult<Option<Self::Item>, I>> {
+        if let EitherState::Left(inner) = state {
+            ready!(self.left.poll_parse(input.as_mut(), cx, inner, tracker))?;
+            *state = EitherState::Right(Default::default());
+        }
+
+        let state = state.as_mut_right();
+        if let EitherState::Left(inner) = state {
+            match ready!(self
+                .inner
+                .poll_parse_next(input.as_mut(), cx, inner, tracker)
+                .map_err(|err| err.fatal(true))?)
+            {
+                Some(val) => {
+                    return Poll::Ready(Ok(Some(val)));
+                }
+                None => {
+                    *state = EitherState::Right(Default::default());
+                }
+            }
+        }
+
+        self.right
+            .poll_parse(input, cx, state.as_mut_right(), tracker)
+            .map_ok(|_| None)
             .map_err(|err| err.fatal(true))
     }
 }
