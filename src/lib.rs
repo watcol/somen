@@ -22,7 +22,7 @@ pub mod prelude {
     #[doc(no_inline)]
     pub use crate::stream::StreamBuilder as _;
 
-    pub use crate::parser::streamed::StreamedParser;
+    pub use crate::parser::streamed::{choice_streamed, StreamedParser};
     pub use crate::parser::{
         any, choice, eof, function, is, is_not, is_some, lazy, none_of, not, one_of, position,
         token, tokens, value, Parser,
