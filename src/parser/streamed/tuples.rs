@@ -71,6 +71,16 @@ macro_rules! tuple_parser {
 
                 Poll::Ready(Ok(None))
             }
+
+            fn size_hint(&self) -> (usize, Option<usize>) {
+                #[allow(non_snake_case)]
+                let ($h, $($t),*) = self;
+                #[allow(non_snake_case)]
+                let ($h, $($t),*) = ($h.size_hint(), $($t.size_hint()),*);
+                let min = $h.0 $(+ $t.0)*;
+                let max = $h.1 $(.zip($t.1).map(|(a, b)| a + b))*;
+                (min, max)
+            }
         }
     };
 }

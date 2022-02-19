@@ -117,6 +117,11 @@ where
             .map_ok(|_| None)
             .map_err(|err| if state.1 { err.fatal(true) } else { err })
     }
+
+    #[inline]
+    fn size_hint(&self) -> (usize, Option<usize>) {
+        self.inner.size_hint()
+    }
 }
 
 /// A parser for method [`behind`].
@@ -193,6 +198,11 @@ where
         self.inner
             .poll_parse_next(input, cx, state.as_mut_right(), tracker)
             .map_err(|err| err.fatal(true))
+    }
+
+    #[inline]
+    fn size_hint(&self) -> (usize, Option<usize>) {
+        self.inner.size_hint()
     }
 }
 
@@ -302,6 +312,11 @@ where
             .poll_parse(input, cx, state.as_mut_right(), tracker)
             .map_ok(|_| None)
             .map_err(|err| err.fatal(true))
+    }
+
+    #[inline]
+    fn size_hint(&self) -> (usize, Option<usize>) {
+        self.inner.size_hint()
     }
 }
 

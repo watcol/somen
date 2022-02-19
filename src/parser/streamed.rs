@@ -259,6 +259,11 @@ impl<'a, P: StreamedParser<I> + ?Sized, I: Positioned + ?Sized> StreamedParser<I
     ) -> Poll<ParseResult<Option<Self::Item>, I>> {
         (**self).poll_parse_next(input, cx, state, tracker)
     }
+
+    #[inline]
+    fn size_hint(&self) -> (usize, Option<usize>) {
+        (**self).size_hint()
+    }
 }
 
 #[cfg(feature = "alloc")]
@@ -276,6 +281,11 @@ impl<P: StreamedParser<I> + ?Sized, I: Positioned + ?Sized> StreamedParser<I> fo
         tracker: &mut Tracker<I::Ok>,
     ) -> Poll<ParseResult<Option<Self::Item>, I>> {
         (**self).poll_parse_next(input, cx, state, tracker)
+    }
+
+    #[inline]
+    fn size_hint(&self) -> (usize, Option<usize>) {
+        (**self).size_hint()
     }
 }
 

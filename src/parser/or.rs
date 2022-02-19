@@ -170,4 +170,13 @@ where
         self.right
             .poll_parse_next(input, cx, state.inner.as_mut_right(), tracker)
     }
+
+    fn size_hint(&self) -> (usize, Option<usize>) {
+        let (lmin, lmax) = self.left.size_hint();
+        let (rmin, rmax) = self.right.size_hint();
+        (
+            core::cmp::min(lmin, rmin),
+            lmax.zip(rmax).map(|(a, b)| core::cmp::max(a, b)),
+        )
+    }
 }
