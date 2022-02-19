@@ -63,7 +63,7 @@ pub use times::Times;
 pub use token::{Not, Token};
 pub use tokens::Tokens;
 pub use until::Until;
-pub use value::Value;
+pub use value::{Value, ValueFn};
 
 use core::ops::RangeBounds;
 use core::pin::Pin;
@@ -207,6 +207,12 @@ where
 #[inline]
 pub fn value<I: Positioned + ?Sized, T: Clone>(value: T) -> Value<I, T> {
     assert_parser(Value::new(value))
+}
+
+/// Produces a value by the function without parsing any tokens.
+#[inline]
+pub fn value_fn<I: Positioned + ?Sized, F: FnMut() -> T, T>(f: F) -> ValueFn<I, F> {
+    assert_parser(ValueFn::new(f))
 }
 
 /// Returns the current position of input.

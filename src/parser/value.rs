@@ -41,3 +41,39 @@ impl<I: Positioned + ?Sized, T: Clone> Parser<I> for Value<I, T> {
         Poll::Ready(Ok(self.value.clone()))
     }
 }
+
+/// A parser for function [`value_fn`].
+///
+/// [`value_fn`]: crate::parser::value_fn
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub struct ValueFn<I: ?Sized, F> {
+    f: F,
+    _phantom: PhantomData<I>,
+}
+
+impl<I: ?Sized, F> ValueFn<I, F> {
+    /// Creating a new instance.
+    #[inline]
+    pub fn new(f: F) -> Self {
+        Self {
+            f,
+            _phantom: PhantomData,
+        }
+    }
+}
+
+impl<I: Positioned + ?Sized, F: FnMut() -> T, T> Parser<I> for ValueFn<I, F> {
+    type Output = T;
+    type State = ();
+
+    #[inline]
+    fn poll_parse(
+        &mut self,
+        _input: Pin<&mut I>,
+        _cx: &mut Context<'_>,
+        _state: &mut Self::State,
+        _tracker: &mut Tracker<I::Ok>,
+    ) -> Poll<ParseResult<Self::Output, I>> {
+        Poll::Ready(Ok((self.f)()))
+    }
+}
