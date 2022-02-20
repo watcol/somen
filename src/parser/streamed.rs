@@ -4,6 +4,7 @@ mod choice;
 mod collect;
 mod enumerate;
 mod fill;
+mod nth;
 mod stream;
 mod tuples;
 
@@ -14,6 +15,7 @@ pub use choice::ChoiceStreamedParser;
 pub use collect::{Collect, Count, Discard};
 pub use enumerate::Enumerate;
 pub use fill::Fill;
+pub use nth::{Last, Nth};
 
 use super::{assert_parser, AheadOf, Behind, Between, Either, Map, NoState, Or, Parser, TryMap};
 use crate::error::{Expects, ParseResult, Tracker};
@@ -197,6 +199,39 @@ pub trait StreamedParserExt<I: Positioned + ?Sized>: StreamedParser<I> {
         Self: Sized,
     {
         assert_parser(Count::new(self))
+    }
+
+    /// Consumes all outputs, returns the nth element.
+    ///
+    /// If the length of stream less than `n`, it returns `None`.
+    #[inline]
+    fn nth(self, n: usize) -> Nth<Self>
+    where
+        Self: Sized,
+    {
+        assert_parser(Nth::new(self, n))
+    }
+
+    /// Consumes all outputs, returns the first element.
+    ///
+    /// This method is equivalent to `self.nth(0)`, and if the stream is empty, it returns `None`.
+    #[inline]
+    fn first(self) -> Nth<Self>
+    where
+        Self: Sized,
+    {
+        assert_parser(Nth::new(self, 0))
+    }
+
+    /// Consumes all outputs, returns the last element.
+    ///
+    /// If the stream is empty, it returns `None`.
+    #[inline]
+    fn last(self) -> Last<Self>
+    where
+        Self: Sized,
+    {
+        assert_parser(Last::new(self))
     }
 
     /// Returns a [`Parser`] by collecting all the outputs.
