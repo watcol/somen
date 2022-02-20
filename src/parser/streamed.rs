@@ -8,6 +8,7 @@ mod filter;
 mod flatten;
 mod fold;
 mod nth;
+mod reduce;
 mod stream;
 mod tuples;
 
@@ -22,6 +23,7 @@ pub use filter::Filter;
 pub use flatten::Flatten;
 pub use fold::{Fold, TryFold};
 pub use nth::{Last, Nth};
+pub use reduce::{Reduce, TryReduce};
 
 use super::{assert_parser, AheadOf, Behind, Between, Either, Map, NoState, Or, Parser, TryMap};
 use crate::error::{Expects, ParseResult, Tracker};
@@ -316,7 +318,7 @@ pub trait StreamedParserExt<I: Positioned + ?Sized>: StreamedParser<I> {
         assert_streamed_parser(Filter::new(self, f))
     }
 
-    /// Folds items into an accumulator by a function.
+    /// Folds items into an accumulator by repeatedly applying a function.
     #[inline]
     fn fold<Q, F>(self, init: Q, f: F) -> Fold<Self, Q, F>
     where
@@ -327,7 +329,7 @@ pub trait StreamedParserExt<I: Positioned + ?Sized>: StreamedParser<I> {
         assert_parser(Fold::new(self, init, f))
     }
 
-    /// Folds items into an accumulator by a failable function.
+    /// Tries to fold items into an accumulator by repeatedly applying a failable function.
     #[inline]
     fn try_fold<Q, F, E>(self, init: Q, f: F) -> TryFold<Self, Q, F>
     where
@@ -337,6 +339,27 @@ pub trait StreamedParserExt<I: Positioned + ?Sized>: StreamedParser<I> {
         E: Into<Expects<I::Ok>>,
     {
         assert_parser(TryFold::new(self, init, f))
+    }
+
+    /// Reduces items into a item by repeatedly applying a function.
+    #[inline]
+    fn reduce<F>(self, f: F) -> Reduce<Self, F>
+    where
+        Self: Sized,
+        F: FnMut(Self::Item, Self::Item) -> Self::Item,
+    {
+        assert_parser(Reduce::new(self, f))
+    }
+
+    /// Tries to reduce items into a item by repeatedly applying a failable function.
+    #[inline]
+    fn try_reduce<F, E>(self, f: F) -> TryReduce<Self, F>
+    where
+        Self: Sized,
+        F: FnMut(Self::Item, Self::Item) -> Result<Self::Item, E>,
+        E: Into<Expects<I::Ok>>,
+    {
+        assert_parser(TryReduce::new(self, f))
     }
 }
 
