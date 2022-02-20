@@ -2,6 +2,7 @@
 
 mod choice;
 mod collect;
+mod enumerate;
 mod fill;
 mod stream;
 mod tuples;
@@ -11,6 +12,7 @@ use core::task::{Context, Poll};
 
 pub use choice::ChoiceStreamedParser;
 pub use collect::{Collect, Count, Discard};
+pub use enumerate::Enumerate;
 pub use fill::Fill;
 
 use super::{assert_parser, AheadOf, Behind, Between, Either, Map, NoState, Or, Parser, TryMap};
@@ -240,6 +242,17 @@ pub trait StreamedParserExt<I: Positioned + ?Sized>: StreamedParser<I> {
         E: Into<Expects<I::Ok>>,
     {
         assert_streamed_parser(TryMap::new(self, f))
+    }
+
+    /// Returning current iteration count with outputs.
+    ///
+    /// The returned parser's item will be `(usize, Self::Item)`.
+    #[inline]
+    fn enumerate(self) -> Enumerate<Self>
+    where
+        Self: Sized,
+    {
+        assert_streamed_parser(Enumerate::new(self))
     }
 }
 
