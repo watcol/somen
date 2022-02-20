@@ -222,6 +222,7 @@ pub fn position<I: Positioned + ?Sized>() -> Position<I> {
 }
 
 /// A trait for parsers.
+#[cfg_attr(feature = "nightly", doc(notable_trait))]
 pub trait Parser<I: Positioned + ?Sized> {
     /// The output type for the parser.
     type Output;

@@ -50,6 +50,7 @@ where
 /// A trait for parsers return multiple outputs with [`TryStream`].
 ///
 /// [`TryStream`]: futures_core::TryStream
+#[cfg_attr(feature = "nightly", doc(notable_trait))]
 pub trait StreamedParser<I: Positioned + ?Sized> {
     /// The type for items of input stream.
     type Item;

@@ -2,6 +2,7 @@
 
 #![cfg_attr(not(feature = "std"), no_std)]
 #![cfg_attr(feature = "nightly", feature(doc_cfg))]
+#![cfg_attr(feature = "nightly", feature(doc_notable_trait))]
 #![doc(test(attr(warn(warnings))))]
 
 #[cfg(feature = "alloc")]
