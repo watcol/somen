@@ -6,6 +6,7 @@ mod enumerate;
 mod fill;
 mod filter;
 mod flatten;
+mod fold;
 mod nth;
 mod stream;
 mod tuples;
@@ -19,6 +20,7 @@ pub use enumerate::Enumerate;
 pub use fill::Fill;
 pub use filter::Filter;
 pub use flatten::Flatten;
+pub use fold::{Fold, TryFold};
 pub use nth::{Last, Nth};
 
 use super::{assert_parser, AheadOf, Behind, Between, Either, Map, NoState, Or, Parser, TryMap};
@@ -312,6 +314,29 @@ pub trait StreamedParserExt<I: Positioned + ?Sized>: StreamedParser<I> {
         F: FnMut(&Self::Item) -> bool,
     {
         assert_streamed_parser(Filter::new(self, f))
+    }
+
+    /// Folds items into an accumulator by a function.
+    #[inline]
+    fn fold<Q, F>(self, init: Q, f: F) -> Fold<Self, Q, F>
+    where
+        Self: Sized,
+        Q: Parser<I>,
+        F: FnMut(Q::Output, Self::Item) -> Q::Output,
+    {
+        assert_parser(Fold::new(self, init, f))
+    }
+
+    /// Folds items into an accumulator by a failable function.
+    #[inline]
+    fn try_fold<Q, F, E>(self, init: Q, f: F) -> TryFold<Self, Q, F>
+    where
+        Self: Sized,
+        Q: Parser<I>,
+        F: FnMut(Q::Output, Self::Item) -> Result<Q::Output, E>,
+        E: Into<Expects<I::Ok>>,
+    {
+        assert_parser(TryFold::new(self, init, f))
     }
 }
 
