@@ -4,6 +4,7 @@ mod choice;
 mod collect;
 mod enumerate;
 mod fill;
+mod filter;
 mod nth;
 mod stream;
 mod tuples;
@@ -15,6 +16,7 @@ pub use choice::ChoiceStreamedParser;
 pub use collect::{Collect, Count, Discard};
 pub use enumerate::Enumerate;
 pub use fill::Fill;
+pub use filter::Filter;
 pub use nth::{Last, Nth};
 
 use super::{assert_parser, AheadOf, Behind, Between, Either, Map, NoState, Or, Parser, TryMap};
@@ -288,6 +290,16 @@ pub trait StreamedParserExt<I: Positioned + ?Sized>: StreamedParser<I> {
         Self: Sized,
     {
         assert_streamed_parser(Enumerate::new(self))
+    }
+
+    /// Only returns items matches the condition.
+    #[inline]
+    fn filter<F>(self, f: F) -> Filter<Self, F>
+    where
+        Self: Sized,
+        F: FnMut(&Self::Item) -> bool,
+    {
+        assert_streamed_parser(Filter::new(self, f))
     }
 }
 
