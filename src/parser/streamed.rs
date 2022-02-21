@@ -9,10 +9,12 @@ mod flatten;
 mod fold;
 mod nth;
 mod reduce;
+mod repeat;
 mod scan;
 mod stream;
 mod tuples;
 
+use core::ops::RangeBounds;
 use core::pin::Pin;
 use core::task::{Context, Poll};
 
@@ -25,6 +27,7 @@ pub use flatten::Flatten;
 pub use fold::{Fold, TryFold};
 pub use nth::{Last, Nth};
 pub use reduce::{Reduce, TryReduce};
+pub use repeat::FlatRepeat;
 pub use scan::{Scan, TryScan};
 
 use super::{assert_parser, AheadOf, Behind, Between, Either, Map, NoState, Or, Parser, TryMap};
@@ -254,6 +257,20 @@ pub trait StreamedParserExt<I: Positioned + ?Sized>: StreamedParser<I> {
         Self: Sized,
     {
         assert_parser(Collect::new(self))
+    }
+
+    /// Repeats the streamed parser like [`ParserExt::repeat`], and flattens into one streamed
+    /// parser.
+    ///
+    /// [`ParserExt::repeat`]: super::ParserExt::repeat
+    #[inline]
+    fn flat_repeat<R>(self, range: R) -> FlatRepeat<Self, R>
+    where
+        Self: Sized,
+        I: Input,
+        R: RangeBounds<usize>,
+    {
+        assert_streamed_parser(FlatRepeat::new(self, range))
     }
 
     /// Returns a [`Parser`] by collecting exact `N` items into an array.
