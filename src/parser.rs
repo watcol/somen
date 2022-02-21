@@ -20,6 +20,7 @@ mod position;
 mod repeat;
 mod satisfy;
 mod sep_by;
+mod sep_by_times;
 mod set;
 mod skip;
 mod then;
@@ -56,6 +57,7 @@ pub use record::{Record, WithRecord};
 pub use repeat::Repeat;
 pub use satisfy::Satisfy;
 pub use sep_by::{SepBy, SepByEnd};
+pub use sep_by_times::{SepByEndTimes, SepByTimes};
 pub use set::{NoneOf, OneOf, Set};
 pub use skip::{AheadOf, Behind, Between, Discard};
 pub use then::{Then, TryThen};
@@ -471,7 +473,7 @@ pub trait ParserExt<I: Positioned + ?Sized>: Parser<I> {
         assert_streamed_parser(Repeat::new(self, range))
     }
 
-    /// Returns a [`StreamedParser`] of sequenced the parser separated by `sep`.
+    /// Returns a [`StreamedParser`] of the parser separated by `sep`.
     ///
     /// [`StreamedParser`]: streamed::StreamedParser
     #[inline]
@@ -485,7 +487,7 @@ pub trait ParserExt<I: Positioned + ?Sized>: Parser<I> {
         assert_streamed_parser(SepBy::new(self, sep, range))
     }
 
-    /// Returns a [`StreamedParser`] of sequenced the parser separated by `sep` (trailing separater is
+    /// Returns a [`StreamedParser`] of the parser separated by `sep` (trailing separater is
     /// allowed).
     ///
     /// [`StreamedParser`]: streamed::StreamedParser
@@ -498,6 +500,32 @@ pub trait ParserExt<I: Positioned + ?Sized>: Parser<I> {
         I: Input,
     {
         assert_streamed_parser(SepByEnd::new(self, sep, range))
+    }
+
+    /// Returns a fixed-size [`StreamedParser`] of the parser separated by `sep`.
+    ///
+    /// [`StreamedParser`]: streamed::StreamedParser
+    #[inline]
+    fn sep_by_times<P, R>(self, sep: P, count: usize) -> SepByTimes<Self, P>
+    where
+        Self: Sized,
+        P: Parser<I>,
+    {
+        assert_streamed_parser(SepByTimes::new(self, sep, count))
+    }
+
+    /// Returns a fixed-size [`StreamedParser`] of the parser separated by `sep` (trailing
+    /// separater is allowed).
+    ///
+    /// [`StreamedParser`]: streamed::StreamedParser
+    #[inline]
+    fn sep_by_end_times<P, R>(self, sep: P, count: usize) -> SepByEndTimes<Self, P>
+    where
+        Self: Sized,
+        I: Input,
+        P: Parser<I>,
+    {
+        assert_streamed_parser(SepByEndTimes::new(self, sep, count))
     }
 
     /// Returns a [`StreamedParser`] by repeating the parser until the parser `end` succeeds.
