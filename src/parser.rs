@@ -23,6 +23,7 @@ mod sep_by;
 mod sep_by_times;
 mod set;
 mod skip;
+mod tag;
 mod then;
 mod times;
 mod token;
@@ -60,6 +61,7 @@ pub use sep_by::{SepBy, SepByEnd};
 pub use sep_by_times::{SepByEndTimes, SepByTimes};
 pub use set::{NoneOf, OneOf, Set};
 pub use skip::{AheadOf, Behind, Between, Discard};
+pub use tag::Tag;
 pub use then::{Then, TryThen};
 pub use times::Times;
 pub use token::{Not, Token};
@@ -169,6 +171,16 @@ where
     T: IntoIterator<Item = &'a I::Ok> + Clone,
 {
     assert_parser(Tokens::new(tokens))
+}
+
+/// Parses a static string like [`tokens`].
+///
+/// [`tokens`]: crate::parser::tokens
+pub fn tag<I>(tag: &'static str) -> Tag<I>
+where
+    I: Positioned<Ok = char> + ?Sized,
+{
+    assert_parser(Tag::new(tag))
 }
 
 /// Wrapping the function into a parser or a streaned parser.
