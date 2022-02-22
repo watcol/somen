@@ -167,12 +167,10 @@ where
         tracker: &mut Tracker<I::Ok>,
     ) -> Poll<ParseResult<Self::Output, I>> {
         loop {
-            match ready!(self.inner.poll_parse_next(
-                input.as_mut(),
-                cx,
-                state,
-                tracker
-            )?) {
+            match ready!(self
+                .inner
+                .poll_parse_next(input.as_mut(), cx, state, tracker)?)
+            {
                 Some(_) => continue,
                 None => break Poll::Ready(Ok(())),
             }
