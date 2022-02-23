@@ -614,10 +614,11 @@ pub trait ParserExt<I: Positioned + ?Sized>: Parser<I> {
     ///
     /// [`expect`]: Self::expect
     #[inline]
-    fn map_err<F, O>(self, f: F) -> MapErr<Self, F>
+    fn map_err<F, E>(self, f: F) -> MapErr<Self, F>
     where
         Self: Sized,
-        F: FnMut(Expects<I::Ok>) -> Expects<I::Ok>,
+        F: FnMut(Expects<I::Ok>) -> E,
+        E: Into<Expects<I::Ok>>,
     {
         assert_parser(MapErr::new(self, f))
     }

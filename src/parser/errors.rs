@@ -213,12 +213,12 @@ where
         self.inner
             .poll_parse(input.as_mut(), cx, &mut state.inner, tracker)
             .map_err(|err| match err {
-                ParseError::Parser { .. } => ParseError::Parser {
+                ParseError::Parser { fatal: false, .. } => ParseError::Parser {
                     expects: self.expects.clone(),
                     position: state.take_start()..input.position(),
                     fatal: false,
                 },
-                ParseError::Stream(e) => ParseError::Stream(e),
+                err => err,
             })
     }
 }
