@@ -125,7 +125,7 @@ pub trait Set<T> {
     }
 }
 
-impl<'a, T, S: Set<T>> Set<T> for &'a S {
+impl<'a, T, S: Set<T> + ?Sized> Set<T> for &'a S {
     #[inline]
     fn contains(&self, token: &T) -> bool {
         (**self).contains(token)
