@@ -1,8 +1,9 @@
+use core::mem;
 use core::pin::Pin;
 use core::task::{Context, Poll};
 use futures_core::ready;
 
-use crate::error::{ParseResult, Tracker};
+use crate::error::{PolledResult, Tracker};
 use crate::parser::streamed::StreamedParser;
 use crate::stream::Positioned;
 
@@ -32,6 +33,7 @@ impl<P> Flatten<P> {
 pub struct FlattenState<C, I> {
     inner: C,
     iter: Option<I>,
+    committed: bool,
 }
 
 impl<C: Default, I> Default for FlattenState<C, I> {
@@ -40,6 +42,7 @@ impl<C: Default, I> Default for FlattenState<C, I> {
         Self {
             inner: Default::default(),
             iter: None,
+            committed: false,
         }
     }
 }
@@ -59,11 +62,11 @@ where
         cx: &mut Context<'_>,
         state: &mut Self::State,
         tracker: &mut Tracker<I::Ok>,
-    ) -> Poll<ParseResult<Option<Self::Item>, I>> {
+    ) -> PolledResult<Option<Self::Item>, I> {
         loop {
             if let Some(iter) = &mut state.iter {
                 if let Some(val) = iter.next() {
-                    break Poll::Ready(Ok(Some(val)));
+                    break Poll::Ready(Ok((Some(val), mem::take(&mut state.committed))));
                 }
             }
 
@@ -73,8 +76,11 @@ where
                 &mut state.inner,
                 tracker
             )?) {
-                Some(val) => state.iter = Some(val.into_iter()),
-                None => break Poll::Ready(Ok(None)),
+                (Some(val), committed) => {
+                    state.iter = Some(val.into_iter());
+                    state.committed |= committed;
+                }
+                (None, committed) => break Poll::Ready(Ok((None, state.committed || committed))),
             }
         }
     }

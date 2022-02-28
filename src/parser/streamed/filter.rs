@@ -1,8 +1,9 @@
+use core::mem;
 use core::pin::Pin;
 use core::task::{Context, Poll};
 use futures_core::ready;
 
-use crate::error::{ParseResult, Tracker};
+use crate::error::{PolledResult, Tracker};
 use crate::parser::streamed::StreamedParser;
 use crate::stream::Positioned;
 
@@ -36,7 +37,7 @@ where
     I: Positioned + ?Sized,
 {
     type Item = P::Item;
-    type State = P::State;
+    type State = (P::State, bool);
 
     fn poll_parse_next(
         &mut self,
@@ -44,15 +45,17 @@ where
         cx: &mut Context<'_>,
         state: &mut Self::State,
         tracker: &mut Tracker<I::Ok>,
-    ) -> Poll<ParseResult<Option<Self::Item>, I>> {
+    ) -> PolledResult<Option<Self::Item>, I> {
         loop {
             match ready!(self
                 .inner
-                .poll_parse_next(input.as_mut(), cx, state, tracker)?)
+                .poll_parse_next(input.as_mut(), cx, &mut state.0, tracker)?)
             {
-                Some(val) if (self.f)(&val) => break Poll::Ready(Ok(Some(val))),
-                Some(_) => continue,
-                None => break Poll::Ready(Ok(None)),
+                (Some(val), committed) if (self.f)(&val) => {
+                    break Poll::Ready(Ok((Some(val), mem::take(&mut state.1) || committed)))
+                }
+                (Some(_), committed) => state.1 |= committed,
+                (None, committed) => break Poll::Ready(Ok((None, state.1 | committed))),
             }
         }
     }

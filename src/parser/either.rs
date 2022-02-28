@@ -1,7 +1,7 @@
 use core::pin::Pin;
-use core::task::{Context, Poll};
+use core::task::Context;
 
-use crate::error::{ParseResult, Tracker};
+use crate::error::{PolledResult, Tracker};
 use crate::parser::streamed::StreamedParser;
 use crate::parser::Parser;
 use crate::stream::Positioned;
@@ -49,7 +49,7 @@ where
         cx: &mut Context<'_>,
         state: &mut Self::State,
         tracker: &mut Tracker<I::Ok>,
-    ) -> Poll<ParseResult<Self::Output, I>> {
+    ) -> PolledResult<Self::Output, I> {
         match self {
             Self::Left(left) => {
                 if !matches!(state, Some(Either::Left(_))) {
@@ -82,7 +82,7 @@ where
         cx: &mut Context<'_>,
         state: &mut Self::State,
         tracker: &mut Tracker<I::Ok>,
-    ) -> Poll<ParseResult<Option<Self::Item>, I>> {
+    ) -> PolledResult<Option<Self::Item>, I> {
         match self {
             Self::Left(left) => {
                 if !matches!(state, Some(Either::Left(_))) {

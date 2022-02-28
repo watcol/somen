@@ -1,8 +1,9 @@
+use core::mem;
 use core::pin::Pin;
 use core::task::{Context, Poll};
 use futures_core::ready;
 
-use crate::error::{ParseResult, Tracker};
+use crate::error::{PolledResult, Tracker};
 use crate::parser::streamed::StreamedParser;
 use crate::stream::Positioned;
 
@@ -33,7 +34,9 @@ impl<P> FlatTimes<P> {
 pub struct FlatTimesState<C> {
     inner: C,
     count: usize,
-    consumed: bool,
+    committed: bool,
+    prev_committed: bool,
+    stream_committed: bool,
 }
 
 impl<C: Default> Default for FlatTimesState<C> {
@@ -42,7 +45,9 @@ impl<C: Default> Default for FlatTimesState<C> {
         Self {
             inner: C::default(),
             count: 0,
-            consumed: false,
+            committed: false,
+            prev_committed: false,
+            stream_committed: false,
         }
     }
 }
@@ -61,26 +66,30 @@ where
         cx: &mut Context<'_>,
         state: &mut Self::State,
         tracker: &mut Tracker<I::Ok>,
-    ) -> Poll<ParseResult<Option<Self::Item>, I>> {
+    ) -> PolledResult<Option<Self::Item>, I> {
         loop {
             if state.count >= self.count {
-                break Poll::Ready(Ok(None));
+                break Poll::Ready(Ok((None, state.prev_committed)));
             }
 
             match ready!(self
                 .inner
                 .poll_parse_next(input.as_mut(), cx, &mut state.inner, tracker))
             {
-                Ok(Some(val)) => {
-                    state.consumed = true;
-                    break Poll::Ready(Ok(Some(val)));
+                Ok((Some(val), committed)) => {
+                    state.stream_committed |= committed;
+                    break Poll::Ready(Ok((
+                        Some(val),
+                        mem::take(&mut state.prev_committed) || committed,
+                    )));
                 }
-                Ok(None) => {
+                Ok((None, committed)) => {
+                    state.committed = mem::take(&mut state.stream_committed) | committed;
+                    state.prev_committed |= committed;
                     state.count += 1;
                     state.inner = Default::default();
                 }
-                Err(err) if !state.consumed => break Poll::Ready(Err(err)),
-                Err(err) => break Poll::Ready(Err(err.fatal(true))),
+                Err(err) => break Poll::Ready(Err(err.fatal_if(state.committed))),
             }
         }
     }

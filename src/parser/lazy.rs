@@ -1,8 +1,8 @@
 use core::pin::Pin;
-use core::task::{Context, Poll};
+use core::task::Context;
 
 use super::streamed::StreamedParser;
-use crate::error::{ParseResult, Tracker};
+use crate::error::{PolledResult, Tracker};
 use crate::parser::Parser;
 use crate::stream::Positioned;
 
@@ -54,7 +54,7 @@ where
         cx: &mut Context<'_>,
         state: &mut Self::State,
         tracker: &mut Tracker<I::Ok>,
-    ) -> Poll<ParseResult<Self::Output, I>> {
+    ) -> PolledResult<Self::Output, I> {
         state.parser.get_or_insert_with(&mut self.f).poll_parse(
             input,
             cx,
@@ -80,7 +80,7 @@ where
         cx: &mut Context<'_>,
         state: &mut Self::State,
         tracker: &mut Tracker<I::Ok>,
-    ) -> Poll<ParseResult<Option<Self::Item>, I>> {
+    ) -> PolledResult<Option<Self::Item>, I> {
         state
             .parser
             .get_or_insert_with(&mut self.f)

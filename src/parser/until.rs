@@ -3,7 +3,7 @@ use core::pin::Pin;
 use core::task::{Context, Poll};
 use futures_core::ready;
 
-use crate::error::{ParseError, ParseResult, Tracker};
+use crate::error::{ParseError, PolledResult, Tracker};
 use crate::parser::Parser;
 use crate::prelude::StreamedParser;
 use crate::stream::Input;
@@ -37,7 +37,7 @@ impl<P, Q> Until<P, Q> {
 pub struct UntilState<C, D, M> {
     inner: EitherState<C, D>,
     queued_marker: Option<M>,
-    consumed: bool,
+    committed: bool,
 }
 
 impl<C, D: Default, M> Default for UntilState<C, D, M> {
@@ -46,7 +46,7 @@ impl<C, D: Default, M> Default for UntilState<C, D, M> {
         Self {
             inner: EitherState::Right(Default::default()),
             queued_marker: None,
-            consumed: false,
+            committed: false,
         }
     }
 }
@@ -66,16 +66,16 @@ where
         cx: &mut Context<'_>,
         state: &mut Self::State,
         tracker: &mut Tracker<I::Ok>,
-    ) -> Poll<ParseResult<Option<Self::Item>, I>> {
+    ) -> PolledResult<Option<Self::Item>, I> {
         if state.queued_marker.is_none() {
             state.queued_marker = Some(input.as_mut().mark()?);
         }
 
         if let EitherState::Right(inner) = &mut state.inner {
             match ready!(self.end.poll_parse(input.as_mut(), cx, inner, tracker)) {
-                Ok(_) => {
+                Ok((_, committed)) => {
                     input.drop_marker(mem::take(&mut state.queued_marker).unwrap())?;
-                    return Poll::Ready(Ok(None));
+                    return Poll::Ready(Ok((None, committed)));
                 }
                 Err(ParseError::Parser {
                     expects,
@@ -102,13 +102,12 @@ where
                 state.inner.as_mut_left(),
                 tracker
             )) {
-                Ok(val) => {
+                Ok((val, committed)) => {
                     state.inner = EitherState::Right(Default::default());
-                    state.consumed = true;
-                    Ok(Some(val))
+                    state.committed |= committed;
+                    Ok((Some(val), committed))
                 }
-                Err(err) if state.consumed => Err(err.fatal(true)),
-                Err(err) => Err(err),
+                Err(err) => Err(err.fatal_if(state.committed)),
             },
         )
     }

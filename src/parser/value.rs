@@ -2,7 +2,7 @@ use core::marker::PhantomData;
 use core::pin::Pin;
 use core::task::{Context, Poll};
 
-use crate::error::{ParseResult, Tracker};
+use crate::error::{PolledResult, Tracker};
 use crate::parser::Parser;
 use crate::stream::Positioned;
 
@@ -37,8 +37,8 @@ impl<I: Positioned + ?Sized, T: Clone> Parser<I> for Value<I, T> {
         _cx: &mut Context<'_>,
         _state: &mut Self::State,
         _tracker: &mut Tracker<I::Ok>,
-    ) -> Poll<ParseResult<Self::Output, I>> {
-        Poll::Ready(Ok(self.value.clone()))
+    ) -> PolledResult<Self::Output, I> {
+        Poll::Ready(Ok((self.value.clone(), false)))
     }
 }
 
@@ -73,7 +73,7 @@ impl<I: Positioned + ?Sized, F: FnMut() -> T, T> Parser<I> for ValueFn<I, F> {
         _cx: &mut Context<'_>,
         _state: &mut Self::State,
         _tracker: &mut Tracker<I::Ok>,
-    ) -> Poll<ParseResult<Self::Output, I>> {
-        Poll::Ready(Ok((self.f)()))
+    ) -> PolledResult<Self::Output, I> {
+        Poll::Ready(Ok(((self.f)(), false)))
     }
 }

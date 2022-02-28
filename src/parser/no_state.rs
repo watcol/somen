@@ -3,7 +3,7 @@ use core::task::{Context, Poll};
 use futures_core::ready;
 
 use super::streamed::StreamedParser;
-use crate::error::{ParseResult, Tracker};
+use crate::error::{PolledResult, Tracker};
 use crate::parser::Parser;
 use crate::stream::Positioned;
 
@@ -50,7 +50,7 @@ where
         cx: &mut Context<'_>,
         _state: &mut Self::State,
         tracker: &mut Tracker<I::Ok>,
-    ) -> Poll<ParseResult<Self::Output, I>> {
+    ) -> PolledResult<Self::Output, I> {
         match self.inner.poll_parse(input, cx, &mut self.state, tracker) {
             Poll::Ready(res) => {
                 self.state = Default::default();
@@ -75,13 +75,13 @@ where
         cx: &mut Context<'_>,
         _state: &mut Self::State,
         tracker: &mut Tracker<I::Ok>,
-    ) -> Poll<ParseResult<Option<Self::Item>, I>> {
+    ) -> PolledResult<Option<Self::Item>, I> {
         Poll::Ready(
             match ready!(self
                 .inner
                 .poll_parse_next(input, cx, &mut self.state, tracker))
             {
-                Ok(Some(val)) => Ok(Some(val)),
+                Ok((Some(val), committed)) => Ok((Some(val), committed)),
                 res => {
                     self.state = Default::default();
                     res

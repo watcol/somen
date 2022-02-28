@@ -1,8 +1,8 @@
 use core::pin::Pin;
-use core::task::{Context, Poll};
+use core::task::Context;
 
 use super::utils::SpanState;
-use crate::error::{Expect, Expects, ParseError, ParseResult, Tracker};
+use crate::error::{Expect, Expects, ParseError, PolledResult, Tracker};
 use crate::parser::Parser;
 use crate::stream::Positioned;
 
@@ -45,14 +45,14 @@ where
         cx: &mut Context<'_>,
         state: &mut Self::State,
         tracker: &mut Tracker<I::Ok>,
-    ) -> Poll<ParseResult<Self::Output, I>> {
+    ) -> PolledResult<Self::Output, I> {
         state.set_start(|| input.position());
         self.inner
             .poll_parse(input.as_mut(), cx, &mut state.inner, tracker)
             .map(|res| {
-                res.and_then(|val| {
+                res.and_then(|(val, committed)| {
                     if (self.f)(&val) {
-                        Ok(val)
+                        Ok((val, committed))
                     } else {
                         tracker.clear();
                         Err(ParseError::Parser {

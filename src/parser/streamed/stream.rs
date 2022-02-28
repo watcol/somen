@@ -41,23 +41,22 @@ impl<P: StreamedParser<I> + ?Sized, I: Positioned + Unpin + ?Sized> Stream
             ref mut state,
             ref mut tracker,
         } = &mut *self;
-        match ready!(parser
-            .poll_parse_next(Pin::new(input), cx, state, tracker)
-            .map_err(|err| match err {
-                ParseError::Parser {
+        Poll::Ready(
+            match ready!(parser.poll_parse_next(Pin::new(input), cx, state, tracker)) {
+                Ok((Some(i), _)) => Some(Ok(i)),
+                Ok((None, _)) => None,
+                Err(ParseError::Parser {
                     expects,
                     position,
                     fatal,
-                } => ParseError::Parser {
+                }) => Some(Err(ParseError::Parser {
                     expects: expects.merge(tracker.clear()),
                     position,
                     fatal,
-                },
-                err => err,
-            })?) {
-            Some(i) => Poll::Ready(Some(Ok(i))),
-            None => Poll::Ready(None),
-        }
+                })),
+                Err(err) => Some(Err(err)),
+            },
+        )
     }
 
     #[inline]

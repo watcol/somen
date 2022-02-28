@@ -3,7 +3,7 @@ use core::task::{Context, Poll};
 use futures_core::ready;
 
 use super::streamed::StreamedParser;
-use crate::error::{ParseResult, Tracker};
+use crate::error::{PolledResult, Tracker};
 use crate::parser::Parser;
 use crate::stream::Positioned;
 
@@ -35,6 +35,7 @@ impl<P> Times<P> {
 pub struct TimesState<C> {
     inner: C,
     count: usize,
+    committed: bool,
 }
 
 impl<C: Default> Default for TimesState<C> {
@@ -43,6 +44,7 @@ impl<C: Default> Default for TimesState<C> {
         Self {
             inner: C::default(),
             count: 0,
+            committed: false,
         }
     }
 }
@@ -61,20 +63,20 @@ where
         cx: &mut Context<'_>,
         state: &mut Self::State,
         tracker: &mut Tracker<I::Ok>,
-    ) -> Poll<ParseResult<Option<Self::Item>, I>> {
+    ) -> PolledResult<Option<Self::Item>, I> {
         if state.count >= self.count {
-            return Poll::Ready(Ok(None));
+            return Poll::Ready(Ok((None, false)));
         }
 
         Poll::Ready(
             match ready!(self.inner.poll_parse(input, cx, &mut state.inner, tracker)) {
-                Ok(i) => {
+                Ok((i, committed)) => {
                     state.count += 1;
+                    state.committed |= committed;
                     state.inner = Default::default();
-                    Ok(Some(i))
+                    Ok((Some(i), committed))
                 }
-                Err(err) if state.count == 0 => Err(err),
-                Err(err) => Err(err.fatal(true)),
+                Err(err) => Err(err.fatal_if(state.committed)),
             },
         )
     }

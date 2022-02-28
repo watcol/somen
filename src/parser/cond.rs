@@ -3,7 +3,7 @@ use core::pin::Pin;
 use core::task::{Context, Poll};
 use futures_core::ready;
 
-use crate::error::{Expect, Expects, ParseError, ParseResult, Tracker};
+use crate::error::{Expect, Expects, ParseError, PolledResult, Tracker};
 use crate::parser::Parser;
 use crate::stream::Positioned;
 
@@ -41,12 +41,12 @@ where
         cx: &mut Context<'_>,
         _state: &mut Self::State,
         tracker: &mut Tracker<I::Ok>,
-    ) -> Poll<ParseResult<Self::Output, I>> {
+    ) -> PolledResult<Self::Output, I> {
         let start = input.position();
         Poll::Ready(match ready!(input.as_mut().try_poll_next(cx)?) {
             Some(i) if (self.cond)(&i) => {
                 tracker.clear();
-                Ok(i)
+                Ok((i, true))
             }
             _ => Err(ParseError::Parser {
                 expects: Expects::new(Expect::Static("<condition>")),
@@ -91,13 +91,13 @@ where
         cx: &mut Context<'_>,
         _state: &mut Self::State,
         tracker: &mut Tracker<I::Ok>,
-    ) -> Poll<ParseResult<Self::Output, I>> {
+    ) -> PolledResult<Self::Output, I> {
         let start = input.position();
         let parsed = ready!(input.as_mut().try_poll_next(cx)?);
         Poll::Ready(match parsed {
             Some(i) if !(self.cond)(&i) => {
                 tracker.clear();
-                Ok(i)
+                Ok((i, true))
             }
             _ => Err(ParseError::Parser {
                 expects: Expects::new(Expect::Static("<condition>")),
@@ -142,7 +142,7 @@ where
         cx: &mut Context<'_>,
         _state: &mut Self::State,
         tracker: &mut Tracker<I::Ok>,
-    ) -> Poll<ParseResult<Self::Output, I>> {
+    ) -> PolledResult<Self::Output, I> {
         let start = input.position();
         let parsed = ready!(input.as_mut().try_poll_next(cx)?);
         Poll::Ready(match parsed {
@@ -150,7 +150,7 @@ where
             Some(i) => match (self.cond)(&i) {
                 Some(res) => {
                     tracker.clear();
-                    Ok(res)
+                    Ok((res, true))
                 }
                 None => Err(ParseError::Parser {
                     expects: Expects::new(Expect::Static("<some>")),

@@ -20,7 +20,7 @@ mod until;
 
 use core::ops::RangeBounds;
 use core::pin::Pin;
-use core::task::{Context, Poll};
+use core::task::Context;
 
 pub use choice::ChoiceStreamedParser;
 pub use collect::{Collect, Count, Discard};
@@ -39,7 +39,7 @@ pub use times::FlatTimes;
 pub use until::FlatUntil;
 
 use super::{assert_parser, AheadOf, Behind, Between, Either, Map, NoState, Or, Parser, TryMap};
-use crate::error::{Expects, ParseResult, Tracker};
+use crate::error::{Expects, PolledResult, Tracker};
 use crate::stream::{Input, Positioned};
 use stream::ParserStream;
 
@@ -83,7 +83,7 @@ pub trait StreamedParser<I: Positioned + ?Sized> {
         cx: &mut Context<'_>,
         state: &mut Self::State,
         tracker: &mut Tracker<I::Ok>,
-    ) -> Poll<ParseResult<Option<Self::Item>, I>>;
+    ) -> PolledResult<Option<Self::Item>, I>;
 
     /// The estimated size of returned stream.
     fn size_hint(&self) -> (usize, Option<usize>) {
@@ -512,7 +512,7 @@ impl<'a, P: StreamedParser<I> + ?Sized, I: Positioned + ?Sized> StreamedParser<I
         cx: &mut Context<'_>,
         state: &mut Self::State,
         tracker: &mut Tracker<I::Ok>,
-    ) -> Poll<ParseResult<Option<Self::Item>, I>> {
+    ) -> PolledResult<Option<Self::Item>, I> {
         (**self).poll_parse_next(input, cx, state, tracker)
     }
 
@@ -535,7 +535,7 @@ impl<P: StreamedParser<I> + ?Sized, I: Positioned + ?Sized> StreamedParser<I> fo
         cx: &mut Context<'_>,
         state: &mut Self::State,
         tracker: &mut Tracker<I::Ok>,
-    ) -> Poll<ParseResult<Option<Self::Item>, I>> {
+    ) -> PolledResult<Option<Self::Item>, I> {
         (**self).poll_parse_next(input, cx, state, tracker)
     }
 

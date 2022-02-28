@@ -4,7 +4,7 @@ use core::pin::Pin;
 use core::task::{Context, Poll};
 use futures_core::ready;
 
-use crate::error::{ParseError, ParseResult, Tracker};
+use crate::error::{ParseError, PolledResult, Tracker};
 use crate::prelude::StreamedParser;
 use crate::stream::Input;
 
@@ -37,6 +37,8 @@ pub struct FlatRepeatState<C, M> {
     queued_marker: Option<M>,
     count: usize,
     streaming: bool,
+    committed: bool,
+    prev_committed: bool,
 }
 
 impl<C: Default, M> Default for FlatRepeatState<C, M> {
@@ -47,6 +49,8 @@ impl<C: Default, M> Default for FlatRepeatState<C, M> {
             queued_marker: None,
             count: 0,
             streaming: false,
+            committed: false,
+            prev_committed: false,
         }
     }
 }
@@ -66,7 +70,7 @@ where
         cx: &mut Context<'_>,
         state: &mut Self::State,
         tracker: &mut Tracker<I::Ok>,
-    ) -> Poll<ParseResult<Option<Self::Item>, I>> {
+    ) -> PolledResult<Option<Self::Item>, I> {
         // Return `None` if the number of items already reached `end_bound`.
         loop {
             if match self.range.end_bound() {
@@ -74,7 +78,7 @@ where
                 Bound::Excluded(i) => state.count + 1 >= *i,
                 Bound::Unbounded => false,
             } {
-                break Poll::Ready(Ok(None));
+                break Poll::Ready(Ok((None, state.prev_committed)));
             } else if state.streaming {
                 match ready!(self.inner.poll_parse_next(
                     input.as_mut(),
@@ -82,13 +86,18 @@ where
                     &mut state.inner,
                     tracker
                 )) {
-                    Ok(Some(val)) => break Poll::Ready(Ok(Some(val))),
-                    Ok(None) => {
+                    Ok((Some(val), committed)) => {
+                        state.prev_committed |= committed;
+                        break Poll::Ready(Ok((Some(val), committed)));
+                    }
+                    Ok((None, committed)) => {
                         state.inner = Default::default();
                         state.count += 1;
+                        state.committed |= state.prev_committed || committed;
+                        state.prev_committed = committed;
                         state.streaming = false;
                     }
-                    Err(err) => break Poll::Ready(Err(err.fatal(true))),
+                    Err(err) => break Poll::Ready(Err(err.fatal(state.committed))),
                 }
             }
 
@@ -101,17 +110,21 @@ where
                 .inner
                 .poll_parse_next(input.as_mut(), cx, &mut state.inner, tracker))
             {
-                Ok(Some(val)) => {
+                Ok((Some(val), committed)) => {
                     input
                         .as_mut()
                         .drop_marker(mem::take(&mut state.queued_marker).unwrap())?;
                     state.streaming = true;
-                    break Poll::Ready(Ok(Some(val)));
+                    let ret_committed = state.prev_committed || committed;
+                    state.prev_committed = committed;
+                    break Poll::Ready(Ok((Some(val), ret_committed)));
                 }
-                Ok(None) => {
+                Ok((None, committed)) => {
                     input
                         .as_mut()
                         .drop_marker(mem::take(&mut state.queued_marker).unwrap())?;
+                    state.committed |= committed;
+                    state.prev_committed |= committed;
                     state.inner = Default::default();
                     state.count += 1;
                 }
@@ -123,17 +136,11 @@ where
                 }) if self.range.contains(&state.count) => {
                     input.rewind(mem::take(&mut state.queued_marker).unwrap())?;
                     tracker.add(expects);
-                    break Poll::Ready(Ok(None));
+                    break Poll::Ready(Ok((None, false)));
                 }
                 Err(err) => {
                     input.drop_marker(mem::take(&mut state.queued_marker).unwrap())?;
-                    // If the parser has succeeded parsing at least once, rewinding the parser is
-                    // not appropriate.
-                    break Poll::Ready(Err(if state.count > 0 {
-                        err.fatal(true)
-                    } else {
-                        err
-                    }));
+                    break Poll::Ready(Err(err.fatal_if(state.committed)));
                 }
             }
         }

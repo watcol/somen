@@ -1,8 +1,8 @@
 use alloc::borrow::ToOwned;
 use core::pin::Pin;
-use core::task::{Context, Poll};
+use core::task::Context;
 
-use crate::error::{ParseResult, Tracker};
+use crate::error::{PolledResult, Tracker};
 use crate::parser::Parser;
 use crate::stream::NoRewindInput;
 
@@ -49,7 +49,7 @@ where
         cx: &mut Context<'_>,
         state: &mut Self::State,
         tracker: &mut Tracker<I::Ok>,
-    ) -> Poll<ParseResult<Self::Output, I>> {
+    ) -> PolledResult<Self::Output, I> {
         if !state.started {
             input.as_mut().start();
             state.started = true;
@@ -57,9 +57,9 @@ where
 
         self.inner
             .poll_parse(input.as_mut(), cx, &mut state.inner, tracker)
-            .map_ok(|_| {
+            .map_ok(|(_, committed)| {
                 state.started = false;
-                input.end().into_owned()
+                (input.end().into_owned(), committed)
             })
     }
 }
@@ -101,7 +101,7 @@ where
         cx: &mut Context<'_>,
         state: &mut Self::State,
         tracker: &mut Tracker<I::Ok>,
-    ) -> Poll<ParseResult<Self::Output, I>> {
+    ) -> PolledResult<Self::Output, I> {
         if !state.started {
             input.as_mut().start();
             state.started = true;
@@ -109,9 +109,9 @@ where
 
         self.inner
             .poll_parse(input.as_mut(), cx, &mut state.inner, tracker)
-            .map_ok(|o| {
+            .map_ok(|(res, committed)| {
                 state.started = false;
-                (o, input.end().into_owned())
+                ((res, input.end().into_owned()), committed)
             })
     }
 }

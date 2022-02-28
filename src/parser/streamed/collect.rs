@@ -4,7 +4,7 @@ use core::pin::Pin;
 use core::task::{Context, Poll};
 use futures_core::ready;
 
-use crate::error::{ParseResult, Tracker};
+use crate::error::{PolledResult, Tracker};
 use crate::parser::Parser;
 use crate::stream::Positioned;
 
@@ -40,6 +40,7 @@ impl<P, E> Collect<P, E> {
 pub struct CollectState<C, E> {
     inner: C,
     collection: E,
+    committed: bool,
 }
 
 impl<P, E, I> Parser<I> for Collect<P, E>
@@ -57,7 +58,7 @@ where
         cx: &mut Context<'_>,
         state: &mut Self::State,
         tracker: &mut Tracker<I::Ok>,
-    ) -> Poll<ParseResult<Self::Output, I>> {
+    ) -> PolledResult<Self::Output, I> {
         loop {
             match ready!(self.inner.poll_parse_next(
                 input.as_mut(),
@@ -65,8 +66,16 @@ where
                 &mut state.inner,
                 tracker
             )?) {
-                Some(x) => state.collection.extend(Some(x)),
-                None => break Poll::Ready(Ok(mem::take(&mut state.collection))),
+                (Some(x), committed) => {
+                    state.collection.extend(Some(x));
+                    state.committed |= committed;
+                }
+                (None, committed) => {
+                    break Poll::Ready(Ok((
+                        mem::take(&mut state.collection),
+                        state.committed | committed,
+                    )))
+                }
             }
         }
     }
@@ -98,6 +107,7 @@ impl<P> Count<P> {
 pub struct CountState<C> {
     inner: C,
     count: usize,
+    committed: bool,
 }
 
 impl<P, I> Parser<I> for Count<P>
@@ -114,7 +124,7 @@ where
         cx: &mut Context<'_>,
         state: &mut Self::State,
         tracker: &mut Tracker<I::Ok>,
-    ) -> Poll<ParseResult<Self::Output, I>> {
+    ) -> PolledResult<Self::Output, I> {
         loop {
             match ready!(self.inner.poll_parse_next(
                 input.as_mut(),
@@ -122,8 +132,16 @@ where
                 &mut state.inner,
                 tracker
             )?) {
-                Some(_) => state.count += 1,
-                None => break Poll::Ready(Ok(mem::take(&mut state.count))),
+                (Some(_), committed) => {
+                    state.count += 1;
+                    state.committed |= committed
+                }
+                (None, committed) => {
+                    break Poll::Ready(Ok((
+                        mem::take(&mut state.count),
+                        state.committed | committed,
+                    )))
+                }
             }
         }
     }
@@ -157,7 +175,7 @@ where
     I: Positioned + ?Sized,
 {
     type Output = ();
-    type State = P::State;
+    type State = (P::State, bool);
 
     fn poll_parse(
         &mut self,
@@ -165,14 +183,14 @@ where
         cx: &mut Context<'_>,
         state: &mut Self::State,
         tracker: &mut Tracker<I::Ok>,
-    ) -> Poll<ParseResult<Self::Output, I>> {
+    ) -> PolledResult<Self::Output, I> {
         loop {
             match ready!(self
                 .inner
-                .poll_parse_next(input.as_mut(), cx, state, tracker)?)
+                .poll_parse_next(input.as_mut(), cx, &mut state.0, tracker)?)
             {
-                Some(_) => continue,
-                None => break Poll::Ready(Ok(())),
+                (Some(_), committed) => state.1 |= committed,
+                (None, committed) => break Poll::Ready(Ok(((), state.1 | committed))),
             }
         }
     }

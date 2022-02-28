@@ -4,7 +4,7 @@ use core::str::Chars;
 use core::task::{Context, Poll};
 use futures_core::ready;
 
-use crate::error::{Expect, Expects, ParseError, ParseResult, Tracker};
+use crate::error::{Expect, Expects, ParseError, PolledResult, Tracker};
 use crate::parser::Parser;
 use crate::stream::Positioned;
 
@@ -43,7 +43,7 @@ where
         cx: &mut Context<'_>,
         state: &mut Self::State,
         tracker: &mut Tracker<I::Ok>,
-    ) -> Poll<ParseResult<Self::Output, I>> {
+    ) -> PolledResult<Self::Output, I> {
         state.set_start(|| input.position());
         let iter = state.inner.get_or_insert_with(|| self.tag.chars());
         loop {
@@ -51,7 +51,7 @@ where
                 Some(i) => i,
                 None => {
                     tracker.clear();
-                    break Poll::Ready(Ok(self.tag));
+                    break Poll::Ready(Ok((self.tag, !self.tag.is_empty())));
                 }
             };
 

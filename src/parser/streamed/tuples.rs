@@ -3,7 +3,7 @@ use core::task::{Context, Poll};
 use futures_core::ready;
 
 use super::StreamedParser;
-use crate::error::{ParseResult, Tracker};
+use crate::error::{PolledResult, Tracker};
 use crate::stream::Positioned;
 
 macro_rules! tuple_parser {
@@ -15,6 +15,8 @@ macro_rules! tuple_parser {
             $(
                 $t: Option<$t>,
             )*
+            committed: bool,
+            prev_committed: bool,
         }
 
         impl<$h, $($t),*> Default for $state<$h, $($t),*>
@@ -27,6 +29,8 @@ macro_rules! tuple_parser {
                 Self {
                     $h: Some(Default::default()),
                     $( $t: Some(Default::default()), )*
+                    committed: false,
+                    prev_committed: false,
                 }
             }
         }
@@ -46,30 +50,45 @@ macro_rules! tuple_parser {
                 cx: &mut Context<'_>,
                 state: &mut Self::State,
                 tracker: &mut Tracker<I::Ok>,
-            ) -> Poll<ParseResult<Option<Self::Item>, I>> {
+            ) -> PolledResult<Option<Self::Item>, I> {
                 #[allow(non_snake_case)]
                 let ($h, $($t),*) = self;
 
                 if let Some(inner) = &mut state.$h {
-                    match ready!($h.poll_parse_next(input.as_mut(), cx, inner, tracker))? {
-                        Some(val) => return Poll::Ready(Ok(Some(val))),
-                        None => state.$h = None,
+                    match ready!($h.poll_parse_next(input.as_mut(), cx, inner, tracker)) {
+                        Ok((Some(val), committed)) => {
+                            let committed = state.prev_committed || committed;
+                            state.committed |= committed;
+                            state.prev_committed = false;
+                            return Poll::Ready(Ok((Some(val), committed)));
+                        },
+                        Ok((None, committed)) => {
+                            state.prev_committed |= committed;
+                            state.$h = None;
+                        }
+                        Err(err) => return Poll::Ready(Err(err.fatal_if(state.committed))),
                     }
                 }
 
                 $(
                     if let Some(inner) = &mut state.$t {
-                        match
-                            ready!($t.poll_parse_next(input.as_mut(), cx, inner, tracker))
-                                .map_err(|err| err.fatal(true))?
-                        {
-                            Some(val) => return Poll::Ready(Ok(Some(val))),
-                            None => state.$t = None,
+                        match ready!($t.poll_parse_next(input.as_mut(), cx, inner, tracker)) {
+                            Ok((Some(val), committed)) => {
+                                let committed = state.prev_committed || committed;
+                                state.committed |= committed;
+                                state.prev_committed = false;
+                                return Poll::Ready(Ok((Some(val), committed)));
+                            },
+                            Ok((None, committed)) => {
+                                state.prev_committed |= committed;
+                                state.$t = None;
+                            }
+                            Err(err) => return Poll::Ready(Err(err.fatal_if(state.committed))),
                         }
                     }
                 )*
 
-                Poll::Ready(Ok(None))
+                Poll::Ready(Ok((None, state.prev_committed)))
             }
 
             fn size_hint(&self) -> (usize, Option<usize>) {

@@ -1,8 +1,8 @@
 use core::pin::Pin;
-use core::task::{Context, Poll};
+use core::task::Context;
 
 use super::utils::SpanState;
-use crate::error::{Expects, ParseError, ParseResult, Tracker};
+use crate::error::{Expects, ParseError, PolledResult, Tracker};
 use crate::parser::Parser;
 use crate::stream::Positioned;
 
@@ -45,7 +45,7 @@ where
         cx: &mut Context<'_>,
         state: &mut Self::State,
         tracker: &mut Tracker<I::Ok>,
-    ) -> Poll<ParseResult<Self::Output, I>> {
+    ) -> PolledResult<Self::Output, I> {
         self.inner
             .poll_parse(input, cx, state, tracker)
             .map_err(|err| match err {
@@ -99,7 +99,7 @@ where
         cx: &mut Context<'_>,
         state: &mut Self::State,
         tracker: &mut Tracker<I::Ok>,
-    ) -> Poll<ParseResult<Self::Output, I>> {
+    ) -> PolledResult<Self::Output, I> {
         state.set_start(|| input.position());
         self.inner
             .poll_parse(input.as_mut(), cx, &mut state.inner, tracker)
@@ -151,7 +151,7 @@ where
         cx: &mut Context<'_>,
         state: &mut Self::State,
         tracker: &mut Tracker<I::Ok>,
-    ) -> Poll<ParseResult<Self::Output, I>> {
+    ) -> PolledResult<Self::Output, I> {
         self.inner
             .poll_parse(input, cx, state, tracker)
             .map_err(|err| match err {
@@ -208,16 +208,19 @@ where
         cx: &mut Context<'_>,
         state: &mut Self::State,
         tracker: &mut Tracker<I::Ok>,
-    ) -> Poll<ParseResult<Self::Output, I>> {
+    ) -> PolledResult<Self::Output, I> {
         state.set_start(|| input.position());
         self.inner
             .poll_parse(input.as_mut(), cx, &mut state.inner, tracker)
             .map_err(|err| match err {
-                ParseError::Parser { fatal: false, .. } => ParseError::Parser {
-                    expects: self.expects.clone(),
-                    position: state.take_start()..input.position(),
-                    fatal: false,
-                },
+                ParseError::Parser { fatal: false, .. } => {
+                    tracker.clear();
+                    ParseError::Parser {
+                        expects: self.expects.clone(),
+                        position: state.take_start()..input.position(),
+                        fatal: false,
+                    }
+                }
                 err => err,
             })
     }

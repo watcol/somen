@@ -4,42 +4,40 @@ use core::task::{Context, Poll};
 use futures_core::ready;
 
 use super::Parser;
-use crate::error::{ParseResult, Tracker};
+use crate::error::{PolledResult, Tracker};
 use crate::stream::Positioned;
 
 macro_rules! tuple_parser {
-    ($state:ident, $h:ident $(, $t:ident)*) => {
+    ($state:ident $(, $t:ident)*) => {
         #[derive(Clone, Debug, PartialEq, Eq)]
         #[allow(non_snake_case)]
-        pub struct $state <I: Positioned + ?Sized, $h: Parser<I>, $( $t: Parser<I> ),* > {
-            $h: (Option<$h::Output>, $h::State),
+        pub struct $state <I: Positioned + ?Sized, $( $t: Parser<I> ),* > {
             $(
                 $t: (Option<$t::Output>, $t::State),
             )*
+            committed: bool,
         }
 
-        impl<I, $h, $($t),*> Default for $state<I, $h, $($t),*>
+        impl<I, $($t),*> Default for $state<I, $($t),*>
         where I: Positioned + ?Sized,
-              $h: Parser<I>,
               $( $t: Parser<I>, )*
         {
             #[inline]
             fn default() -> Self {
                 Self {
-                    $h: (None, Default::default()),
                     $( $t: (None, Default::default()), )*
+                    committed: false,
                 }
             }
         }
 
-        impl<I, $h, $($t),*> Parser<I> for ($h, $($t),*)
+        impl<I, $($t),*> Parser<I> for ($($t),*,)
         where
             I: Positioned + ?Sized,
-            $h: Parser<I>,
             $( $t: Parser<I>, )*
         {
-            type Output = ($h::Output, $( $t::Output ),*);
-            type State = $state<I, $h, $($t),*>;
+            type Output = ($( $t::Output ),*,);
+            type State = $state<I, $($t),*>;
 
             fn poll_parse(
                 &mut self,
@@ -47,29 +45,25 @@ macro_rules! tuple_parser {
                 cx: &mut Context<'_>,
                 state: &mut Self::State,
                 tracker: &mut Tracker<I::Ok>,
-            ) -> Poll<ParseResult<Self::Output, I>> {
+            ) -> PolledResult<Self::Output, I> {
                 #[allow(non_snake_case)]
-                let ($h, $($t),*) = self;
-
-                if state.$h.0.is_none() {
-                    state.$h.0 = Some(
-                        ready!($h.poll_parse(input.as_mut(), cx, &mut state.$h.1, tracker))?
-                    );
-                }
+                let ($($t),*,) = self;
 
                 $(
                     if state.$t.0.is_none() {
-                        state.$t.0 = Some(
-                            ready!($t.poll_parse(input.as_mut(), cx, &mut state.$t.1, tracker))
-                                .map_err(|err| err.fatal(true))?
-                        );
+                        match ready!($t.poll_parse(input.as_mut(), cx, &mut state.$t.1, tracker)) {
+                            Ok((res, committed)) => {
+                                state.$t.0 = Some(res);
+                                state.committed |= committed;
+                            }
+                            Err(err) => return Poll::Ready(Err(err.fatal_if(state.committed))),
+                        }
                     }
                 )*
 
-                Poll::Ready(Ok((
-                    mem::take(&mut state.$h.0).unwrap(),
-                    $( mem::take(&mut state.$t.0).unwrap() ),*
-                )))
+                Poll::Ready(Ok(((
+                    $( mem::take(&mut state.$t.0).unwrap() ),*,
+                ), state.committed)))
             }
         }
     };

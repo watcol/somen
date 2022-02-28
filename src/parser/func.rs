@@ -1,10 +1,10 @@
 use core::marker::PhantomData;
 use core::pin::Pin;
-use core::task::{Context, Poll};
+use core::task::Context;
 
 use super::streamed::StreamedParser;
 use super::Parser;
-use crate::error::{ParseResult, Tracker};
+use crate::error::{PolledResult, Tracker};
 use crate::stream::Positioned;
 
 /// A parser for function [`function`].
@@ -29,7 +29,7 @@ impl<F, I: ?Sized, C> Function<F, I, C> {
 
 impl<F, I, O, C> Parser<I> for Function<F, I, C>
 where
-    F: FnMut(Pin<&mut I>, &mut Context<'_>, &mut C, &mut Tracker<I::Ok>) -> Poll<ParseResult<O, I>>,
+    F: FnMut(Pin<&mut I>, &mut Context<'_>, &mut C, &mut Tracker<I::Ok>) -> PolledResult<O, I>,
     I: Positioned + ?Sized,
     C: Default,
 {
@@ -43,23 +43,23 @@ where
         cx: &mut Context<'_>,
         state: &mut Self::State,
         tracker: &mut Tracker<I::Ok>,
-    ) -> Poll<ParseResult<Self::Output, I>> {
+    ) -> PolledResult<Self::Output, I> {
         (self.f)(input, cx, state, tracker)
     }
 }
 
-impl<F, I, O, C> StreamedParser<I> for Function<F, I, C>
+impl<F, I, T, C> StreamedParser<I> for Function<F, I, C>
 where
     F: FnMut(
         Pin<&mut I>,
         &mut Context<'_>,
         &mut C,
         &mut Tracker<I::Ok>,
-    ) -> Poll<ParseResult<Option<O>, I>>,
+    ) -> PolledResult<Option<T>, I>,
     I: Positioned + ?Sized,
     C: Default,
 {
-    type Item = O;
+    type Item = T;
     type State = C;
 
     #[inline]
@@ -69,7 +69,7 @@ where
         cx: &mut Context<'_>,
         state: &mut Self::State,
         tracker: &mut Tracker<I::Ok>,
-    ) -> Poll<ParseResult<Option<Self::Item>, I>> {
+    ) -> PolledResult<Option<Self::Item>, I> {
         (self.f)(input, cx, state, tracker)
     }
 }

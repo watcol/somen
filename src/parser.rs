@@ -71,9 +71,9 @@ pub use value::{Value, ValueFn};
 
 use core::ops::RangeBounds;
 use core::pin::Pin;
-use core::task::{Context, Poll};
+use core::task::Context;
 
-use crate::error::{Expects, ParseResult, Tracker};
+use crate::error::{Expects, PolledResult, Tracker};
 #[cfg(feature = "alloc")]
 use crate::stream::NoRewindInput;
 use crate::stream::{Input, Positioned};
@@ -187,7 +187,7 @@ where
 #[inline]
 pub fn function<F, I, O, E, C>(f: F) -> Function<F, I, C>
 where
-    F: FnMut(Pin<&mut I>, &mut Context<'_>, &mut C, &mut Tracker<I::Ok>) -> Poll<ParseResult<O, I>>,
+    F: FnMut(Pin<&mut I>, &mut Context<'_>, &mut C, &mut Tracker<I::Ok>) -> PolledResult<O, I>,
     I: Positioned + ?Sized,
     C: Default,
 {
@@ -260,7 +260,7 @@ pub trait Parser<I: Positioned + ?Sized> {
         cx: &mut Context<'_>,
         state: &mut Self::State,
         tracker: &mut Tracker<I::Ok>,
-    ) -> Poll<ParseResult<Self::Output, I>>;
+    ) -> PolledResult<Self::Output, I>;
 }
 
 /// An extension trait for [`Parser`].
@@ -683,7 +683,7 @@ impl<'a, P: Parser<I> + ?Sized, I: Positioned + ?Sized> Parser<I> for &'a mut P 
         cx: &mut Context<'_>,
         state: &mut Self::State,
         tracker: &mut Tracker<I::Ok>,
-    ) -> Poll<ParseResult<Self::Output, I>> {
+    ) -> PolledResult<Self::Output, I> {
         (**self).poll_parse(input, cx, state, tracker)
     }
 }
@@ -701,7 +701,7 @@ impl<P: Parser<I> + ?Sized, I: Positioned + ?Sized> Parser<I> for Box<P> {
         cx: &mut Context<'_>,
         state: &mut Self::State,
         tracker: &mut Tracker<I::Ok>,
-    ) -> Poll<ParseResult<Self::Output, I>> {
+    ) -> PolledResult<Self::Output, I> {
         (**self).poll_parse(input, cx, state, tracker)
     }
 }

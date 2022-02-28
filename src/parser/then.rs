@@ -1,9 +1,8 @@
-use core::mem;
 use core::pin::Pin;
-use core::task::{Context, Poll};
+use core::task::Context;
 use futures_core::ready;
 
-use crate::error::{Expects, ParseError, ParseResult, Tracker};
+use crate::error::{Expects, ParseError, PolledResult, Tracker};
 use crate::parser::Parser;
 use crate::stream::Positioned;
 
@@ -53,7 +52,7 @@ where
     I: Positioned + ?Sized,
 {
     type Output = Q::Output;
-    type State = ThenState<P::State, Q, Q::State>;
+    type State = (ThenState<P::State, Q, Q::State>, bool);
 
     fn poll_parse(
         &mut self,
@@ -61,23 +60,19 @@ where
         cx: &mut Context<'_>,
         state: &mut Self::State,
         tracker: &mut Tracker<I::Ok>,
-    ) -> Poll<ParseResult<Self::Output, I>> {
-        if let ThenState::Left(inner) = state {
-            *state = ThenState::Right(
-                (self.f)(ready!(self.inner.poll_parse(
-                    input.as_mut(),
-                    cx,
-                    inner,
-                    tracker
-                ))?),
-                Default::default(),
-            );
+    ) -> PolledResult<Self::Output, I> {
+        if let ThenState::Left(inner) = &mut state.0 {
+            let (output, committed) =
+                ready!(self.inner.poll_parse(input.as_mut(), cx, inner, tracker))?;
+            state.1 = committed;
+            state.0 = ThenState::Right((self.f)(output), Default::default());
         }
 
-        if let ThenState::Right(parser, inner) = state {
+        if let ThenState::Right(parser, inner) = &mut state.0 {
             parser
                 .poll_parse(input, cx, inner, tracker)
-                .map_err(|err| err.fatal(true))
+                .map_ok(|(res, committed)| (res, state.1 | committed))
+                .map_err(|err| err.fatal_if(state.1))
         } else {
             unreachable!()
         }
@@ -116,7 +111,10 @@ where
     I: Positioned + ?Sized,
 {
     type Output = Q::Output;
-    type State = SpanState<ThenState<P::State, Q, Q::State>, I::Locator>;
+    type State = (
+        SpanState<ThenState<P::State, Q, Q::State>, I::Locator>,
+        bool,
+    );
 
     fn poll_parse(
         &mut self,
@@ -124,24 +122,20 @@ where
         cx: &mut Context<'_>,
         state: &mut Self::State,
         tracker: &mut Tracker<I::Ok>,
-    ) -> Poll<ParseResult<Self::Output, I>> {
-        if let ThenState::Left(inner) = &mut state.inner {
-            if state.start.is_none() {
-                state.start = Some(input.position());
+    ) -> PolledResult<Self::Output, I> {
+        if let ThenState::Left(inner) = &mut state.0.inner {
+            if state.0.start.is_none() {
+                state.0.start = Some(input.position());
             }
-
-            state.inner = ThenState::Right(
-                (self.f)(ready!(self.inner.poll_parse(
-                    input.as_mut(),
-                    cx,
-                    inner,
-                    tracker
-                ))?)
-                .map_err(|ex| {
+            let (output, committed) =
+                ready!(self.inner.poll_parse(input.as_mut(), cx, inner, tracker))?;
+            state.1 = committed;
+            state.0.inner = ThenState::Right(
+                (self.f)(output).map_err(|ex| {
                     tracker.clear();
                     ParseError::Parser {
                         expects: ex.into(),
-                        position: mem::take(&mut state.start).unwrap()..input.position(),
+                        position: state.0.take_start()..input.position(),
                         fatal: true,
                     }
                 })?,
@@ -149,10 +143,11 @@ where
             );
         }
 
-        if let ThenState::Right(parser, inner) = &mut state.inner {
+        if let ThenState::Right(parser, inner) = &mut state.0.inner {
             parser
                 .poll_parse(input, cx, inner, tracker)
-                .map_err(|err| err.fatal(true))
+                .map_ok(|(res, committed)| (res, state.1 | committed))
+                .map_err(|err| err.fatal_if(state.1))
         } else {
             unreachable!()
         }

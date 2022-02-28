@@ -4,7 +4,7 @@ use core::pin::Pin;
 use core::task::{Context, Poll};
 use futures_core::ready;
 
-use crate::error::{ParseError, ParseResult, Tracker};
+use crate::error::{ParseError, PolledResult, Tracker};
 use crate::parser::Parser;
 use crate::prelude::StreamedParser;
 use crate::stream::Input;
@@ -37,6 +37,7 @@ pub struct RepeatState<C, M> {
     inner: C,
     queued_marker: Option<M>,
     count: usize,
+    committed: bool,
 }
 
 impl<C: Default, M> Default for RepeatState<C, M> {
@@ -46,6 +47,7 @@ impl<C: Default, M> Default for RepeatState<C, M> {
             inner: C::default(),
             queued_marker: None,
             count: 0,
+            committed: false,
         }
     }
 }
@@ -65,14 +67,14 @@ where
         cx: &mut Context<'_>,
         state: &mut Self::State,
         tracker: &mut Tracker<I::Ok>,
-    ) -> Poll<ParseResult<Option<Self::Item>, I>> {
+    ) -> PolledResult<Option<Self::Item>, I> {
         // Return `None` if the number of items already reached `end_bound`.
         if match self.range.end_bound() {
             Bound::Included(i) => state.count + 1 > *i,
             Bound::Excluded(i) => state.count + 1 >= *i,
             Bound::Unbounded => false,
         } {
-            return Poll::Ready(Ok(None));
+            return Poll::Ready(Ok((None, false)));
         }
 
         // Reserve the marker.
@@ -85,13 +87,16 @@ where
                 .inner
                 .poll_parse(input.as_mut(), cx, &mut state.inner, tracker))
             {
-                Ok(output) => {
+                Ok((output, committed)) => {
                     input
                         .as_mut()
                         .drop_marker(mem::take(&mut state.queued_marker).unwrap())?;
                     state.inner = Default::default();
+                    if committed {
+                        state.committed = true;
+                    }
                     state.count += 1;
-                    Ok(Some(output))
+                    Ok((Some(output), committed))
                 }
                 // Return `None` if `count` already satisfies the minimal bound.
                 Err(ParseError::Parser {
@@ -101,17 +106,11 @@ where
                 }) if self.range.contains(&state.count) => {
                     input.rewind(mem::take(&mut state.queued_marker).unwrap())?;
                     tracker.add(expects);
-                    Ok(None)
+                    Ok((None, false))
                 }
                 Err(err) => {
                     input.drop_marker(mem::take(&mut state.queued_marker).unwrap())?;
-                    // If the parser has succeeded parsing at least once, rewinding the parser is
-                    // not appropriate.
-                    Err(if state.count > 0 {
-                        err.fatal(true)
-                    } else {
-                        err
-                    })
+                    Err(err.fatal_if(state.committed))
                 }
             },
         )

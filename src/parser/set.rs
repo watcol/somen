@@ -7,7 +7,7 @@ use core::task::{Context, Poll};
 use futures_core::ready;
 
 use super::Parser;
-use crate::error::{Expect, Expects, ParseError, ParseResult, Tracker};
+use crate::error::{Expect, Expects, ParseError, PolledResult, Tracker};
 use crate::stream::Positioned;
 
 /// A parser for function [`one_of`].
@@ -44,12 +44,12 @@ where
         cx: &mut Context<'_>,
         _state: &mut Self::State,
         tracker: &mut Tracker<I::Ok>,
-    ) -> Poll<ParseResult<Self::Output, I>> {
+    ) -> PolledResult<Self::Output, I> {
         let start = input.position();
         Poll::Ready(match ready!(input.as_mut().try_poll_next(cx)?) {
             Some(i) if self.set.contains(&i) => {
                 tracker.clear();
-                Ok(i)
+                Ok((i, true))
             }
             _ => Err(ParseError::Parser {
                 expects: self.set.to_expects(),
@@ -94,12 +94,12 @@ where
         cx: &mut Context<'_>,
         _state: &mut Self::State,
         tracker: &mut Tracker<I::Ok>,
-    ) -> Poll<ParseResult<Self::Output, I>> {
+    ) -> PolledResult<Self::Output, I> {
         let start = input.position();
         Poll::Ready(match ready!(input.as_mut().try_poll_next(cx)?) {
             Some(i) if !self.set.contains(&i) => {
                 tracker.clear();
-                Ok(i)
+                Ok((i, true))
             }
             _ => Err(ParseError::Parser {
                 expects: self.set.to_expects(),

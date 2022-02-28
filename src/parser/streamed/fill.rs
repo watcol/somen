@@ -3,7 +3,7 @@ use core::pin::Pin;
 use core::task::{Context, Poll};
 use futures_core::ready;
 
-use crate::error::{Expect, Expects, ParseError, ParseResult, Tracker};
+use crate::error::{Expect, Expects, ParseError, PolledResult, Tracker};
 use crate::parser::utils::SpanState;
 use crate::parser::Parser;
 use crate::stream::Positioned;
@@ -36,6 +36,7 @@ impl<P, const N: usize> Fill<P, N> {
 pub struct FillState<C, T, const N: usize> {
     inner: C,
     count: usize,
+    committed: bool,
     buf: [MaybeUninit<T>; N],
 }
 
@@ -44,6 +45,7 @@ impl<C: Default, T, const N: usize> Default for FillState<C, T, N> {
         Self {
             inner: C::default(),
             count: 0,
+            committed: false,
             buf: unsafe { MaybeUninit::uninit().assume_init() },
         }
     }
@@ -63,7 +65,7 @@ where
         cx: &mut Context<'_>,
         state: &mut Self::State,
         tracker: &mut Tracker<I::Ok>,
-    ) -> Poll<ParseResult<Self::Output, I>> {
+    ) -> PolledResult<Self::Output, I> {
         loop {
             state.set_start(|| input.position());
             match ready!(self.inner.poll_parse_next(
@@ -72,28 +74,29 @@ where
                 &mut state.inner.inner,
                 tracker
             )?) {
-                Some(x) if state.inner.count < N => {
+                (Some(x), committed) if state.inner.count < N => {
                     state.inner.buf[state.inner.count].write(x);
                     state.inner.count += 1;
+                    state.inner.committed |= committed;
                     state.start = None;
                 }
-                None if state.inner.count == N => {
+                (None, committed) if state.inner.count == N => {
                     let mut buf = mem::replace(&mut state.inner.buf, unsafe {
                         MaybeUninit::uninit().assume_init()
                     });
                     let ptr = &mut buf as *mut _ as *mut [P::Item; N];
                     let res = unsafe { ptr.read() };
                     core::mem::forget(buf);
-                    break Poll::Ready(Ok(res));
+                    break Poll::Ready(Ok((res, state.inner.committed | committed)));
                 }
-                Some(_) => {
+                (Some(_), _) => {
                     break Poll::Ready(Err(ParseError::Parser {
                         expects: Expects::new(Expect::Static("<end of stream>")),
                         position: state.take_start()..input.position(),
                         fatal: true,
                     }))
                 }
-                None => {
+                (None, _) => {
                     break Poll::Ready(Err(ParseError::Parser {
                         expects: Expects::new(Expect::Static("<more elements>")),
                         position: state.take_start()..input.position(),

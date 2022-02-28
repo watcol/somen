@@ -3,7 +3,7 @@ use core::pin::Pin;
 use core::task::{Context, Poll};
 use futures_core::ready;
 
-use crate::error::{Expects, ParseError, ParseResult, Tracker};
+use crate::error::{Expects, ParseError, PolledResult, Tracker};
 use crate::parser::utils::{EitherState, SpanState};
 use crate::parser::Parser;
 use crate::stream::Positioned;
@@ -38,6 +38,7 @@ impl<P, Q, F> Fold<P, Q, F> {
 pub struct FoldState<C, D, T> {
     inner: EitherState<C, D>,
     acc: Option<T>,
+    committed: bool,
 }
 
 impl<C: Default, D, T> Default for FoldState<C, D, T> {
@@ -46,6 +47,7 @@ impl<C: Default, D, T> Default for FoldState<C, D, T> {
         Self {
             inner: EitherState::default(),
             acc: None,
+            committed: false,
         }
     }
 }
@@ -66,14 +68,16 @@ where
         cx: &mut Context<'_>,
         state: &mut Self::State,
         tracker: &mut Tracker<I::Ok>,
-    ) -> Poll<ParseResult<Self::Output, I>> {
+    ) -> PolledResult<Self::Output, I> {
         if state.acc.is_none() {
-            state.acc = Some(ready!(self.init.poll_parse(
+            let (output, committed) = ready!(self.init.poll_parse(
                 input.as_mut(),
                 cx,
                 state.inner.as_mut_left(),
                 tracker
-            ))?);
+            ))?;
+            state.committed = committed;
+            state.acc = Some(output);
             state.inner = EitherState::Right(Default::default());
         }
 
@@ -83,11 +87,18 @@ where
                 cx,
                 state.inner.as_mut_right(),
                 tracker
-            )?) {
-                Some(val) => {
+            )) {
+                Ok((Some(val), committed)) => {
+                    state.committed |= committed;
                     state.acc = Some((self.f)(mem::take(&mut state.acc).unwrap(), val));
                 }
-                None => break Poll::Ready(Ok(mem::take(&mut state.acc).unwrap())),
+                Ok((None, committed)) => {
+                    break Poll::Ready(Ok((
+                        mem::take(&mut state.acc).unwrap(),
+                        state.committed | committed,
+                    )))
+                }
+                Err(err) => break Poll::Ready(Err(err.fatal_if(state.committed))),
             }
         }
     }
@@ -135,15 +146,17 @@ where
         cx: &mut Context<'_>,
         state: &mut Self::State,
         tracker: &mut Tracker<I::Ok>,
-    ) -> Poll<ParseResult<Self::Output, I>> {
+    ) -> PolledResult<Self::Output, I> {
         if state.inner.acc.is_none() {
-            state.inner.acc = Some(ready!(self.init.poll_parse(
+            let (output, committed) = ready!(self.init.poll_parse(
                 input.as_mut(),
                 cx,
                 state.inner.inner.as_mut_left(),
                 tracker
-            ))?);
+            ))?;
+            state.inner.acc = Some(output);
             state.inner.inner = EitherState::Right(Default::default());
+            state.inner.committed = committed;
         }
 
         loop {
@@ -153,22 +166,31 @@ where
                 cx,
                 state.inner.inner.as_mut_right(),
                 tracker
-            )?) {
-                Some(val) => match (self.f)(mem::take(&mut state.inner.acc).unwrap(), val) {
-                    Ok(x) => {
-                        state.start = None;
-                        state.inner.acc = Some(x)
+            )) {
+                Ok((Some(val), committed)) => {
+                    match (self.f)(mem::take(&mut state.inner.acc).unwrap(), val) {
+                        Ok(x) => {
+                            state.inner.committed |= committed;
+                            state.inner.acc = Some(x);
+                            state.start = None;
+                        }
+                        Err(err) => {
+                            tracker.clear();
+                            break Poll::Ready(Err(ParseError::Parser {
+                                expects: err.into(),
+                                position: state.take_start()..input.position(),
+                                fatal: true,
+                            }));
+                        }
                     }
-                    Err(err) => {
-                        tracker.clear();
-                        break Poll::Ready(Err(ParseError::Parser {
-                            expects: err.into(),
-                            position: state.take_start()..input.position(),
-                            fatal: true,
-                        }));
-                    }
-                },
-                None => break Poll::Ready(Ok(mem::take(&mut state.inner.acc).unwrap())),
+                }
+                Ok((None, committed)) => {
+                    break Poll::Ready(Ok((
+                        mem::take(&mut state.inner.acc).unwrap(),
+                        state.inner.committed || committed,
+                    )))
+                }
+                Err(err) => break Poll::Ready(Err(err.fatal_if(state.inner.committed))),
             }
         }
     }

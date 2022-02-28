@@ -4,7 +4,7 @@ use core::task::{Context, Poll};
 use futures_core::ready;
 
 use super::utils::EitherState;
-use crate::error::{ParseError, ParseResult, Tracker};
+use crate::error::{ParseError, PolledResult, Tracker};
 use crate::parser::streamed::StreamedParser;
 use crate::parser::Parser;
 use crate::stream::{Input, Positioned};
@@ -37,6 +37,8 @@ impl<P, Q> SepByTimes<P, Q> {
 pub struct SepByTimesState<C, D> {
     inner: EitherState<C, D>,
     count: usize,
+    committed: bool,
+    prev_committed: bool,
 }
 
 impl<C: Default, D> Default for SepByTimesState<C, D> {
@@ -45,6 +47,8 @@ impl<C: Default, D> Default for SepByTimesState<C, D> {
         Self {
             inner: EitherState::default(),
             count: 0,
+            committed: false,
+            prev_committed: false,
         }
     }
 }
@@ -64,15 +68,20 @@ where
         cx: &mut Context<'_>,
         state: &mut Self::State,
         tracker: &mut Tracker<I::Ok>,
-    ) -> Poll<ParseResult<Option<Self::Item>, I>> {
+    ) -> PolledResult<Option<Self::Item>, I> {
         if state.count == self.count {
-            return Poll::Ready(Ok(None));
+            return Poll::Ready(Ok((None, false)));
         }
 
         if let EitherState::Right(inner) = &mut state.inner {
             match ready!(self.sep.poll_parse(input.as_mut(), cx, inner, tracker)) {
-                Ok(_) => state.inner = EitherState::Left(Default::default()),
-                Err(err) => return Poll::Ready(Err(err.fatal(true))),
+                Ok((_, committed)) => {
+                    state.prev_committed = committed;
+                    state.inner = EitherState::Left(Default::default());
+                }
+                Err(err) => {
+                    return Poll::Ready(Err(err.fatal_if(state.committed)));
+                }
             }
         }
 
@@ -83,13 +92,15 @@ where
                 state.inner.as_mut_left(),
                 tracker
             )) {
-                Ok(output) => {
+                Ok((output, committed)) => {
+                    let committed = state.prev_committed || committed;
+                    state.committed |= committed;
+                    state.prev_committed = false;
                     state.inner = EitherState::Right(Default::default());
                     state.count += 1;
-                    Ok(Some(output))
+                    Ok((Some(output), committed))
                 }
-                Err(err) if state.count == 0 => Err(err),
-                Err(err) => Err(err.fatal(true)),
+                Err(err) => Err(err.fatal_if(state.committed || state.prev_committed)),
             },
         )
     }
@@ -129,6 +140,8 @@ pub struct SepByEndTimesState<C, D, M> {
     inner: EitherState<C, D>,
     queued_marker: Option<M>,
     count: usize,
+    committed: bool,
+    prev_committed: bool,
 }
 
 impl<C: Default, D, M> Default for SepByEndTimesState<C, D, M> {
@@ -138,6 +151,8 @@ impl<C: Default, D, M> Default for SepByEndTimesState<C, D, M> {
             inner: EitherState::default(),
             queued_marker: None,
             count: 0,
+            committed: false,
+            prev_committed: false,
         }
     }
 }
@@ -157,7 +172,7 @@ where
         cx: &mut Context<'_>,
         state: &mut Self::State,
         tracker: &mut Tracker<I::Ok>,
-    ) -> Poll<ParseResult<Option<Self::Item>, I>> {
+    ) -> PolledResult<Option<Self::Item>, I> {
         if state.count == self.count {
             if state.queued_marker.is_none() {
                 state.queued_marker = Some(input.as_mut().mark()?);
@@ -170,9 +185,9 @@ where
                     state.inner.as_mut_right(),
                     tracker
                 )) {
-                    Ok(_) => {
+                    Ok((_, committed)) => {
                         input.drop_marker(mem::take(&mut state.queued_marker).unwrap())?;
-                        Ok(None)
+                        Ok((None, committed))
                     }
                     Err(ParseError::Parser {
                         expects,
@@ -181,7 +196,7 @@ where
                     }) => {
                         input.rewind(mem::take(&mut state.queued_marker).unwrap())?;
                         tracker.add(expects);
-                        Ok(None)
+                        Ok((None, false))
                     }
                     Err(err) => Err(err),
                 },
@@ -190,8 +205,11 @@ where
 
         if let EitherState::Right(inner) = &mut state.inner {
             match ready!(self.sep.poll_parse(input.as_mut(), cx, inner, tracker)) {
-                Ok(_) => state.inner = EitherState::Left(Default::default()),
-                Err(err) => return Poll::Ready(Err(err.fatal(true))),
+                Ok((_, committed)) => {
+                    state.prev_committed |= committed;
+                    state.inner = EitherState::Left(Default::default());
+                }
+                Err(err) => return Poll::Ready(Err(err.fatal_if(state.committed))),
             }
         }
 
@@ -202,13 +220,15 @@ where
                 state.inner.as_mut_left(),
                 tracker
             )) {
-                Ok(output) => {
+                Ok((output, committed)) => {
+                    let committed = state.prev_committed || committed;
+                    state.committed |= committed;
+                    state.prev_committed = false;
                     state.inner = EitherState::Right(Default::default());
                     state.count += 1;
-                    Ok(Some(output))
+                    Ok((Some(output), committed))
                 }
-                Err(err) if state.count == 0 => Err(err),
-                Err(err) => Err(err.fatal(true)),
+                Err(err) => Err(err.fatal_if(state.committed || state.prev_committed)),
             },
         )
     }

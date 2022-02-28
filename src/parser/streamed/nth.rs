@@ -3,7 +3,7 @@ use core::pin::Pin;
 use core::task::{Context, Poll};
 use futures_core::ready;
 
-use crate::error::{ParseResult, Tracker};
+use crate::error::{PolledResult, Tracker};
 use crate::parser::Parser;
 use crate::stream::Positioned;
 
@@ -37,6 +37,7 @@ pub struct NthState<C, T> {
     inner: C,
     count: usize,
     res: Option<T>,
+    committed: bool,
 }
 
 impl<C: Default, T> Default for NthState<C, T> {
@@ -46,6 +47,7 @@ impl<C: Default, T> Default for NthState<C, T> {
             inner: C::default(),
             count: 0,
             res: None,
+            committed: false,
         }
     }
 }
@@ -64,7 +66,7 @@ where
         cx: &mut Context<'_>,
         state: &mut Self::State,
         tracker: &mut Tracker<I::Ok>,
-    ) -> Poll<ParseResult<Self::Output, I>> {
+    ) -> PolledResult<Self::Output, I> {
         loop {
             match ready!(self.inner.poll_parse_next(
                 input.as_mut(),
@@ -72,13 +74,19 @@ where
                 &mut state.inner,
                 tracker
             )?) {
-                Some(val) => {
+                (Some(val), committed) => {
                     if state.count == self.n {
                         state.res = Some(val);
                     }
                     state.count += 1;
+                    state.committed |= committed;
                 }
-                None => break Poll::Ready(Ok(mem::take(&mut state.res))),
+                (None, committed) => {
+                    break Poll::Ready(Ok((
+                        mem::take(&mut state.res),
+                        state.committed || committed,
+                    )))
+                }
             }
         }
     }
@@ -110,6 +118,7 @@ impl<P> Last<P> {
 pub struct LastState<C, T> {
     inner: C,
     last: Option<T>,
+    committed: bool,
 }
 
 impl<C: Default, T> Default for LastState<C, T> {
@@ -118,6 +127,7 @@ impl<C: Default, T> Default for LastState<C, T> {
         Self {
             inner: C::default(),
             last: None,
+            committed: false,
         }
     }
 }
@@ -136,7 +146,7 @@ where
         cx: &mut Context<'_>,
         state: &mut Self::State,
         tracker: &mut Tracker<I::Ok>,
-    ) -> Poll<ParseResult<Self::Output, I>> {
+    ) -> PolledResult<Self::Output, I> {
         loop {
             match ready!(self.inner.poll_parse_next(
                 input.as_mut(),
@@ -144,10 +154,16 @@ where
                 &mut state.inner,
                 tracker
             )?) {
-                Some(val) => {
+                (Some(val), committed) => {
                     state.last = Some(val);
+                    state.committed |= committed;
                 }
-                None => break Poll::Ready(Ok(mem::take(&mut state.last))),
+                (None, committed) => {
+                    break Poll::Ready(Ok((
+                        mem::take(&mut state.last),
+                        state.committed || committed,
+                    )))
+                }
             }
         }
     }

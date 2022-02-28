@@ -1,6 +1,7 @@
 use core::future::Future;
 use core::pin::Pin;
 use core::task::{Context, Poll};
+use futures_core::ready;
 
 use super::Parser;
 use crate::error::{ParseError, ParseResult, Tracker};
@@ -41,19 +42,20 @@ impl<P: Parser<I> + ?Sized, I: Positioned + Unpin + ?Sized> Future
             ref mut state,
             ref mut tracker,
         } = &mut *self;
-        parser
-            .poll_parse(Pin::new(input), cx, state, tracker)
-            .map_err(|err| match err {
-                ParseError::Parser {
+        Poll::Ready(
+            match ready!(parser.poll_parse(Pin::new(input), cx, state, tracker)) {
+                Ok((val, _)) => Ok(val),
+                Err(ParseError::Parser {
                     expects,
                     position,
                     fatal,
-                } => ParseError::Parser {
+                }) => Err(ParseError::Parser {
                     expects: expects.merge(tracker.clear()),
                     position,
                     fatal,
-                },
-                err => err,
-            })
+                }),
+                Err(err) => Err(err),
+            },
+        )
     }
 }

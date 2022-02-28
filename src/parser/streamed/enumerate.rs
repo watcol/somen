@@ -1,7 +1,7 @@
 use core::pin::Pin;
-use core::task::{Context, Poll};
+use core::task::Context;
 
-use crate::error::{ParseResult, Tracker};
+use crate::error::{PolledResult, Tracker};
 use crate::stream::Positioned;
 
 use super::StreamedParser;
@@ -49,15 +49,18 @@ where
         cx: &mut Context<'_>,
         state: &mut Self::State,
         tracker: &mut Tracker<I::Ok>,
-    ) -> Poll<ParseResult<Option<Self::Item>, I>> {
+    ) -> PolledResult<Option<Self::Item>, I> {
         self.inner
             .poll_parse_next(input, cx, &mut state.inner, tracker)
-            .map_ok(|val| {
-                val.map(|i| {
-                    let count = state.count;
-                    state.count += 1;
-                    (count, i)
-                })
+            .map_ok(|(val, committed)| {
+                (
+                    val.map(|i| {
+                        let count = state.count;
+                        state.count += 1;
+                        (count, i)
+                    }),
+                    committed,
+                )
             })
     }
 

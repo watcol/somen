@@ -3,7 +3,7 @@ use core::pin::Pin;
 use core::task::{Context, Poll};
 use futures_core::ready;
 
-use crate::error::{Expect, Expects, ParseError, ParseResult, Tracker};
+use crate::error::{Expect, Expects, ParseError, PolledResult, Tracker};
 use crate::parser::Parser;
 use crate::stream::Positioned;
 
@@ -36,7 +36,7 @@ where
     T: IntoIterator<Item = &'a I::Ok> + Clone,
 {
     type Output = T;
-    type State = SpanState<Option<T::IntoIter>, I::Locator>;
+    type State = (SpanState<Option<T::IntoIter>, I::Locator>, bool);
 
     fn poll_parse(
         &mut self,
@@ -44,9 +44,10 @@ where
         cx: &mut Context<'_>,
         state: &mut Self::State,
         tracker: &mut Tracker<I::Ok>,
-    ) -> Poll<ParseResult<Self::Output, I>> {
-        state.set_start(|| input.position());
+    ) -> PolledResult<Self::Output, I> {
+        state.0.set_start(|| input.position());
         let iter = state
+            .0
             .inner
             .get_or_insert_with(|| self.tokens.clone().into_iter());
         loop {
@@ -54,16 +55,16 @@ where
                 Some(i) => i,
                 None => {
                     tracker.clear();
-                    break Poll::Ready(Ok(self.tokens.clone()));
+                    break Poll::Ready(Ok((self.tokens.clone(), state.1)));
                 }
             };
 
             match ready!(input.as_mut().try_poll_next(cx)?) {
-                Some(i) if i == *val => continue,
+                Some(i) if i == *val => state.1 = true,
                 _ => {
                     break Poll::Ready(Err(ParseError::Parser {
                         expects: Expects::new(Expect::Static("<tokens>")),
-                        position: state.take_start()..input.position(),
+                        position: state.0.take_start()..input.position(),
                         fatal: false,
                     }))
                 }

@@ -4,7 +4,7 @@ use core::task::{Context, Poll};
 use futures_core::ready;
 
 use super::utils::EitherState;
-use crate::error::{ParseError, ParseResult, Tracker};
+use crate::error::{ParseError, PolledResult, Tracker};
 use crate::parser::streamed::StreamedParser;
 use crate::parser::Parser;
 use crate::stream::Input;
@@ -63,7 +63,7 @@ where
         cx: &mut Context<'_>,
         state: &mut Self::State,
         tracker: &mut Tracker<I::Ok>,
-    ) -> Poll<ParseResult<Self::Output, I>> {
+    ) -> PolledResult<Self::Output, I> {
         if let EitherState::Left(inner) = &mut state.inner {
             if state.queued_marker.is_none() {
                 state.queued_marker = Some(input.as_mut().mark()?);
@@ -130,7 +130,7 @@ where
         cx: &mut Context<'_>,
         state: &mut Self::State,
         tracker: &mut Tracker<I::Ok>,
-    ) -> Poll<ParseResult<Option<Self::Item>, I>> {
+    ) -> PolledResult<Option<Self::Item>, I> {
         if let EitherState::Left(inner) = &mut state.inner {
             if state.succeeded {
                 return self.left.poll_parse_next(input, cx, inner, tracker);

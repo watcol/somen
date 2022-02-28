@@ -3,7 +3,7 @@ use core::pin::Pin;
 use core::task::{Context, Poll};
 use futures_core::ready;
 
-use crate::error::{Expect, Expects, ParseError, ParseResult, Tracker};
+use crate::error::{Expect, Expects, ParseError, PolledResult, Tracker};
 use crate::parser::Parser;
 use crate::stream::Input;
 
@@ -61,7 +61,7 @@ where
         cx: &mut Context<'_>,
         state: &mut Self::State,
         tracker: &mut Tracker<I::Ok>,
-    ) -> Poll<ParseResult<Self::Output, I>> {
+    ) -> PolledResult<Self::Output, I> {
         if state.queued_marker.is_none() {
             state.queued_marker = Some(input.as_mut().mark()?);
         }
@@ -71,9 +71,9 @@ where
                 .inner
                 .poll_parse(input.as_mut(), cx, &mut state.inner, tracker))
             {
-                Ok(i) => {
+                Ok((i, _)) => {
                     input.rewind(mem::take(&mut state.queued_marker).unwrap())?;
-                    Ok(i)
+                    Ok((i, false))
                 }
                 Err(err) => {
                     input.drop_marker(mem::take(&mut state.queued_marker).unwrap())?;
@@ -120,7 +120,7 @@ where
         cx: &mut Context<'_>,
         state: &mut Self::State,
         tracker: &mut Tracker<I::Ok>,
-    ) -> Poll<ParseResult<Self::Output, I>> {
+    ) -> PolledResult<Self::Output, I> {
         state.set_start(|| input.position());
         if state.inner.queued_marker.is_none() {
             state.inner.queued_marker = Some(input.as_mut().mark()?);
@@ -143,7 +143,7 @@ where
                 }
                 Err(ParseError::Parser { fatal: true, .. }) => {
                     input.rewind(mem::take(&mut state.inner.queued_marker).unwrap())?;
-                    Ok(())
+                    Ok(((), false))
                 }
                 Err(err) => {
                     input.drop_marker(mem::take(&mut state.inner.queued_marker).unwrap())?;

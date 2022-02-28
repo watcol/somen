@@ -5,6 +5,7 @@ use alloc::string::String;
 #[cfg(feature = "alloc")]
 use alloc::vec::Vec;
 use core::ops::Range;
+use core::task::Poll;
 use core::{fmt, mem};
 use futures_core::TryStream;
 
@@ -13,7 +14,17 @@ use crate::stream::Positioned;
 /// The Result type for [`parse`].
 ///
 /// [`parse`]: crate::parser::ParserExt::parse
-pub type ParseResult<O, I> = core::result::Result<
+pub type PolledResult<O, I> = Poll<
+    Result<
+        (O, bool),
+        ParseError<<I as TryStream>::Ok, <I as Positioned>::Locator, <I as TryStream>::Error>,
+    >,
+>;
+
+/// The Result type for [`parse`].
+///
+/// [`parse`]: crate::parser::ParserExt::parse
+pub type ParseResult<O, I> = Result<
     O,
     ParseError<<I as TryStream>::Ok, <I as Positioned>::Locator, <I as TryStream>::Error>,
 >;
@@ -66,6 +77,24 @@ impl<T, L, E> ParseError<T, L, E> {
                 expects,
                 position,
                 fatal,
+            },
+            err => err,
+        }
+    }
+
+    /// Turn on the flag [`fatal`] if `cond` is true.
+    ///
+    /// [`fatal`]: Self::Parser::fatal
+    pub fn fatal_if(self, cond: bool) -> Self {
+        match self {
+            Self::Parser {
+                expects,
+                position,
+                fatal,
+            } => Self::Parser {
+                expects,
+                position,
+                fatal: fatal || cond,
             },
             err => err,
         }
