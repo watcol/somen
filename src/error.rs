@@ -13,7 +13,7 @@ use crate::stream::Positioned;
 
 /// The Result type for [`poll_parse`].
 ///
-/// [`parse`]: crate::parser::Parser::poll_parse
+/// [`poll_parse`]: crate::parser::Parser::poll_parse
 pub type PolledResult<O, I> = Poll<
     Result<
         (
