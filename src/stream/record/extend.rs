@@ -95,7 +95,7 @@ where
 
     fn end(self: Pin<&mut Self>) -> Cow<'_, Self::Borrowed> {
         let this = self.project();
-        let pos = mem::take(this.recording_pos).unwrap_or_else(|| this.output.len());
+        let pos = mem::take(this.recording_pos).unwrap_or(this.output.len());
         Cow::from(
             this.output
                 .get(pos..this.output.len())
@@ -114,7 +114,7 @@ impl<S: TryStream<Ok = char>> Record for ExtendRecorder<'_, S, String> {
 
     fn end(self: Pin<&mut Self>) -> Cow<'_, Self::Borrowed> {
         let this = self.project();
-        let pos = mem::take(this.recording_pos).unwrap_or_else(|| this.output.len());
+        let pos = mem::take(this.recording_pos).unwrap_or(this.output.len());
         Cow::from(
             this.output
                 .get(pos..this.output.len())
