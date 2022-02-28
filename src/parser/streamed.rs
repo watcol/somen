@@ -5,7 +5,7 @@ mod stream;
 use core::pin::Pin;
 use core::task::Context;
 
-use crate::error::{PolledResult, Tracker};
+use crate::error::PolledResult;
 use crate::stream::Positioned;
 use stream::ParserStream;
 
@@ -34,7 +34,6 @@ pub trait StreamedParser<I: Positioned + ?Sized> {
         input: Pin<&mut I>,
         cx: &mut Context<'_>,
         state: &mut Self::State,
-        tracker: &mut Tracker<I::Ok>,
     ) -> PolledResult<Option<Self::Item>, I>;
 
     /// The estimated size of returned stream.
@@ -52,7 +51,7 @@ pub trait StreamedParserExt<I: Positioned + ?Sized>: StreamedParser<I> {
     fn parse_streamed<'a, 'b>(
         &'a mut self,
         input: &'b mut I,
-    ) -> ParserStream<'a, 'b, Self, I, Self::State, I::Ok>
+    ) -> ParserStream<'a, 'b, Self, I, Self::State>
     where
         I: Unpin,
     {
@@ -82,9 +81,8 @@ impl<'a, P: StreamedParser<I> + ?Sized, I: Positioned + ?Sized> StreamedParser<I
         input: Pin<&mut I>,
         cx: &mut Context<'_>,
         state: &mut Self::State,
-        tracker: &mut Tracker<I::Ok>,
     ) -> PolledResult<Option<Self::Item>, I> {
-        (**self).poll_parse_next(input, cx, state, tracker)
+        (**self).poll_parse_next(input, cx, state)
     }
 
     #[inline]
@@ -105,9 +103,8 @@ impl<P: StreamedParser<I> + ?Sized, I: Positioned + ?Sized> StreamedParser<I> fo
         input: Pin<&mut I>,
         cx: &mut Context<'_>,
         state: &mut Self::State,
-        tracker: &mut Tracker<I::Ok>,
     ) -> PolledResult<Option<Self::Item>, I> {
-        (**self).poll_parse_next(input, cx, state, tracker)
+        (**self).poll_parse_next(input, cx, state)
     }
 
     #[inline]

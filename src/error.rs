@@ -4,20 +4,23 @@
 use alloc::string::String;
 #[cfg(feature = "alloc")]
 use alloc::vec::Vec;
+use core::fmt;
 use core::ops::Range;
 use core::task::Poll;
-use core::{fmt, mem};
 use futures_core::TryStream;
 
 use crate::stream::Positioned;
 
-/// The Result type for [`parse`].
+/// The Result type for [`poll_parse`].
 ///
-/// [`parse`]: crate::parser::ParserExt::parse
+/// [`parse`]: crate::parser::Parser::poll_parse
 pub type PolledResult<O, I> = Poll<
     Result<
-        (O, bool),
-        ParseError<<I as TryStream>::Ok, <I as Positioned>::Locator, <I as TryStream>::Error>,
+        (
+            Status<O, <I as TryStream>::Ok, <I as Positioned>::Locator>,
+            Range<<I as Positioned>::Locator>,
+        ),
+        <I as TryStream>::Error,
     >,
 >;
 
@@ -29,18 +32,55 @@ pub type ParseResult<O, I> = Result<
     ParseError<<I as TryStream>::Ok, <I as Positioned>::Locator, <I as TryStream>::Error>,
 >;
 
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub enum Status<O, T, L> {
+    Success(O, Option<Error<T, L>>),
+    Fail(Error<T, L>),
+    Fatal(Error<T, L>),
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct Error<T, L> {
+    pub expects: Expects<T>,
+    pub position: Range<L>,
+}
+
+impl<T, L> Error<T, L> {
+    /// Sort and remove duplicates in the expected tokens.
+    #[inline]
+    pub fn sort_expects(&mut self)
+    where
+        T: Ord,
+    {
+        self.expects.sort()
+    }
+
+    /// Converting [`Expect::Token`] of each expects.
+    #[inline]
+    pub fn map_tokens<F: FnMut(T) -> U, U>(self, f: F) -> Error<U, L> {
+        Error {
+            expects: self.expects.map_tokens(f),
+            position: self.position,
+        }
+    }
+}
+
+impl<T: fmt::Display, L> fmt::Display for Error<T, L> {
+    #[inline]
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "expected {}.", self.expects)
+    }
+}
+
+#[cfg(feature = "std")]
+#[cfg_attr(feature = "nightly", doc(cfg(feature = "std")))]
+impl<T: fmt::Debug + fmt::Display, L: fmt::Debug> std::error::Error for Error<T, L> {}
+
 /// The error type for this crate.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum ParseError<T, L, E> {
     /// A parsing error.
-    Parser {
-        /// Expected tokens.
-        expects: Expects<T>,
-        /// The position where the error was occured in the input stream.
-        position: Range<L>,
-        /// Whether the error is fatal (= not rewindable), or not.
-        fatal: bool,
-    },
+    Parser(Error<T, L>),
     /// An error while reading streams.
     Stream(E),
 }
@@ -52,98 +92,11 @@ impl<T, L, E> From<E> for ParseError<T, L, E> {
     }
 }
 
-impl<T, L, E> ParseError<T, L, E> {
-    /// Sort and remove duplicates in the expected tokens.
-    pub fn sort_expects(&mut self)
-    where
-        T: Ord,
-    {
-        if let ParseError::Parser {
-            ref mut expects, ..
-        } = *self
-        {
-            expects.sort();
-        }
-    }
-
-    /// Modifies the flag [`fatal`].
-    ///
-    /// [`fatal`]: Self::Parser::fatal
-    pub fn fatal(self, fatal: bool) -> Self {
-        match self {
-            Self::Parser {
-                expects, position, ..
-            } => Self::Parser {
-                expects,
-                position,
-                fatal,
-            },
-            err => err,
-        }
-    }
-
-    /// Turn on the flag [`fatal`] if `cond` is true.
-    ///
-    /// [`fatal`]: Self::Parser::fatal
-    pub fn fatal_if(self, cond: bool) -> Self {
-        match self {
-            Self::Parser {
-                expects,
-                position,
-                fatal,
-            } => Self::Parser {
-                expects,
-                position,
-                fatal: fatal || cond,
-            },
-            err => err,
-        }
-    }
-}
-
 impl<T, U, L, E> ParseError<T, L, ParseError<U, L, E>> {
     pub fn flatten(self) -> ParseError<Result<T, U>, L, E> {
         match self {
-            #[cfg(feature = "alloc")]
-            Self::Parser {
-                expects: Expects(ex),
-                position,
-                fatal,
-            } => ParseError::Parser {
-                expects: Expects(ex.into_iter().map(|e| e.map_token(Ok)).collect()),
-                position,
-                fatal,
-            },
-            #[cfg(not(feature = "alloc"))]
-            Self::Parser {
-                expects: Expects(ex),
-                position,
-                fatal,
-            } => ParseError::Parser {
-                expects: Expects(ex.map(|e| e.map_token(Ok))),
-                position,
-                fatal,
-            },
-            #[cfg(feature = "alloc")]
-            Self::Stream(ParseError::Parser {
-                expects: Expects(ex),
-                position,
-                fatal,
-            }) => ParseError::Parser {
-                expects: Expects(ex.into_iter().map(|e| e.map_token(Err)).collect()),
-                position,
-                fatal,
-            },
-            #[cfg(not(feature = "alloc"))]
-            Self::Stream(ParseError::Parser {
-                expects: Expects(ex),
-                position,
-                fatal,
-            }) => ParseError::Parser {
-                expects: Expects(ex.map(|e| e.map_token(Err))),
-                position,
-                fatal,
-            },
+            Self::Parser(err) => ParseError::Parser(err.map_tokens(Ok)),
+            Self::Stream(ParseError::Parser(err)) => ParseError::Parser(err.map_tokens(Err)),
             Self::Stream(ParseError::Stream(e)) => ParseError::Stream(e),
         }
     }
@@ -153,7 +106,7 @@ impl<T: fmt::Display, L, E: fmt::Display> fmt::Display for ParseError<T, L, E> {
     #[inline]
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            Self::Parser { expects, .. } => write!(f, "expected {}.", expects),
+            Self::Parser(err) => err.fmt(f),
             Self::Stream(e) => e.fmt(f),
         }
     }
@@ -214,6 +167,11 @@ impl<T> Expects<T> {
     pub fn merge(mut self, mut other: Expects<T>) -> Self {
         self.0.append(&mut other.0);
         self
+    }
+
+    /// Converting variant [`Expect::Token`] of each elements.
+    pub fn map_tokens<F: FnMut(T) -> U, U>(self, mut f: F) -> Expects<U> {
+        Expects(self.0.into_iter().map(|e| e.map_token(&mut f)).collect())
     }
 
     /// Sort and remove duplicates.
@@ -280,6 +238,10 @@ impl<T> Expects<T> {
             (Some(ex), None) | (None, Some(ex)) => Self(Some(ex)),
             (None, None) => Self(None),
         }
+    }
+
+    pub fn map_tokens<F: FnMut(T) -> U, U>(self, f: F) -> Expects<U> {
+        self.0.map(|e| e.map_token(f))
     }
 
     pub fn sort(&mut self)
@@ -384,42 +346,5 @@ impl<T> Expect<T> {
             #[cfg(not(feature = "alloc"))]
             Self::Other => Expect::Other,
         }
-    }
-}
-
-/// An error tracker for parsers.
-#[derive(Debug, Clone)]
-pub struct Tracker<T>(Expects<T>);
-
-impl<T> Default for Tracker<T> {
-    #[inline]
-    fn default() -> Self {
-        Self(Expects::empty())
-    }
-}
-
-impl<T> Tracker<T> {
-    /// Creating an enabled instance.
-    #[inline]
-    pub fn new() -> Self {
-        Self::default()
-    }
-
-    /// Clear all values and take inner [`Expects`] out.
-    #[inline]
-    pub fn clear(&mut self) -> Expects<T> {
-        mem::replace(&mut self.0, Expects::empty())
-    }
-
-    /// Add values.
-    pub fn add(&mut self, expects: Expects<T>) {
-        let this = mem::take(self);
-        *self = Self(this.0.merge(expects));
-    }
-
-    /// Takes [`Expects`] out of the tracker.
-    #[inline]
-    pub fn into_expects(self) -> Expects<T> {
-        self.0
     }
 }

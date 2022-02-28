@@ -3,34 +3,32 @@ use core::task::{Context, Poll};
 use futures_core::{ready, Stream};
 
 use super::StreamedParser;
-use crate::error::{ParseError, ParseResult, Tracker};
+use crate::error::{ParseError, ParseResult, Status};
 use crate::stream::Positioned;
 
 #[derive(Debug)]
-pub struct ParserStream<'a, 'b, P: ?Sized, I: ?Sized, C, T> {
+pub struct ParserStream<'a, 'b, P: ?Sized, I: ?Sized, C> {
     parser: &'a mut P,
     input: &'b mut I,
     state: C,
-    tracker: Tracker<T>,
 }
 
-impl<P: ?Sized, I: Unpin + ?Sized, C, T> Unpin for ParserStream<'_, '_, P, I, C, T> {}
+impl<P: ?Sized, I: Unpin + ?Sized, C> Unpin for ParserStream<'_, '_, P, I, C> {}
 
 impl<'a, 'b, P: StreamedParser<I> + ?Sized, I: Positioned + Unpin + ?Sized>
-    ParserStream<'a, 'b, P, I, P::State, I::Ok>
+    ParserStream<'a, 'b, P, I, P::State>
 {
     pub fn new(parser: &'a mut P, input: &'b mut I) -> Self {
         Self {
             parser,
             input,
             state: Default::default(),
-            tracker: Tracker::new(),
         }
     }
 }
 
 impl<P: StreamedParser<I> + ?Sized, I: Positioned + Unpin + ?Sized> Stream
-    for ParserStream<'_, '_, P, I, P::State, I::Ok>
+    for ParserStream<'_, '_, P, I, P::State>
 {
     type Item = ParseResult<P::Item, I>;
 
@@ -39,22 +37,15 @@ impl<P: StreamedParser<I> + ?Sized, I: Positioned + Unpin + ?Sized> Stream
             parser,
             input,
             ref mut state,
-            ref mut tracker,
         } = &mut *self;
         Poll::Ready(
-            match ready!(parser.poll_parse_next(Pin::new(input), cx, state, tracker)) {
-                Ok((Some(i), _)) => Some(Ok(i)),
-                Ok((None, _)) => None,
-                Err(ParseError::Parser {
-                    expects,
-                    position,
-                    fatal,
-                }) => Some(Err(ParseError::Parser {
-                    expects: expects.merge(tracker.clear()),
-                    position,
-                    fatal,
-                })),
-                Err(err) => Some(Err(err)),
+            match ready!(parser.poll_parse_next(Pin::new(input), cx, state)) {
+                Ok((Status::Success(Some(val), _), _)) => Some(Ok(val)),
+                Ok((Status::Success(None, _), _)) => None,
+                Ok((Status::Fail(err) | Status::Fatal(err), _)) => {
+                    Some(Err(ParseError::Parser(err)))
+                }
+                Err(err) => Some(Err(ParseError::Stream(err))),
             },
         )
     }

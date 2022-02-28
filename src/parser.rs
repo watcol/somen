@@ -9,7 +9,7 @@ use alloc::boxed::Box;
 use core::pin::Pin;
 use core::task::Context;
 
-use crate::error::{PolledResult, Tracker};
+use crate::error::PolledResult;
 #[cfg(feature = "alloc")]
 use crate::stream::Positioned;
 use future::ParseFuture;
@@ -38,7 +38,6 @@ pub trait Parser<I: Positioned + ?Sized> {
         input: Pin<&mut I>,
         cx: &mut Context<'_>,
         state: &mut Self::State,
-        tracker: &mut Tracker<I::Ok>,
     ) -> PolledResult<Self::Output, I>;
 }
 
@@ -49,10 +48,7 @@ pub trait ParserExt<I: Positioned + ?Sized>: Parser<I> {
     /// [`poll_parse`]: Parser::poll_parse
     /// [`Future`]: core::future::Future
     #[inline]
-    fn parse<'a, 'b>(
-        &'a mut self,
-        input: &'b mut I,
-    ) -> ParseFuture<'a, 'b, Self, I, Self::State, I::Ok>
+    fn parse<'a, 'b>(&'a mut self, input: &'b mut I) -> ParseFuture<'a, 'b, Self, I, Self::State>
     where
         I: Unpin,
     {
@@ -83,9 +79,8 @@ impl<'a, P: Parser<I> + ?Sized, I: Positioned + ?Sized> Parser<I> for &'a mut P 
         input: Pin<&mut I>,
         cx: &mut Context<'_>,
         state: &mut Self::State,
-        tracker: &mut Tracker<I::Ok>,
     ) -> PolledResult<Self::Output, I> {
-        (**self).poll_parse(input, cx, state, tracker)
+        (**self).poll_parse(input, cx, state)
     }
 }
 
@@ -101,9 +96,8 @@ impl<P: Parser<I> + ?Sized, I: Positioned + ?Sized> Parser<I> for Box<P> {
         input: Pin<&mut I>,
         cx: &mut Context<'_>,
         state: &mut Self::State,
-        tracker: &mut Tracker<I::Ok>,
     ) -> PolledResult<Self::Output, I> {
-        (**self).poll_parse(input, cx, state, tracker)
+        (**self).poll_parse(input, cx, state)
     }
 }
 
