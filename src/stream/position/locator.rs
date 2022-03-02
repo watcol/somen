@@ -1,7 +1,7 @@
 use core::cmp::Ordering;
 
 /// A trait for types represents positions for streams of `T`s.
-pub trait Locator<T: ?Sized>: Ord {
+pub trait Locator<T: ?Sized>: Clone + Ord {
     /// Incrementing the position to the next token, by referencing the consumed token.
     fn next(&mut self, token: &T);
 }

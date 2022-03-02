@@ -2,7 +2,10 @@
 
 pub mod streamed;
 
+mod any;
 mod future;
+
+pub use any::Any;
 
 #[cfg(feature = "alloc")]
 use alloc::boxed::Box;
@@ -13,6 +16,12 @@ use crate::error::PolledResult;
 #[cfg(feature = "alloc")]
 use crate::stream::Positioned;
 use future::ParseFuture;
+
+/// Parses any token.
+#[inline]
+pub fn any<I: Positioned + ?Sized>() -> Any<I> {
+    assert_parser(Any::new())
+}
 
 /// A trait for parsers.
 #[cfg_attr(feature = "nightly", doc(notable_trait))]
