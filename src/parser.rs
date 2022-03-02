@@ -80,6 +80,16 @@ pub trait ParserExt<I: Positioned + ?Sized>: Parser<I> {
         assert_parser(Box::new(self))
     }
 
+    /// Parses with `self`, and then with `p`.
+    #[inline]
+    fn and<P>(self, p: P) -> (Self, P)
+    where
+        Self: Sized,
+        P: Parser<I>,
+    {
+        assert_parser((self, p))
+    }
+
     /// Returns [`Some`] if parsing is succeeded.
     #[inline]
     fn opt(self) -> Opt<Self>
