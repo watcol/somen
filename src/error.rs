@@ -45,6 +45,15 @@ pub struct Error<T, L> {
 }
 
 impl<T, L> Error<T, L> {
+    /// Check if the parser can rewind input to `pos` discarding this error, or not.
+    #[inline]
+    pub fn rewindable(&self, pos: &L) -> bool
+    where
+        L: PartialEq,
+    {
+        self.position.start == *pos
+    }
+
     /// Sort and remove duplicates in the expected tokens.
     #[inline]
     pub fn sort_expects(&mut self)

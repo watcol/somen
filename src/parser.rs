@@ -4,8 +4,10 @@ pub mod streamed;
 
 mod any;
 mod future;
+mod opt;
 
 pub use any::Any;
+pub use opt::Opt;
 
 #[cfg(feature = "alloc")]
 use alloc::boxed::Box;
@@ -14,7 +16,7 @@ use core::task::Context;
 
 use crate::error::PolledResult;
 #[cfg(feature = "alloc")]
-use crate::stream::Positioned;
+use crate::stream::{Input, Positioned};
 use future::ParseFuture;
 
 /// Parses any token.
@@ -73,6 +75,16 @@ pub trait ParserExt<I: Positioned + ?Sized>: Parser<I> {
         Self: Sized + 'a,
     {
         assert_parser(Box::new(self))
+    }
+
+    /// Returns [`Some`] if parsing is succeeded.
+    #[inline]
+    fn opt(self) -> Opt<Self>
+    where
+        Self: Sized,
+        I: Input,
+    {
+        assert_parser(Opt::new(self))
     }
 }
 
