@@ -3,8 +3,11 @@
 pub mod streamed;
 
 mod any;
-mod future;
 mod opt;
+mod tuples;
+
+mod future;
+mod utils;
 
 pub use any::Any;
 pub use opt::Opt;
