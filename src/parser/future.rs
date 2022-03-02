@@ -42,7 +42,7 @@ impl<P: Parser<I> + ?Sized, I: Positioned + Unpin + ?Sized> Future
         Poll::Ready(
             match ready!(parser.poll_parse(Pin::new(input), cx, state)) {
                 Ok((Status::Success(val, _), _)) => Ok(val),
-                Ok((Status::Fail(err) | Status::Fatal(err), _)) => Err(ParseError::Parser(err)),
+                Ok((Status::Fail(err, _), _)) => Err(ParseError::Parser(err)),
                 Err(err) => Err(ParseError::Stream(err)),
             },
         )
