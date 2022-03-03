@@ -91,7 +91,7 @@ where
                     (Status::Success(Some(val), err), pos)
                 }
                 // Return `None` if `count` already satisfies the minimal bound.
-                (Status::Fail(err, false), pos)
+                (Status::Failure(err, false), pos)
                     if err.rewindable(&pos.start) && self.range.contains(&state.count) =>
                 {
                     input.rewind(mem::take(&mut state.queued_marker).unwrap())?;
@@ -100,9 +100,9 @@ where
                         pos.start.clone()..pos.start,
                     )
                 }
-                (Status::Fail(err, exclusive), pos) => {
+                (Status::Failure(err, exclusive), pos) => {
                     input.drop_marker(mem::take(&mut state.queued_marker).unwrap())?;
-                    (Status::Fail(err, exclusive), pos)
+                    (Status::Failure(err, exclusive), pos)
                 }
             },
         ))

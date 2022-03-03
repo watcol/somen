@@ -66,15 +66,15 @@ macro_rules! tuple_parser {
                                 merge_errors(&mut state.error, err, &pos);
                                 end = Some(pos.end);
                             }
-                            (Status::Fail(err, false), pos) => {
+                            (Status::Failure(err, false), pos) => {
                                 merge_errors(&mut state.error, Some(err), &pos);
                                 return Poll::Ready(Ok((
-                                    Status::Fail(mem::take(&mut state.error).unwrap(), false),
+                                    Status::Failure(mem::take(&mut state.error).unwrap(), false),
                                     mem::take(&mut state.start).unwrap()..pos.end,
                                 )))
                             },
-                            (Status::Fail(err, true), pos) => return Poll::Ready(Ok((
-                                Status::Fail(err, true),
+                            (Status::Failure(err, true), pos) => return Poll::Ready(Ok((
+                                Status::Failure(err, true),
                                 mem::take(&mut state.start).unwrap()..pos.end,
                             )))
                         }

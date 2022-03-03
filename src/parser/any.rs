@@ -42,7 +42,7 @@ impl<I: Positioned + ?Sized> Parser<I> for Any<I> {
         Poll::Ready(Ok(match ready!(input.as_mut().try_poll_next(cx)?) {
             Some(i) => (Status::Success(i, None), start..input.position()),
             None => (
-                Status::Fail(
+                Status::Failure(
                     Error {
                         expects: Expects::new(Expect::Static("a token")),
                         position: start.clone()..start.clone(),

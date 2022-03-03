@@ -35,7 +35,7 @@ pub type ParseResult<O, I> = Result<
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum Status<O, T, L> {
     Success(O, Option<Error<T, L>>),
-    Fail(Error<T, L>, bool),
+    Failure(Error<T, L>, bool),
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
