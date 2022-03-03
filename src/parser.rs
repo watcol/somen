@@ -4,6 +4,7 @@ pub mod streamed;
 
 mod any;
 mod opt;
+mod peek;
 mod repeat;
 mod tuples;
 
@@ -12,6 +13,7 @@ mod utils;
 
 pub use any::Any;
 pub use opt::Opt;
+pub use peek::{Fail, Peek};
 pub use repeat::Repeat;
 
 #[cfg(feature = "alloc")]
@@ -82,6 +84,26 @@ pub trait ParserExt<I: Positioned + ?Sized>: Parser<I> {
         Self: Sized + 'a,
     {
         assert_parser(Box::new(self))
+    }
+
+    /// Returns a parse result without consuming input.
+    #[inline]
+    fn peek(self) -> Peek<Self>
+    where
+        Self: Sized,
+        I: Input,
+    {
+        assert_parser(Peek::new(self))
+    }
+
+    /// Succeeds if the parser failed parsing. Never consumes input.
+    #[inline]
+    fn fail(self) -> Fail<Self>
+    where
+        Self: Sized,
+        I: Input,
+    {
+        assert_parser(Fail::new(self))
     }
 
     /// Parses with `self`, and then with `p`.
