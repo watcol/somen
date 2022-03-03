@@ -4,6 +4,7 @@ pub mod streamed;
 
 mod any;
 mod opt;
+mod repeat;
 mod tuples;
 
 mod future;
@@ -11,9 +12,11 @@ mod utils;
 
 pub use any::Any;
 pub use opt::Opt;
+pub use repeat::Repeat;
 
 #[cfg(feature = "alloc")]
 use alloc::boxed::Box;
+use core::ops::RangeBounds;
 use core::pin::Pin;
 use core::task::Context;
 
@@ -21,6 +24,7 @@ use crate::error::PolledResult;
 #[cfg(feature = "alloc")]
 use crate::stream::{Input, Positioned};
 use future::ParseFuture;
+use streamed::assert_streamed_parser;
 
 /// Parses any token.
 #[inline]
@@ -98,6 +102,19 @@ pub trait ParserExt<I: Positioned + ?Sized>: Parser<I> {
         I: Input,
     {
         assert_parser(Opt::new(self))
+    }
+
+    /// Returns a [`StreamedParser`] by repeating the parser while succeeding.
+    ///
+    /// [`StreamedParser`]: streamed::StreamedParser
+    #[inline]
+    fn repeat<R>(self, range: R) -> Repeat<Self, R>
+    where
+        Self: Sized,
+        R: RangeBounds<usize>,
+        I: Input,
+    {
+        assert_streamed_parser(Repeat::new(self, range))
     }
 }
 
