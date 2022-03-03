@@ -72,14 +72,14 @@ where
                     input.drop_marker(mem::take(&mut state.queued_marker).unwrap())?;
                     (Status::Success(Some(val), err), pos)
                 }
-                (Status::Fail(err, true), pos) if err.rewindable(&pos.start) => {
+                (Status::Fail(err, false), pos) if err.rewindable(&pos.start) => {
                     input.rewind(mem::take(&mut state.queued_marker).unwrap())?;
                     (
                         Status::Success(None, Some(err)),
                         pos.start.clone()..pos.start,
                     )
                 }
-                (Status::Fail(err, rewindable), pos) => (Status::Fail(err, rewindable), pos),
+                (Status::Fail(err, exclusive), pos) => (Status::Fail(err, exclusive), pos),
             },
         ))
     }

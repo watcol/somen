@@ -3,9 +3,9 @@ use core::pin::Pin;
 use core::task::{Context, Poll};
 use futures_core::ready;
 
-use super::utils::merge_expects;
+use super::utils::merge_errors;
 use super::Parser;
-use crate::error::{Error, Expects, PolledResult, Status};
+use crate::error::{Error, PolledResult, Status};
 use crate::stream::Positioned;
 
 macro_rules! tuple_parser {
@@ -17,7 +17,7 @@ macro_rules! tuple_parser {
                 $t: (Option<$t::Output>, $t::State),
             )*
             start: Option<I::Locator>,
-            expects: Option<Expects<I::Ok>>,
+            error: Option<Error<I::Ok, I::Locator>>,
         }
 
         impl<I, $($t),*> Default for $state<I, $($t),*>
@@ -29,7 +29,7 @@ macro_rules! tuple_parser {
                 Self {
                     $( $t: (None, Default::default()), )*
                     start: None,
-                    expects: None,
+                    error: None,
                 }
             }
         }
@@ -63,27 +63,18 @@ macro_rules! tuple_parser {
                         match ready!($t.poll_parse(input.as_mut(), cx, &mut state.$t.1)?) {
                             (Status::Success(val, err), pos) => {
                                 state.$t.0 = Some(val);
-                                if pos.start == pos.end {
-                                    merge_expects(&mut state.expects, err.map(|e| e.expects));
-                                }
+                                merge_errors(&mut state.error, err, &pos);
                                 end = Some(pos.end);
                             }
+                            (Status::Fail(err, false), pos) => {
+                                merge_errors(&mut state.error, Some(err), &pos);
+                                return Poll::Ready(Ok((
+                                    Status::Fail(mem::take(&mut state.error).unwrap(), false),
+                                    mem::take(&mut state.start).unwrap()..pos.end,
+                                )))
+                            },
                             (Status::Fail(err, true), pos) => return Poll::Ready(Ok((
-                                Status::Fail(
-                                    Error {
-                                        expects: if pos.start == pos.end && state.expects.is_some() {
-                                            err.expects.merge(mem::take(&mut state.expects).unwrap())
-                                        } else {
-                                            err.expects
-                                        },
-                                        position: pos.end.clone()..pos.end.clone(),
-                                    },
-                                    true
-                                ),
-                                mem::take(&mut state.start).unwrap()..pos.end,
-                            ))),
-                            (Status::Fail(err, false), pos) => return Poll::Ready(Ok((
-                                Status::Fail(err, false),
+                                Status::Fail(err, true),
                                 mem::take(&mut state.start).unwrap()..pos.end,
                             )))
                         }
@@ -94,10 +85,7 @@ macro_rules! tuple_parser {
                 Poll::Ready(Ok((
                     Status::Success(
                         ($(mem::take(&mut state.$t.0).unwrap()),*,),
-                        mem::take(&mut state.expects).map(|exp| Error {
-                            expects: exp,
-                            position: end.clone()..end.clone(),
-                        })
+                        mem::take(&mut state.error)
                     ),
                     mem::take(&mut state.start).unwrap()..end,
                 )))

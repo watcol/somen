@@ -47,7 +47,7 @@ impl<I: Positioned + ?Sized> Parser<I> for Any<I> {
                         expects: Expects::new(Expect::Static("a token")),
                         position: start.clone()..start.clone(),
                     },
-                    true,
+                    false,
                 ),
                 start.clone()..start,
             ),
