@@ -161,11 +161,6 @@ impl<T> IntoIterator for Expects<T> {
 
 #[cfg(feature = "alloc")]
 impl<T> Expects<T> {
-    /// Creating a empty collection.
-    pub fn empty() -> Self {
-        Self(Vec::new())
-    }
-
     /// Creating a new instance.
     pub fn new(first: Expect<T>) -> Self {
         Self(alloc::vec![first])
@@ -215,43 +210,37 @@ impl<T: fmt::Display> fmt::Display for Expects<T> {
 
 #[cfg(not(feature = "alloc"))]
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct Expects<T>(Option<Expect<T>>);
+pub struct Expects<T>(Expect<T>);
 
 #[cfg(not(feature = "alloc"))]
 impl<T> FromIterator<Expect<T>> for Expects<T> {
     fn from_iter<I: IntoIterator<Item = Expect<T>>>(iter: I) -> Self {
         let mut iter = iter.into_iter();
         match iter.next() {
-            Some(ex) if iter.next().is_none() => Self(Some(ex)),
-            None => Self(None),
-            _ => Self(Some(Expect::Other)),
+            Some(ex) if iter.next().is_none() => Self(ex),
+            _ => Self(Expect::Other),
         }
     }
 }
 
 #[cfg(not(feature = "alloc"))]
 impl<T> Expects<T> {
-    /// Creating a empty collection.
-    pub fn empty() -> Self {
-        Self(None)
-    }
-
+    #[inline]
     pub fn new(first: Expect<T>) -> Self {
-        Self(Some(first))
+        Self(first)
     }
 
+    #[inline]
     pub fn merge(self, other: Expects<T>) -> Self {
-        match (self.0, other.0) {
-            (Some(_), Some(_)) => Self(Some(Expect::Other)),
-            (Some(ex), None) | (None, Some(ex)) => Self(Some(ex)),
-            (None, None) => Self(None),
-        }
+        Self(Expect::Other)
     }
 
+    #[inline]
     pub fn map_tokens<F: FnMut(T) -> U, U>(self, f: F) -> Expects<U> {
         self.0.map(|e| e.map_token(f))
     }
 
+    #[inline]
     pub fn sort(&mut self)
     where
         T: Ord,
@@ -261,6 +250,7 @@ impl<T> Expects<T> {
 
 #[cfg(not(feature = "alloc"))]
 impl<T: fmt::Display> fmt::Display for Expects<T> {
+    #[inline]
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match &self.0 {
             Some(e) => e.fmt(f),
@@ -272,16 +262,10 @@ impl<T: fmt::Display> fmt::Display for Expects<T> {
 #[cfg(not(feature = "alloc"))]
 impl<T> IntoIterator for Expects<T> {
     type Item = Expect<T>;
-    type IntoIter = core::option::IntoIter<Expect<T>>;
+    type IntoIter = core::iter::Once<Expect<T>>;
 
     fn into_iter(self) -> Self::IntoIter {
-        self.0.into_iter()
-    }
-}
-
-impl<T> Default for Expects<T> {
-    fn default() -> Self {
-        Expects::empty()
+        core::iter::once(self)
     }
 }
 
