@@ -33,7 +33,6 @@ use core::pin::Pin;
 use core::task::Context;
 
 use crate::error::PolledResult;
-#[cfg(feature = "alloc")]
 use crate::stream::{Input, Positioned};
 use future::ParseFuture;
 use streamed::assert_streamed_parser;

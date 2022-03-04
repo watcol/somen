@@ -231,13 +231,14 @@ impl<T> Expects<T> {
     }
 
     #[inline]
+    #[allow(unused_variables)]
     pub fn merge(self, other: Expects<T>) -> Self {
         Self(Expect::Other)
     }
 
     #[inline]
     pub fn map_tokens<F: FnMut(T) -> U, U>(self, f: F) -> Expects<U> {
-        self.0.map(|e| e.map_token(f))
+        Expects(self.0.map_token(f))
     }
 
     #[inline]
@@ -252,10 +253,7 @@ impl<T> Expects<T> {
 impl<T: fmt::Display> fmt::Display for Expects<T> {
     #[inline]
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match &self.0 {
-            Some(e) => e.fmt(f),
-            None => Ok(()),
-        }
+        self.0.fmt(f)
     }
 }
 
@@ -265,7 +263,7 @@ impl<T> IntoIterator for Expects<T> {
     type IntoIter = core::iter::Once<Expect<T>>;
 
     fn into_iter(self) -> Self::IntoIter {
-        core::iter::once(self)
+        core::iter::once(self.0)
     }
 }
 
