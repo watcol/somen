@@ -3,7 +3,7 @@ use core::pin::Pin;
 use core::task::{Context, Poll};
 use futures_core::ready;
 
-use crate::error::{Error, Expect, Expects, PolledResult, Status};
+use crate::error::{Error, ExpectKind, Expects, PolledResult, Status};
 use crate::parser::Parser;
 use crate::stream::Positioned;
 
@@ -49,7 +49,7 @@ where
                 Some(i) if i == self.token => Status::Success(i, None),
                 _ => Status::Failure(
                     Error {
-                        expects: Expects::new(Expect::Token(self.token.clone())),
+                        expects: Expects::new(ExpectKind::Token(self.token.clone())),
                         position: start.clone()..end.clone(),
                     },
                     false,
@@ -102,7 +102,7 @@ where
                 Some(i) if i != self.token => Status::Success(i, None),
                 _ => Status::Failure(
                     Error {
-                        expects: Expects::new(Expect::Token(self.token.clone())),
+                        expects: Expects::new_neg(ExpectKind::Token(self.token.clone())),
                         position: start.clone()..end.clone(),
                     },
                     false,

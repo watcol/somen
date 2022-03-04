@@ -102,7 +102,7 @@ where
                 Some(val) if !(self.cond)(&val) => Status::Success(val, None),
                 _ => Status::Failure(
                     Error {
-                        expects: Expects::from("<cond>"),
+                        expects: Expects::from("<cond>").negate(),
                         position: start.clone()..end.clone(),
                     },
                     false,

@@ -7,7 +7,7 @@ use core::task::{Context, Poll};
 use futures_core::ready;
 
 use super::Parser;
-use crate::error::{Error, Expect, Expects, PolledResult, Status};
+use crate::error::{Error, Expect, ExpectKind, Expects, PolledResult, Status};
 use crate::stream::Positioned;
 
 /// A parser for function [`one_of`].
@@ -105,7 +105,7 @@ where
                 Some(i) if !self.set.contains(&i) => Status::Success(i, None),
                 _ => Status::Failure(
                     Error {
-                        expects: self.set.to_expects(),
+                        expects: self.set.to_expects().negate(),
                         position: start.clone()..end.clone(),
                     },
                     false,
@@ -151,7 +151,11 @@ impl<T: PartialEq + Clone> Set<T> for [T] {
 
     #[inline]
     fn to_expects(&self) -> Expects<T> {
-        Expects::from_iter(self.iter().cloned().map(Expect::Token))
+        Expects::from_iter(
+            self.iter()
+                .cloned()
+                .map(|t| Expect::Positive(ExpectKind::Token(t))),
+        )
     }
 }
 
@@ -163,7 +167,11 @@ impl<T: PartialEq + Clone, const N: usize> Set<T> for [T; N] {
 
     #[inline]
     fn to_expects(&self) -> Expects<T> {
-        Expects::from_iter(self.iter().cloned().map(Expect::Token))
+        Expects::from_iter(
+            self.iter()
+                .cloned()
+                .map(|t| Expect::Positive(ExpectKind::Token(t))),
+        )
     }
 }
 
@@ -175,7 +183,7 @@ impl Set<char> for str {
 
     #[inline]
     fn to_expects(&self) -> Expects<char> {
-        Expects::from_iter(self.chars().map(Expect::Token))
+        Expects::from_iter(self.chars().map(|t| Expect::Positive(ExpectKind::Token(t))))
     }
 }
 
@@ -234,7 +242,11 @@ impl<T: PartialEq + Clone> Set<T> for alloc::vec::Vec<T> {
 
     #[inline]
     fn to_expects(&self) -> Expects<T> {
-        Expects::from_iter(self.iter().cloned().map(Expect::Token))
+        Expects::from_iter(
+            self.iter()
+                .cloned()
+                .map(|t| Expect::Positive(ExpectKind::Token(t))),
+        )
     }
 }
 
@@ -248,7 +260,11 @@ impl<T: PartialEq + Clone> Set<T> for alloc::collections::VecDeque<T> {
 
     #[inline]
     fn to_expects(&self) -> Expects<T> {
-        Expects::from_iter(self.iter().cloned().map(Expect::Token))
+        Expects::from_iter(
+            self.iter()
+                .cloned()
+                .map(|t| Expect::Positive(ExpectKind::Token(t))),
+        )
     }
 }
 
@@ -262,7 +278,11 @@ impl<T: Ord + Clone> Set<T> for alloc::collections::BTreeSet<T> {
 
     #[inline]
     fn to_expects(&self) -> Expects<T> {
-        Expects::from_iter(self.iter().cloned().map(Expect::Token))
+        Expects::from_iter(
+            self.iter()
+                .cloned()
+                .map(|t| Expect::Positive(ExpectKind::Token(t))),
+        )
     }
 }
 
@@ -276,7 +296,11 @@ impl<T: PartialEq + Clone> Set<T> for alloc::collections::LinkedList<T> {
 
     #[inline]
     fn to_expects(&self) -> Expects<T> {
-        Expects::from_iter(self.iter().cloned().map(Expect::Token))
+        Expects::from_iter(
+            self.iter()
+                .cloned()
+                .map(|t| Expect::Positive(ExpectKind::Token(t))),
+        )
     }
 }
 
@@ -290,7 +314,7 @@ impl Set<char> for alloc::string::String {
 
     #[inline]
     fn to_expects(&self) -> Expects<char> {
-        Expects::from_iter(self.chars().map(Expect::Token))
+        Expects::from_iter(self.chars().map(|t| Expect::Positive(ExpectKind::Token(t))))
     }
 }
 
@@ -304,6 +328,10 @@ impl<T: Eq + core::hash::Hash + Clone> Set<T> for std::collections::HashSet<T> {
 
     #[inline]
     fn to_expects(&self) -> Expects<T> {
-        Expects::from_iter(self.iter().cloned().map(Expect::Token))
+        Expects::from_iter(
+            self.iter()
+                .cloned()
+                .map(|t| Expect::Positive(ExpectKind::Token(t))),
+        )
     }
 }

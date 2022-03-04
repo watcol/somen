@@ -142,48 +142,59 @@ where
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Expects<T>(Vec<Expect<T>>);
 
-#[cfg(feature = "alloc")]
-impl<T> FromIterator<Expect<T>> for Expects<T> {
-    fn from_iter<I: IntoIterator<Item = Expect<T>>>(iter: I) -> Self {
-        Self(iter.into_iter().collect())
+impl<T> From<ExpectKind<T>> for Expects<T> {
+    #[inline]
+    fn from(inner: ExpectKind<T>) -> Self {
+        Expects::from(Expect::Positive(inner))
     }
 }
 
-#[cfg(feature = "alloc")]
-impl<T> IntoIterator for Expects<T> {
-    type Item = Expect<T>;
-    type IntoIter = alloc::vec::IntoIter<Expect<T>>;
-
-    fn into_iter(self) -> Self::IntoIter {
-        self.0.into_iter()
+impl<T> From<&'static str> for Expects<T> {
+    #[inline]
+    fn from(msg: &'static str) -> Self {
+        Expects::from(ExpectKind::Static(msg))
     }
 }
 
-#[cfg(feature = "alloc")]
 impl<T> Expects<T> {
     /// Creating a new instance.
-    pub fn new(first: Expect<T>) -> Self {
-        Self(alloc::vec![first])
+    #[inline]
+    pub fn new(first: ExpectKind<T>) -> Self {
+        Self::from(first)
     }
 
-    /// Merge two sets.
-    pub fn merge(mut self, mut other: Expects<T>) -> Self {
-        self.0.append(&mut other.0);
-        self
+    /// Creating a new instance with [`Expect::Negative`].
+    #[inline]
+    pub fn new_neg(first: ExpectKind<T>) -> Self {
+        Self::from(Expect::Negative(first))
+    }
+
+    /// Negate all elements.
+    #[inline]
+    pub fn negate(self) -> Self {
+        self.map(Expect::negate)
     }
 
     /// Converting variant [`Expect::Token`] of each elements.
+    #[inline]
     pub fn map_tokens<F: FnMut(T) -> U, U>(self, mut f: F) -> Expects<U> {
-        Expects(self.0.into_iter().map(|e| e.map_token(&mut f)).collect())
+        self.map(|e| e.map_token(&mut f))
     }
+}
 
-    /// Sort and remove duplicates.
-    pub fn sort(&mut self)
-    where
-        T: Ord,
-    {
-        self.0.sort_unstable();
-        self.0.dedup();
+#[cfg(feature = "alloc")]
+impl<T> From<Expect<T>> for Expects<T> {
+    #[inline]
+    fn from(inner: Expect<T>) -> Self {
+        Self(alloc::vec![inner])
+    }
+}
+
+#[cfg(feature = "alloc")]
+impl<T> From<String> for Expects<T> {
+    #[inline]
+    fn from(msg: String) -> Self {
+        Expects::from(ExpectKind::Owned(msg))
     }
 }
 
@@ -208,44 +219,55 @@ impl<T: fmt::Display> fmt::Display for Expects<T> {
     }
 }
 
+#[cfg(feature = "alloc")]
+impl<T> FromIterator<Expect<T>> for Expects<T> {
+    fn from_iter<I: IntoIterator<Item = Expect<T>>>(iter: I) -> Self {
+        Self(iter.into_iter().collect())
+    }
+}
+
+#[cfg(feature = "alloc")]
+impl<T> IntoIterator for Expects<T> {
+    type Item = Expect<T>;
+    type IntoIter = alloc::vec::IntoIter<Expect<T>>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        self.0.into_iter()
+    }
+}
+
+#[cfg(feature = "alloc")]
+impl<T> Expects<T> {
+    /// Merge two sets.
+    pub fn merge(mut self, mut other: Expects<T>) -> Self {
+        self.0.append(&mut other.0);
+        self
+    }
+
+    /// Converting each elements.
+    pub fn map<F: FnMut(Expect<T>) -> Expect<U>, U>(self, mut f: F) -> Expects<U> {
+        Expects(self.into_iter().map(&mut f).collect())
+    }
+
+    /// Sort and remove duplicates.
+    pub fn sort(&mut self)
+    where
+        T: Ord,
+    {
+        self.0.sort_unstable();
+        self.0.dedup();
+    }
+}
+
 #[cfg(not(feature = "alloc"))]
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Expects<T>(Expect<T>);
 
 #[cfg(not(feature = "alloc"))]
-impl<T> FromIterator<Expect<T>> for Expects<T> {
-    fn from_iter<I: IntoIterator<Item = Expect<T>>>(iter: I) -> Self {
-        let mut iter = iter.into_iter();
-        match iter.next() {
-            Some(ex) if iter.next().is_none() => Self(ex),
-            _ => Self(Expect::Other),
-        }
-    }
-}
-
-#[cfg(not(feature = "alloc"))]
-impl<T> Expects<T> {
+impl<T> From<Expect<T>> for Expects<T> {
     #[inline]
-    pub fn new(first: Expect<T>) -> Self {
-        Self(first)
-    }
-
-    #[inline]
-    #[allow(unused_variables)]
-    pub fn merge(self, other: Expects<T>) -> Self {
-        Self(Expect::Other)
-    }
-
-    #[inline]
-    pub fn map_tokens<F: FnMut(T) -> U, U>(self, f: F) -> Expects<U> {
-        Expects(self.0.map_token(f))
-    }
-
-    #[inline]
-    pub fn sort(&mut self)
-    where
-        T: Ord,
-    {
+    fn from(inner: Expect<T>) -> Self {
+        Self(inner)
     }
 }
 
@@ -267,28 +289,92 @@ impl<T> IntoIterator for Expects<T> {
     }
 }
 
-impl<T> From<Expect<T>> for Expects<T> {
-    fn from(inner: Expect<T>) -> Self {
-        Expects::new(inner)
+#[cfg(not(feature = "alloc"))]
+impl<T> FromIterator<Expect<T>> for Expects<T> {
+    fn from_iter<I: IntoIterator<Item = Expect<T>>>(iter: I) -> Self {
+        let mut iter = iter.into_iter();
+        match iter.next() {
+            Some(ex) if iter.next().is_none() => Self(ex),
+            _ => Self(Expect::Positive(ExpectKind::Other)),
+        }
     }
 }
 
-impl<T> From<&'static str> for Expects<T> {
-    fn from(msg: &'static str) -> Self {
-        Expects::new(Expect::Static(msg))
+#[cfg(not(feature = "alloc"))]
+impl<T> Expects<T> {
+    #[inline]
+    #[allow(unused_variables)]
+    pub fn merge(self, other: Expects<T>) -> Self {
+        Self(Expect::Positive(ExpectKind::Other))
+    }
+
+    /// Converting each elements.
+    #[inline]
+    pub fn map<F: FnMut(Expect<T>) -> Expect<U>, U>(self, mut f: F) -> Expects<U> {
+        Expects(f(self.0))
+    }
+
+    #[inline]
+    pub fn sort(&mut self)
+    where
+        T: Ord,
+    {
+    }
+}
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
+pub enum Expect<T> {
+    Positive(ExpectKind<T>),
+    Negative(ExpectKind<T>),
+}
+
+impl<T: fmt::Display> fmt::Display for Expect<T> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::Negative(ExpectKind::Any) => write!(f, "EOF"),
+            #[cfg(not(feature = "alloc"))]
+            Self::Negative(ExpectKind::Other) => write!(f, "something"),
+            Self::Negative(kind) => write!(f, "not {}", kind),
+            Self::Positive(kind) => kind.fmt(f),
+        }
     }
 }
 
-#[cfg(feature = "alloc")]
-impl<T> From<String> for Expects<T> {
-    fn from(msg: String) -> Self {
-        Expects::new(Expect::Owned(msg))
+impl<T> Expect<T> {
+    /// Negate the element.
+    pub fn negate(self) -> Self {
+        match self {
+            Self::Positive(inner) => Self::Negative(inner),
+            Self::Negative(inner) => Self::Positive(inner),
+        }
+    }
+
+    /// Converting the inner [`ExpectKind`].
+    #[inline]
+    pub fn map<F, U>(self, f: F) -> Expect<U>
+    where
+        F: FnOnce(ExpectKind<T>) -> ExpectKind<U>,
+    {
+        match self {
+            Self::Positive(inner) => Expect::Positive(f(inner)),
+            Self::Negative(inner) => Expect::Negative(f(inner)),
+        }
+    }
+
+    /// Converting the value of variant [`Token`]
+    ///
+    /// [`Token`]: Self::Token
+    #[inline]
+    pub fn map_token<F, U>(self, f: F) -> Expect<U>
+    where
+        F: FnOnce(T) -> U,
+    {
+        self.map(|inner| inner.map_token(f))
     }
 }
 
 /// A value to express what tokens are expected by the parser.
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
-pub enum Expect<T> {
+pub enum ExpectKind<T> {
     /// Any token.
     Any,
     /// A token.
@@ -299,15 +385,13 @@ pub enum Expect<T> {
     #[cfg(feature = "alloc")]
     #[cfg_attr(feature = "nightly", doc(cfg(feature = "alloc")))]
     Owned(String),
-    /// The end of input.
-    Eof,
     /// Tokens can't be expressed in `#![no_std]` environment without allocators.
     #[cfg(any(doc, not(feature = "alloc")))]
     #[cfg_attr(feature = "nightly", doc(cfg(not(feature = "alloc"))))]
     Other,
 }
 
-impl<T: fmt::Display> fmt::Display for Expect<T> {
+impl<T: fmt::Display> fmt::Display for ExpectKind<T> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Self::Any => write!(f, "a token"),
@@ -315,30 +399,28 @@ impl<T: fmt::Display> fmt::Display for Expect<T> {
             Self::Static(s) => s.fmt(f),
             #[cfg(feature = "alloc")]
             Self::Owned(s) => s.fmt(f),
-            Self::Eof => write!(f, "EOF"),
             #[cfg(not(feature = "alloc"))]
             Self::Other => write!(f, "something"),
         }
     }
 }
 
-impl<T> Expect<T> {
+impl<T> ExpectKind<T> {
     /// Converting the value of variant [`Token`]
     ///
     /// [`Token`]: Self::Token
-    pub fn map_token<F, U>(self, f: F) -> Expect<U>
+    pub fn map_token<F, U>(self, f: F) -> ExpectKind<U>
     where
         F: FnOnce(T) -> U,
     {
         match self {
-            Self::Any => Expect::Any,
-            Self::Token(t) => Expect::Token(f(t)),
-            Self::Static(s) => Expect::Static(s),
+            Self::Any => ExpectKind::Any,
+            Self::Token(t) => ExpectKind::Token(f(t)),
+            Self::Static(s) => ExpectKind::Static(s),
             #[cfg(feature = "alloc")]
-            Self::Owned(s) => Expect::Owned(s),
-            Self::Eof => Expect::Eof,
+            Self::Owned(s) => ExpectKind::Owned(s),
             #[cfg(not(feature = "alloc"))]
-            Self::Other => Expect::Other,
+            Self::Other => ExpectKind::Other,
         }
     }
 }
