@@ -41,12 +41,12 @@ impl<I: Positioned + ?Sized> Parser<I> for Eof<I> {
         let start = input.position();
 
         Poll::Ready(Ok(match ready!(input.as_mut().try_poll_next(cx)?) {
-            Some(i) => {
+            Some(_) => {
                 let end = input.position();
                 (
                     Status::Failure(
                         Error {
-                            expects: Expects::new(Expect::Static("<eof>")),
+                            expects: Expects::from("<eof>"),
                             position: start.clone()..end.clone(),
                         },
                         false,

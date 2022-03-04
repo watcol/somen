@@ -127,7 +127,7 @@ pub trait Set<T> {
     /// Express the set by [`Expects`].
     #[inline]
     fn to_expects(&self) -> Expects<T> {
-        Expects::new(Expect::Static("<set>"))
+        Expects::from("<set>")
     }
 }
 

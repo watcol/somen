@@ -3,7 +3,7 @@ use core::pin::Pin;
 use core::task::{Context, Poll};
 use futures_core::ready;
 
-use crate::error::{Error, Expect, Expects, PolledResult, Status};
+use crate::error::{Error, Expects, PolledResult, Status};
 use crate::parser::Parser;
 use crate::stream::Positioned;
 
@@ -49,7 +49,7 @@ where
                 Some(val) if (self.cond)(&val) => Status::Success(val, None),
                 _ => Status::Failure(
                     Error {
-                        expects: Expects::new(Expect::Static("<cond>")),
+                        expects: Expects::from("<cond>"),
                         position: start.clone()..end.clone(),
                     },
                     false,
@@ -102,7 +102,7 @@ where
                 Some(val) if !(self.cond)(&val) => Status::Success(val, None),
                 _ => Status::Failure(
                     Error {
-                        expects: Expects::new(Expect::Static("<cond>")),
+                        expects: Expects::from("<cond>"),
                         position: start.clone()..end.clone(),
                     },
                     false,
@@ -157,7 +157,7 @@ where
                     Some(val) => Status::Success(val, None),
                     None => Status::Failure(
                         Error {
-                            expects: Expects::new(Expect::Static("<some>")),
+                            expects: Expects::from("<some>"),
                             position: start.clone()..end.clone(),
                         },
                         false,
@@ -165,7 +165,7 @@ where
                 },
                 _ => Status::Failure(
                     Error {
-                        expects: Expects::new(Expect::Static("<some>")),
+                        expects: Expects::from("<some>"),
                         position: start.clone()..end.clone(),
                     },
                     false,
