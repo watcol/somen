@@ -3,6 +3,8 @@
 pub mod streamed;
 
 mod any;
+mod cond;
+mod eof;
 mod opt;
 mod peek;
 mod repeat;
@@ -12,6 +14,8 @@ mod future;
 mod utils;
 
 pub use any::Any;
+pub use cond::{Is, IsNot, IsSome};
+pub use eof::Eof;
 pub use opt::Opt;
 pub use peek::{Fail, Peek};
 pub use repeat::Repeat;
@@ -32,6 +36,42 @@ use streamed::assert_streamed_parser;
 #[inline]
 pub fn any<I: Positioned + ?Sized>() -> Any<I> {
     assert_parser(Any::new())
+}
+
+/// Succeeds if the input reached the end.
+#[inline]
+pub fn eof<I: Positioned + ?Sized>() -> Eof<I> {
+    assert_parser(Eof::new())
+}
+
+/// Parses a token matches the condition.
+#[inline]
+pub fn is<I, F>(cond: F) -> Is<I, F>
+where
+    I: Positioned + ?Sized,
+    F: FnMut(&I::Ok) -> bool,
+{
+    assert_parser(Is::new(cond))
+}
+
+/// Parses a token does not match the condition.
+#[inline]
+pub fn is_not<I, F>(cond: F) -> IsNot<I, F>
+where
+    I: Positioned + ?Sized,
+    F: FnMut(&I::Ok) -> bool,
+{
+    assert_parser(IsNot::new(cond))
+}
+
+/// Parses a token, pass the token to the function and succeeds if the returned value is [`Some`].
+#[inline]
+pub fn is_some<I, F, O>(cond: F) -> IsSome<I, F>
+where
+    I: Positioned + ?Sized,
+    F: FnMut(&I::Ok) -> Option<O>,
+{
+    assert_parser(IsSome::new(cond))
 }
 
 /// A trait for parsers.
