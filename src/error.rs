@@ -289,6 +289,8 @@ impl<T> From<String> for Expects<T> {
 /// A value to express what tokens are expected by the parser.
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
 pub enum Expect<T> {
+    /// Any token.
+    Any,
     /// A token.
     Token(T),
     /// A described tokens.
@@ -308,6 +310,7 @@ pub enum Expect<T> {
 impl<T: fmt::Display> fmt::Display for Expect<T> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
+            Self::Any => write!(f, "a token"),
             Self::Token(t) => t.fmt(f),
             Self::Static(s) => s.fmt(f),
             #[cfg(feature = "alloc")]
@@ -328,6 +331,7 @@ impl<T> Expect<T> {
         F: FnOnce(T) -> U,
     {
         match self {
+            Self::Any => Expect::Any,
             Self::Token(t) => Expect::Token(f(t)),
             Self::Static(s) => Expect::Static(s),
             #[cfg(feature = "alloc")]
