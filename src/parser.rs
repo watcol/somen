@@ -8,7 +8,10 @@ mod eof;
 mod opt;
 mod peek;
 mod repeat;
+mod set;
+mod token;
 mod tuples;
+mod value;
 
 mod future;
 mod utils;
@@ -19,6 +22,9 @@ pub use eof::Eof;
 pub use opt::Opt;
 pub use peek::{Fail, Peek};
 pub use repeat::Repeat;
+pub use set::{NoneOf, OneOf, Set};
+pub use token::{Not, Token};
+pub use value::{Value, ValueFn};
 
 #[cfg(feature = "alloc")]
 use alloc::boxed::Box;
@@ -42,6 +48,58 @@ pub fn any<I: Positioned + ?Sized>() -> Any<I> {
 #[inline]
 pub fn eof<I: Positioned + ?Sized>() -> Eof<I> {
     assert_parser(Eof::new())
+}
+
+/// Produces a value without parsing any tokens.
+#[inline]
+pub fn value<I: Positioned + ?Sized, T: Clone>(value: T) -> Value<I, T> {
+    assert_parser(Value::new(value))
+}
+
+/// Produces a value by the function without parsing any tokens.
+#[inline]
+pub fn value_fn<I: Positioned + ?Sized, F: FnMut() -> T, T>(f: F) -> ValueFn<I, F> {
+    assert_parser(ValueFn::new(f))
+}
+
+/// Parses a token.
+#[inline]
+pub fn token<I>(token: I::Ok) -> Token<I, I::Ok>
+where
+    I: Positioned + ?Sized,
+    I::Ok: Clone + PartialEq,
+{
+    assert_parser(Token::new(token))
+}
+
+/// Parses any token except `token`.
+#[inline]
+pub fn not<I>(token: I::Ok) -> Not<I, I::Ok>
+where
+    I: Positioned + ?Sized,
+    I::Ok: Clone + PartialEq,
+{
+    assert_parser(Not::new(token))
+}
+
+/// Succeeds if a parsed token matches one of the set.
+#[inline]
+pub fn one_of<I, S>(set: S) -> OneOf<I, S>
+where
+    I: Positioned + ?Sized,
+    S: Set<I::Ok>,
+{
+    assert_parser(OneOf::new(set))
+}
+
+/// Succeeds if a parsed token doesn't match one of the set.
+#[inline]
+pub fn none_of<I, S>(set: S) -> NoneOf<I, S>
+where
+    I: Positioned + ?Sized,
+    S: Set<I::Ok>,
+{
+    assert_parser(NoneOf::new(set))
 }
 
 /// Parses a token matches the condition.
