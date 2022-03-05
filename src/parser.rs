@@ -1,38 +1,12 @@
 //! Basic parsers and combinators.
 
+pub mod atomic;
+pub mod combinator;
 pub mod streamed;
-
-mod any;
-mod cond;
-mod either;
-mod eof;
-mod func;
-mod lazy;
-mod no_state;
-mod opt;
-mod peek;
-mod repeat;
-mod set;
-mod token;
-mod tuples;
-mod value;
+pub mod wrapper;
 
 mod future;
 mod utils;
-
-pub use any::Any;
-pub use cond::{Is, IsNot, IsSome};
-pub use either::Either;
-pub use eof::Eof;
-pub use func::Function;
-pub use lazy::Lazy;
-pub use no_state::NoState;
-pub use opt::Opt;
-pub use peek::{Fail, Peek};
-pub use repeat::Repeat;
-pub use set::{NoneOf, OneOf, Set};
-pub use token::{Not, Token};
-pub use value::{Position, Value, ValueFn};
 
 #[cfg(feature = "alloc")]
 use alloc::boxed::Box;
@@ -42,8 +16,12 @@ use core::task::Context;
 
 use crate::error::PolledResult;
 use crate::stream::{Input, Positioned};
+use atomic::*;
+use combinator::*;
 use future::ParseFuture;
 use streamed::assert_streamed_parser;
+use streamed::generator::*;
+use wrapper::*;
 
 /// Wrapping the function into a parser or a streaned parser.
 #[inline]

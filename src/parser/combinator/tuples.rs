@@ -3,9 +3,9 @@ use core::pin::Pin;
 use core::task::{Context, Poll};
 use futures_core::ready;
 
-use super::utils::merge_errors;
-use super::Parser;
 use crate::error::{Error, PolledResult, Status};
+use crate::parser::utils::merge_errors;
+use crate::parser::Parser;
 use crate::stream::Positioned;
 
 macro_rules! tuple_parser {

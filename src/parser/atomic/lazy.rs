@@ -1,14 +1,14 @@
 use core::pin::Pin;
 use core::task::Context;
 
-use super::streamed::StreamedParser;
 use crate::error::PolledResult;
+use crate::parser::streamed::StreamedParser;
 use crate::parser::Parser;
 use crate::stream::Positioned;
 
-/// A parser for method [`no_state`].
+/// A parser for function [`lazy`].
 ///
-/// [`no_state`]: super::ParserExt::no_state
+/// [`lazy`]: crate::parser::lazy
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Lazy<F> {
     f: F,

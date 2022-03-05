@@ -9,7 +9,7 @@ use crate::stream::Input;
 
 /// A parser for method [`peek`].
 ///
-/// [`peek`]: super::ParserExt::peek
+/// [`peek`]: crate::parser::ParserExt::peek
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Peek<P> {
     inner: P,
@@ -80,7 +80,7 @@ where
 
 /// A parser for method [`fail`].
 ///
-/// [`fail`]: super::ParserExt::fail
+/// [`fail`]: crate::parser::ParserExt::fail
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Fail<P> {
     inner: P,

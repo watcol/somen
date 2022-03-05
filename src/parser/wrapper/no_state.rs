@@ -2,14 +2,14 @@ use core::pin::Pin;
 use core::task::{Context, Poll};
 use futures_core::ready;
 
-use super::streamed::StreamedParser;
 use crate::error::{PolledResult, Status};
+use crate::parser::streamed::StreamedParser;
 use crate::parser::Parser;
 use crate::stream::Positioned;
 
 /// A parser for method [`no_state`].
 ///
-/// [`no_state`]: super::ParserExt::no_state
+/// [`no_state`]: crate::parser::ParserExt::no_state
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct NoState<P, C> {
     inner: P,

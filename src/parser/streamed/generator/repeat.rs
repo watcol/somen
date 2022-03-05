@@ -11,7 +11,7 @@ use crate::stream::Input;
 
 /// A streamed parser generated from method [`repeat`].
 ///
-/// [`repeat`]: super::ParserExt::repeat
+/// [`repeat`]: crate::parser::ParserExt::repeat
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Repeat<P, R> {
     inner: P,

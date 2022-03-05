@@ -2,14 +2,14 @@ use core::marker::PhantomData;
 use core::pin::Pin;
 use core::task::Context;
 
-use super::streamed::StreamedParser;
-use super::Parser;
 use crate::error::PolledResult;
+use crate::parser::streamed::StreamedParser;
+use crate::parser::Parser;
 use crate::stream::Positioned;
 
 /// A parser for function [`function`].
 ///
-/// [`function`]: super::function
+/// [`function`]: crate::parser::function
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Function<F, I: ?Sized, C> {
     f: F,

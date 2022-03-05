@@ -1,5 +1,7 @@
 //! Tools for parsers return multiple outputs.
 
+pub mod generator;
+
 mod stream;
 
 use core::pin::Pin;

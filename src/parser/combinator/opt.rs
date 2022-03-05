@@ -9,7 +9,7 @@ use crate::stream::Input;
 
 /// A parser for method [`opt`].
 ///
-/// [`opt`]: super::ParserExt::opt
+/// [`opt`]: crate::parser::ParserExt::opt
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Opt<P> {
     inner: P,

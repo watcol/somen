@@ -8,8 +8,8 @@ use crate::stream::Positioned;
 
 /// A parser for method [`left`], [`right`].
 ///
-/// [`left`]: super::ParserExt::left
-/// [`right`]: super::ParserExt::right
+/// [`left`]: crate::parser::ParserExt::left
+/// [`right`]: crate::parser::ParserExt::right
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum Either<T, U> {
     Left(T),

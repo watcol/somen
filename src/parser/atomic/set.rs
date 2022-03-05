@@ -6,8 +6,8 @@ use core::pin::Pin;
 use core::task::{Context, Poll};
 use futures_core::ready;
 
-use super::Parser;
 use crate::error::{Error, Expect, ExpectKind, Expects, PolledResult, Status};
+use crate::parser::Parser;
 use crate::stream::Positioned;
 
 /// A parser for function [`one_of`].

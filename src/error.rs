@@ -63,7 +63,7 @@ impl<T, L> Error<T, L> {
         self.expects.sort()
     }
 
-    /// Converting [`Expect::Token`] of each expects.
+    /// Converting [`ExpectKind::Token`] of each expects.
     #[inline]
     pub fn map_tokens<F: FnMut(T) -> U, U>(self, f: F) -> Error<U, L> {
         Error {
@@ -175,7 +175,7 @@ impl<T> Expects<T> {
         self.map(Expect::negate)
     }
 
-    /// Converting variant [`Expect::Token`] of each elements.
+    /// Converting variant [`ExpectKind::Token`] of each elements.
     #[inline]
     pub fn map_tokens<F: FnMut(T) -> U, U>(self, mut f: F) -> Expects<U> {
         self.map(|e| e.map_token(&mut f))
@@ -360,9 +360,7 @@ impl<T> Expect<T> {
         }
     }
 
-    /// Converting the value of variant [`Token`]
-    ///
-    /// [`Token`]: Self::Token
+    /// Converting the value of inner [`ExpectKind::Token`]
     #[inline]
     pub fn map_token<F, U>(self, f: F) -> Expect<U>
     where
