@@ -24,7 +24,7 @@ pub use peek::{Fail, Peek};
 pub use repeat::Repeat;
 pub use set::{NoneOf, OneOf, Set};
 pub use token::{Not, Token};
-pub use value::{Value, ValueFn};
+pub use value::{Position, Value, ValueFn};
 
 #[cfg(feature = "alloc")]
 use alloc::boxed::Box;
@@ -59,6 +59,12 @@ pub fn value<I: Positioned + ?Sized, T: Clone>(value: T) -> Value<I, T> {
 #[inline]
 pub fn value_fn<I: Positioned + ?Sized, F: FnMut() -> T, T>(f: F) -> ValueFn<I, F> {
     assert_parser(ValueFn::new(f))
+}
+
+/// Returns the current position of input.
+#[inline]
+pub fn position<I: Positioned + ?Sized>() -> Position<I> {
+    assert_parser(Position::new())
 }
 
 /// Parses a token.
