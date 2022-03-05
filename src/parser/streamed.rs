@@ -5,6 +5,7 @@ mod stream;
 use core::pin::Pin;
 use core::task::Context;
 
+use super::{Either, NoState};
 use crate::error::PolledResult;
 use crate::stream::Positioned;
 use stream::ParserStream;
@@ -66,6 +67,38 @@ pub trait StreamedParserExt<I: Positioned + ?Sized>: StreamedParser<I> {
         Self: Sized + 'a,
     {
         assert_streamed_parser(Box::new(self))
+    }
+
+    /// Merges [`State`] into the parser itself.
+    ///
+    /// [`State`]: StreamedParser::State
+    #[cfg(feature = "alloc")]
+    #[inline]
+    fn no_state(self) -> NoState<Self, Self::State>
+    where
+        Self: Sized,
+    {
+        assert_streamed_parser(NoState::new(self))
+    }
+
+    /// Wraps the parser into a [`Either`] to merge multiple types of parsers.
+    #[inline]
+    fn left<R>(self) -> Either<Self, R>
+    where
+        Self: Sized,
+        R: StreamedParser<I, Item = Self::Item>,
+    {
+        assert_streamed_parser(Either::Left(self))
+    }
+
+    /// Wraps the parser into a [`Either`] to merge multiple types of parsers.
+    #[inline]
+    fn right<L>(self) -> Either<L, Self>
+    where
+        Self: Sized,
+        L: StreamedParser<I, Item = Self::Item>,
+    {
+        assert_streamed_parser(Either::Right(self))
     }
 }
 

@@ -4,7 +4,11 @@ pub mod streamed;
 
 mod any;
 mod cond;
+mod either;
 mod eof;
+mod func;
+mod lazy;
+mod no_state;
 mod opt;
 mod peek;
 mod repeat;
@@ -18,7 +22,11 @@ mod utils;
 
 pub use any::Any;
 pub use cond::{Is, IsNot, IsSome};
+pub use either::Either;
 pub use eof::Eof;
+pub use func::Function;
+pub use lazy::Lazy;
+pub use no_state::NoState;
 pub use opt::Opt;
 pub use peek::{Fail, Peek};
 pub use repeat::Repeat;
@@ -36,6 +44,26 @@ use crate::error::PolledResult;
 use crate::stream::{Input, Positioned};
 use future::ParseFuture;
 use streamed::assert_streamed_parser;
+
+/// Wrapping the function into a parser or a streaned parser.
+#[inline]
+pub fn function<F, I, O, E, C>(f: F) -> Function<F, I, C>
+where
+    F: FnMut(Pin<&mut I>, &mut Context<'_>, &mut C) -> PolledResult<O, I>,
+    I: Positioned + ?Sized,
+    C: Default,
+{
+    assert_parser(Function::new(f))
+}
+
+/// Produces the parser (or streamed parser) at the time of parsing.
+#[inline]
+pub fn lazy<F, P>(f: F) -> Lazy<F>
+where
+    F: FnMut() -> P,
+{
+    Lazy::new(f)
+}
 
 /// Parses any token.
 #[inline]
@@ -187,6 +215,37 @@ pub trait ParserExt<I: Positioned + ?Sized>: Parser<I> {
         Self: Sized + 'a,
     {
         assert_parser(Box::new(self))
+    }
+
+    /// Merges [`State`] into parser itself.
+    ///
+    /// [`State`]: Parser::State
+    #[inline]
+    fn no_state(self) -> NoState<Self, Self::State>
+    where
+        Self: Sized,
+    {
+        assert_parser(NoState::new(self))
+    }
+
+    /// Wraps the parser into a [`Either`] to merge multiple types of parsers.
+    #[inline]
+    fn left<R>(self) -> Either<Self, R>
+    where
+        Self: Sized,
+        R: Parser<I, Output = Self::Output>,
+    {
+        assert_parser(Either::Left(self))
+    }
+
+    /// Wraps the parser into a [`Either`] to merge multiple types of parsers.
+    #[inline]
+    fn right<L>(self) -> Either<L, Self>
+    where
+        Self: Sized,
+        L: Parser<I, Output = Self::Output>,
+    {
+        assert_parser(Either::Right(self))
     }
 
     /// Returns a parse result without consuming input.
