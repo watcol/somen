@@ -32,7 +32,7 @@ impl<P> Opt<P> {
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct OptState<C, M> {
     inner: C,
-    queued_marker: Option<M>,
+    marker: Option<M>,
 }
 
 impl<C: Default, M> Default for OptState<C, M> {
@@ -40,7 +40,7 @@ impl<C: Default, M> Default for OptState<C, M> {
     fn default() -> Self {
         Self {
             inner: C::default(),
-            queued_marker: None,
+            marker: None,
         }
     }
 }
@@ -59,8 +59,8 @@ where
         cx: &mut Context<'_>,
         state: &mut Self::State,
     ) -> PolledResult<Self::Output, I> {
-        if state.queued_marker.is_none() {
-            state.queued_marker = Some(input.as_mut().mark()?);
+        if state.marker.is_none() {
+            state.marker = Some(input.as_mut().mark()?);
         }
 
         Poll::Ready(Ok(
@@ -69,11 +69,11 @@ where
                 .poll_parse(input.as_mut(), cx, &mut state.inner)?)
             {
                 (Status::Success(val, err), pos) => {
-                    input.drop_marker(mem::take(&mut state.queued_marker).unwrap())?;
+                    input.drop_marker(mem::take(&mut state.marker).unwrap())?;
                     (Status::Success(Some(val), err), pos)
                 }
                 (Status::Failure(err, false), pos) if err.rewindable(&pos.start) => {
-                    input.rewind(mem::take(&mut state.queued_marker).unwrap())?;
+                    input.rewind(mem::take(&mut state.marker).unwrap())?;
                     (
                         Status::Success(None, Some(err)),
                         pos.start.clone()..pos.start,

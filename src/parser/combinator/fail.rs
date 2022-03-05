@@ -7,22 +7,6 @@ use crate::error::{Error, Expects, PolledResult, Status};
 use crate::parser::Parser;
 use crate::stream::Input;
 
-#[derive(Clone, Debug, PartialEq, Eq)]
-pub struct FailState<C, M> {
-    inner: C,
-    queued_marker: Option<M>,
-}
-
-impl<C: Default, M> Default for FailState<C, M> {
-    #[inline]
-    fn default() -> Self {
-        Self {
-            inner: C::default(),
-            queued_marker: None,
-        }
-    }
-}
-
 /// A parser for method [`fail`].
 ///
 /// [`fail`]: crate::parser::ParserExt::fail
@@ -45,6 +29,22 @@ impl<P> Fail<P> {
     }
 }
 
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct FailState<C, M> {
+    inner: C,
+    marker: Option<M>,
+}
+
+impl<C: Default, M> Default for FailState<C, M> {
+    #[inline]
+    fn default() -> Self {
+        Self {
+            inner: C::default(),
+            marker: None,
+        }
+    }
+}
+
 impl<P, I> Parser<I> for Fail<P>
 where
     P: Parser<I>,
@@ -59,14 +59,14 @@ where
         cx: &mut Context<'_>,
         state: &mut Self::State,
     ) -> PolledResult<Self::Output, I> {
-        if state.queued_marker.is_none() {
-            state.queued_marker = Some(input.as_mut().mark()?);
+        if state.marker.is_none() {
+            state.marker = Some(input.as_mut().mark()?);
         }
 
         Poll::Ready(Ok(
             match ready!(self.inner.poll_parse(input.as_mut(), cx, &mut state.inner,))? {
                 (Status::Success(_, _), pos) => {
-                    input.drop_marker(mem::take(&mut state.queued_marker).unwrap())?;
+                    input.drop_marker(mem::take(&mut state.marker).unwrap())?;
                     (
                         Status::Failure(
                             Error {
@@ -79,11 +79,11 @@ where
                     )
                 }
                 (Status::Failure(_, false), pos) => {
-                    input.rewind(mem::take(&mut state.queued_marker).unwrap())?;
+                    input.rewind(mem::take(&mut state.marker).unwrap())?;
                     (Status::Success((), None), pos.start.clone()..pos.start)
                 }
                 (Status::Failure(err, true), pos) => {
-                    input.drop_marker(mem::take(&mut state.queued_marker).unwrap())?;
+                    input.drop_marker(mem::take(&mut state.marker).unwrap())?;
                     (Status::Failure(err, true), pos)
                 }
             },

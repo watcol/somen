@@ -35,7 +35,7 @@ impl<P, R> Repeat<P, R> {
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct RepeatState<C, M> {
     inner: C,
-    queued_marker: Option<M>,
+    marker: Option<M>,
     count: usize,
 }
 
@@ -44,7 +44,7 @@ impl<C: Default, M> Default for RepeatState<C, M> {
     fn default() -> Self {
         Self {
             inner: C::default(),
-            queued_marker: None,
+            marker: None,
             count: 0,
         }
     }
@@ -76,8 +76,8 @@ where
         }
 
         // Reserve the marker.
-        if state.queued_marker.is_none() {
-            state.queued_marker = Some(input.as_mut().mark()?);
+        if state.marker.is_none() {
+            state.marker = Some(input.as_mut().mark()?);
         }
 
         Poll::Ready(Ok(
@@ -86,7 +86,7 @@ where
                 .poll_parse(input.as_mut(), cx, &mut state.inner)?)
             {
                 (Status::Success(val, err), pos) => {
-                    input.drop_marker(mem::take(&mut state.queued_marker).unwrap())?;
+                    input.drop_marker(mem::take(&mut state.marker).unwrap())?;
                     state.count += 1;
                     (Status::Success(Some(val), err), pos)
                 }
@@ -94,14 +94,14 @@ where
                 (Status::Failure(err, false), pos)
                     if err.rewindable(&pos.start) && self.range.contains(&state.count) =>
                 {
-                    input.rewind(mem::take(&mut state.queued_marker).unwrap())?;
+                    input.rewind(mem::take(&mut state.marker).unwrap())?;
                     (
                         Status::Success(None, Some(err)),
                         pos.start.clone()..pos.start,
                     )
                 }
                 (Status::Failure(err, exclusive), pos) => {
-                    input.drop_marker(mem::take(&mut state.queued_marker).unwrap())?;
+                    input.drop_marker(mem::take(&mut state.marker).unwrap())?;
                     (Status::Failure(err, exclusive), pos)
                 }
             },
