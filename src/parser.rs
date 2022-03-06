@@ -143,6 +143,27 @@ where
     assert_parser(IsSome::new(cond))
 }
 
+/// Parses a sequence of tokens.
+#[inline]
+pub fn tokens<'a, I, T>(tokens: T) -> Tokens<'a, I, T>
+where
+    I: Positioned + ?Sized,
+    I::Ok: PartialEq,
+    T: IntoIterator<Item = &'a I::Ok> + Clone,
+{
+    assert_parser(Tokens::new(tokens))
+}
+
+/// Parses a static string like [`tokens`].
+///
+/// [`tokens`]: crate::parser::tokens
+pub fn tag<I>(tag: &'static str) -> Tag<I>
+where
+    I: Positioned<Ok = char> + ?Sized,
+{
+    assert_parser(Tag::new(tag))
+}
+
 /// A trait for parsers.
 #[cfg_attr(feature = "nightly", doc(notable_trait))]
 pub trait Parser<I: Positioned + ?Sized> {
