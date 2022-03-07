@@ -29,19 +29,11 @@ impl<P> Fail<P> {
     }
 }
 
-#[derive(Clone, Debug, PartialEq, Eq)]
-pub struct FailState<C, M> {
-    inner: C,
-    marker: Option<M>,
-}
-
-impl<C: Default, M> Default for FailState<C, M> {
-    #[inline]
-    fn default() -> Self {
-        Self {
-            inner: C::default(),
-            marker: None,
-        }
+crate::parser_state! {
+    #[derive(PartialEq, Eq)]
+    pub struct FailState<I: Input, P: Parser> {
+        inner: P::State,
+        marker: Option<I::Marker>,
     }
 }
 
@@ -51,7 +43,7 @@ where
     I: Input + ?Sized,
 {
     type Output = ();
-    type State = FailState<P::State, I::Marker>;
+    type State = FailState<I, P>;
 
     fn poll_parse(
         &mut self,

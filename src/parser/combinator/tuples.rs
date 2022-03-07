@@ -10,27 +10,13 @@ use crate::stream::Positioned;
 
 macro_rules! tuple_parser {
     ($state:ident $(, $t:ident)*) => {
-        #[derive(Clone, Debug, PartialEq, Eq)]
-        #[allow(non_snake_case)]
-        pub struct $state <I: Positioned + ?Sized, $( $t: Parser<I> ),* > {
-            $(
-                $t: (Option<$t::Output>, $t::State),
-            )*
-            start: Option<I::Locator>,
-            error: Option<Error<I::Ok, I::Locator>>,
-        }
-
-        impl<I, $($t),*> Default for $state<I, $($t),*>
-        where I: Positioned + ?Sized,
-              $( $t: Parser<I>, )*
-        {
-            #[inline]
-            fn default() -> Self {
-                Self {
-                    $( $t: (None, Default::default()), )*
-                    start: None,
-                    error: None,
-                }
+        $crate::parse_state! {
+            #[derive(PartialEq, Eq)]
+            #[allow(non_snake_case)]
+            pub struct $state <I, $( $t: Parser ),*> {
+                $( $t: (Option<$t::Output>, $t::State), )*
+                start: Option<I::Locator>,
+                error: Option<Error<I::Ok, I::Locator>>,
             }
         }
 

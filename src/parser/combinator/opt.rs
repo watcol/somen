@@ -29,19 +29,11 @@ impl<P> Opt<P> {
     }
 }
 
-#[derive(Clone, Debug, PartialEq, Eq)]
-pub struct OptState<C, M> {
-    inner: C,
-    marker: Option<M>,
-}
-
-impl<C: Default, M> Default for OptState<C, M> {
-    #[inline]
-    fn default() -> Self {
-        Self {
-            inner: C::default(),
-            marker: None,
-        }
+crate::parser_state! {
+    #[derive(PartialEq, Eq)]
+    pub struct OptState<I: Input, P: Parser> {
+        inner: P::State,
+        marker: Option<I::Marker>,
     }
 }
 
@@ -51,7 +43,7 @@ where
     I: Input + ?Sized,
 {
     type Output = Option<P::Output>;
-    type State = OptState<P::State, I::Marker>;
+    type State = OptState<I, P>;
 
     fn poll_parse(
         &mut self,

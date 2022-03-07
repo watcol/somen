@@ -32,21 +32,12 @@ impl<P, R> Repeat<P, R> {
     }
 }
 
-#[derive(Clone, Debug, PartialEq, Eq)]
-pub struct RepeatState<C, M> {
-    inner: C,
-    marker: Option<M>,
-    count: usize,
-}
-
-impl<C: Default, M> Default for RepeatState<C, M> {
-    #[inline]
-    fn default() -> Self {
-        Self {
-            inner: C::default(),
-            marker: None,
-            count: 0,
-        }
+crate::parser_state! {
+    #[derive(PartialEq, Eq)]
+    pub struct RepeatState<I: Input, P: Parser> {
+        inner: P::State,
+        marker: Option<I::Marker>,
+        count: usize,
     }
 }
 
@@ -57,7 +48,7 @@ where
     I: Input + ?Sized,
 {
     type Item = P::Output;
-    type State = RepeatState<P::State, I::Marker>;
+    type State = RepeatState<I, P>;
 
     fn poll_parse_next(
         &mut self,

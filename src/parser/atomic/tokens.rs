@@ -28,21 +28,12 @@ impl<'a, I: ?Sized, T> Tokens<'a, I, T> {
     }
 }
 
-#[derive(Clone, Debug, PartialEq, Eq)]
-pub struct TokensState<I, L> {
-    iter: Option<I>,
-    start: Option<L>,
-    next: Option<L>,
-}
-
-impl<I, L> Default for TokensState<I, L> {
-    #[inline]
-    fn default() -> Self {
-        Self {
-            iter: None,
-            start: None,
-            next: None,
-        }
+crate::parser_state! {
+    #[derive(PartialEq, Eq)]
+    pub struct TokensState<I; T> {
+        iter: Option<T>,
+        start: Option<I::Locator>,
+        next: Option<I::Locator>,
     }
 }
 
@@ -53,7 +44,7 @@ where
     T: IntoIterator<Item = &'a I::Ok> + Clone,
 {
     type Output = T;
-    type State = TokensState<T::IntoIter, I::Locator>;
+    type State = TokensState<I, T::IntoIter>;
 
     fn poll_parse(
         &mut self,

@@ -29,21 +29,11 @@ impl<I: ?Sized> Tag<I> {
     }
 }
 
-#[derive(Clone, Debug)]
-pub struct TagState<L> {
-    iter: Option<Chars<'static>>,
-    start: Option<L>,
-    next: Option<L>,
-}
-
-impl<L> Default for TagState<L> {
-    #[inline]
-    fn default() -> Self {
-        Self {
-            iter: None,
-            start: None,
-            next: None,
-        }
+crate::parser_state! {
+    pub struct TagState<I> {
+        iter: Option<Chars<'static>>,
+        start: Option<I::Locator>,
+        next: Option<I::Locator>,
     }
 }
 
@@ -52,7 +42,7 @@ where
     I: Positioned<Ok = char> + ?Sized,
 {
     type Output = &'static str;
-    type State = TagState<I::Locator>;
+    type State = TagState<I>;
 
     fn poll_parse(
         &mut self,

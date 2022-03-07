@@ -29,19 +29,11 @@ impl<P> Peek<P> {
     }
 }
 
-#[derive(Clone, Debug, PartialEq, Eq)]
-pub struct PeekState<C, M> {
-    inner: C,
-    marker: Option<M>,
-}
-
-impl<C: Default, M> Default for PeekState<C, M> {
-    #[inline]
-    fn default() -> Self {
-        Self {
-            inner: C::default(),
-            marker: None,
-        }
+crate::parser_state! {
+    #[derive(PartialEq, Eq)]
+    pub struct PeekState<I: Input, P: Parser> {
+        inner: P::State,
+        marker: Option<I::Marker>,
     }
 }
 
@@ -51,7 +43,7 @@ where
     I: Input + ?Sized,
 {
     type Output = P::Output;
-    type State = PeekState<P::State, I::Marker>;
+    type State = PeekState<I, P>;
 
     fn poll_parse(
         &mut self,

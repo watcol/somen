@@ -22,19 +22,11 @@ impl<F> Lazy<F> {
     }
 }
 
-#[derive(Clone, Debug, PartialEq, Eq)]
-pub struct LazyState<P, C> {
-    parser: Option<P>,
-    inner: C,
-}
-
-impl<P, C: Default> Default for LazyState<P, C> {
-    #[inline]
-    fn default() -> Self {
-        Self {
-            parser: None,
-            inner: Default::default(),
-        }
+crate::parser_state! {
+    #[derive(PartialEq, Eq)]
+    pub struct LazyState<I, P: Parser> {
+        parser: Option<P>,
+        inner: P::State,
     }
 }
 
@@ -45,7 +37,7 @@ where
     I: Positioned + ?Sized,
 {
     type Output = P::Output;
-    type State = LazyState<P, P::State>;
+    type State = LazyState<I, P>;
 
     #[inline]
     fn poll_parse(
@@ -61,6 +53,14 @@ where
     }
 }
 
+parse_state! {
+    #[derive(PartialEq, Eq)]
+    pub struct LazyStreamedState<I, P: StreamedParser> {
+        parser: Option<P>,
+        inner: P::State,
+    }
+}
+
 impl<F, P, I> StreamedParser<I> for Lazy<F>
 where
     F: FnMut() -> P,
@@ -68,7 +68,7 @@ where
     I: Positioned + ?Sized,
 {
     type Item = P::Item;
-    type State = LazyState<P, P::State>;
+    type State = LazyStreamedState<I, P>;
 
     #[inline]
     fn poll_parse_next(
