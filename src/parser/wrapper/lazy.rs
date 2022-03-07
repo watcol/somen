@@ -53,7 +53,7 @@ where
     }
 }
 
-parse_state! {
+crate::parser_state! {
     #[derive(PartialEq, Eq)]
     pub struct LazyStreamedState<I, P: StreamedParser> {
         parser: Option<P>,

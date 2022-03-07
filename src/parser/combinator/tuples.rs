@@ -10,7 +10,7 @@ use crate::stream::Positioned;
 
 macro_rules! tuple_parser {
     ($state:ident $(, $t:ident)*) => {
-        $crate::parse_state! {
+        $crate::parser_state! {
             #[derive(PartialEq, Eq)]
             #[allow(non_snake_case)]
             pub struct $state <I, $( $t: Parser ),*> {
