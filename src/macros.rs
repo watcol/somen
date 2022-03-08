@@ -8,10 +8,10 @@ macro_rules! call {
     }};
 }
 
-/// Automatically generate a [`Parser::State`] or [`StreamedParser::State`]
+/// Automatically generate a [`Parser::State`] or [`StreamedParser::State`].
 ///
-/// [`Parser`]: crate::parser::Parser
-/// [`StreamedParser`]: crate::parser::streamed::StreamedParser
+/// [`Parser::State`]: crate::parser::Parser::State
+/// [`StreamedParser::State`]: crate::parser::streamed::StreamedParser::State
 #[macro_export]
 macro_rules! parser_state {
     (
