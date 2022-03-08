@@ -30,10 +30,10 @@ impl<P> Fail<P> {
 }
 
 crate::parser_state! {
-    #[derive(PartialEq, Eq)]
     pub struct FailState<I: Input, P: Parser> {
         inner: P::State,
-        marker: Option<I::Marker>,
+        #[state(option)]
+        marker: I::Marker,
     }
 }
 

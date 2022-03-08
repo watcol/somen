@@ -29,11 +29,13 @@ impl<'a, I: ?Sized, T> Tokens<'a, I, T> {
 }
 
 crate::parser_state! {
-    #[derive(PartialEq, Eq)]
     pub struct TokensState<I; T> {
-        iter: Option<T>,
-        start: Option<I::Locator>,
-        next: Option<I::Locator>,
+        #[state(option)]
+        iter: T,
+        #[state(option)]
+        start: I::Locator,
+        #[state(option)]
+        next: I::Locator,
     }
 }
 

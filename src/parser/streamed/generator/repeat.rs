@@ -33,10 +33,10 @@ impl<P, R> Repeat<P, R> {
 }
 
 crate::parser_state! {
-    #[derive(PartialEq, Eq)]
     pub struct RepeatState<I: Input, P: Parser> {
         inner: P::State,
-        marker: Option<I::Marker>,
+        #[state(option)]
+        marker: I::Marker,
         count: usize,
     }
 }

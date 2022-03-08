@@ -23,9 +23,9 @@ impl<F> Lazy<F> {
 }
 
 crate::parser_state! {
-    #[derive(PartialEq, Eq)]
     pub struct LazyState<I, P: Parser> {
-        parser: Option<P>,
+        #[state(option)]
+        parser: P,
         inner: P::State,
     }
 }
@@ -54,9 +54,9 @@ where
 }
 
 crate::parser_state! {
-    #[derive(PartialEq, Eq)]
     pub struct LazyStreamedState<I, P: StreamedParser> {
-        parser: Option<P>,
+        #[state(option)]
+        parser: P,
         inner: P::State,
     }
 }

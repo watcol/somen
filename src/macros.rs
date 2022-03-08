@@ -21,17 +21,16 @@ macro_rules! parser_state {
             $(, $Ps:ident: $trait:ident)*
             $(; $($Ts:ident $(:$def:ident)?),*)? $(,)?
         > {
-            $($field:ident : $ty:ty),*$(,)?
+            $($(#[state($($k:ident $(= $v:ident)?),*$(,)?)])? $field:ident : $ty:ty),*$(,)?
         }
     ) => {
         $(#[$attrs])*
-        #[derive(Clone, Debug)]
         $vis struct $name <
             $I: $crate::stream::Positioned $(+ $Itrait)? + ?Sized
             $(, $Ps: $trait<$I>)*
             $($(, $Ts)*)?
         > {
-            $($field : $ty),*
+            $($field : $crate::parser_state_inner!{@type; $($([$k $(= $v)?])*)? $ty}),*
         }
 
         impl <
@@ -46,9 +45,44 @@ macro_rules! parser_state {
             #[inline]
             fn default() -> Self {
                 Self {
-                    $($field: core::default::Default::default()),*
+                    $($field: $crate::parser_state_inner!{@default; $($([$k $(= $v)?])*)? $ty}),*
                 }
             }
         }
     }
+}
+
+#[macro_export]
+#[doc(hidden)]
+macro_rules! parser_state_inner {
+    (@type; $ty:ty) => {
+        $ty
+    };
+    (@type; [option]$([$k_rest:ident $(= $v_rest:ident)?])* $ty:ty) => {
+        core::option::Option<$ty>
+    };
+    (@type; [$k:ident $(= $v:ident)?]$([$k_rest:ident $(= $v_rest:ident)?])* $ty:ty) => {
+        $crate::parser_state_inner!(@type; $([$k_rest $(= $v_rest)?])* $ty)
+    };
+    (@default; <opt> $ty:ty) => {
+        core::option::Option::None
+    };
+    (@default; $ty:ty) => {
+        core::default::Default::default()
+    };
+    (@default;
+        [default = $func:ident]$([$k_rest:ident $(= $v_rest:ident)?])* $(<opt>)? $ty:ty
+    ) => {
+        $func()
+    };
+    (@default;
+        [option]$([$k_rest:ident $(= $v_rest:ident)?])* $(<opt>)? $ty:ty
+    ) => {
+        $crate::parser_state_inner!{@default; $([$k_rest $(= $v_rest)?])* <opt> $ty}
+    };
+    (@default;
+        [$k:ident $(= $v:ident)?]$([$k_rest:ident $(= $v_rest:ident)?])* $(<$opt:ident>)? $ty:ty
+    ) => {
+        $crate::parser_state_inner!{@default; $([$k_rest = $v_rest])* $(<$opt>)? $ty}
+    };
 }

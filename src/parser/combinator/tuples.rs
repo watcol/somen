@@ -11,12 +11,13 @@ use crate::stream::Positioned;
 macro_rules! tuple_parser {
     ($state:ident $(, $t:ident)*) => {
         $crate::parser_state! {
-            #[derive(PartialEq, Eq)]
             #[allow(non_snake_case)]
             pub struct $state <I, $( $t: Parser ),*> {
                 $( $t: (Option<$t::Output>, $t::State), )*
-                start: Option<I::Locator>,
-                error: Option<Error<I::Ok, I::Locator>>,
+                #[state(option)]
+                start: I::Locator,
+                #[state(option)]
+                error: Error<I::Ok, I::Locator>,
             }
         }
 

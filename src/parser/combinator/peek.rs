@@ -30,10 +30,10 @@ impl<P> Peek<P> {
 }
 
 crate::parser_state! {
-    #[derive(PartialEq, Eq)]
     pub struct PeekState<I: Input, P: Parser> {
         inner: P::State,
-        marker: Option<I::Marker>,
+        #[state(option)]
+        marker: I::Marker,
     }
 }
 

@@ -31,9 +31,12 @@ impl<I: ?Sized> Tag<I> {
 
 crate::parser_state! {
     pub struct TagState<I> {
-        iter: Option<Chars<'static>>,
-        start: Option<I::Locator>,
-        next: Option<I::Locator>,
+        #[state(option)]
+        iter: Chars<'static>,
+        #[state(option)]
+        start: I::Locator,
+        #[state(option)]
+        next: I::Locator,
     }
 }
 
