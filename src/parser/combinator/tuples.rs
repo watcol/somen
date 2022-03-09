@@ -14,9 +14,9 @@ macro_rules! tuple_parser {
             #[allow(non_snake_case)]
             pub struct $state <I, $( $t: Parser ),*> {
                 $( $t: (Option<$t::Output>, $t::State), )*
-                #[state(option)]
+                #[opt]
                 start: I::Locator,
-                #[state(option)]
+                #[opt]
                 error: Error<I::Ok, I::Locator>,
             }
         }

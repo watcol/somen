@@ -31,11 +31,11 @@ impl<I: ?Sized> Tag<I> {
 
 crate::parser_state! {
     pub struct TagState<I> {
-        #[state(option)]
+        #[opt]
         iter: Chars<'static>,
-        #[state(option)]
+        #[opt]
         start: I::Locator,
-        #[state(option)]
+        #[opt]
         next: I::Locator,
     }
 }

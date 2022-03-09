@@ -32,7 +32,7 @@ impl<P> Peek<P> {
 crate::parser_state! {
     pub struct PeekState<I: Input, P: Parser> {
         inner: P::State,
-        #[state(option)]
+        #[opt]
         marker: I::Marker,
     }
 }

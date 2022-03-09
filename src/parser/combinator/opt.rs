@@ -32,7 +32,7 @@ impl<P> Opt<P> {
 crate::parser_state! {
     pub struct OptState<I: Input, P: Parser> {
         inner: P::State,
-        #[state(option)]
+        #[opt]
         marker: I::Marker,
     }
 }

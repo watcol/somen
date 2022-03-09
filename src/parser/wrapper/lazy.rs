@@ -24,7 +24,7 @@ impl<F> Lazy<F> {
 
 crate::parser_state! {
     pub struct LazyState<I, P: Parser> {
-        #[state(option)]
+        #[opt]
         parser: P,
         inner: P::State,
     }
@@ -55,7 +55,7 @@ where
 
 crate::parser_state! {
     pub struct LazyStreamedState<I, P: StreamedParser> {
-        #[state(option)]
+        #[opt]
         parser: P,
         inner: P::State,
     }

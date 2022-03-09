@@ -30,11 +30,11 @@ impl<'a, I: ?Sized, T> Tokens<'a, I, T> {
 
 crate::parser_state! {
     pub struct TokensState<I; T> {
-        #[state(option)]
+        #[opt]
         iter: T,
-        #[state(option)]
+        #[opt]
         start: I::Locator,
-        #[state(option)]
+        #[opt]
         next: I::Locator,
     }
 }

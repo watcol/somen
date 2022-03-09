@@ -35,7 +35,7 @@ impl<P, R> Repeat<P, R> {
 crate::parser_state! {
     pub struct RepeatState<I: Input, P: Parser> {
         inner: P::State,
-        #[state(option)]
+        #[opt]
         marker: I::Marker,
         count: usize,
     }
