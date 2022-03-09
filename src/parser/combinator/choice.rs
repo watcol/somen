@@ -61,9 +61,9 @@ where
             }
 
             match ready!(self.left.poll_parse(input.as_mut(), cx, inner)?) {
-                (Status::Success(i, err), pos) => {
+                (Status::Success(val, err), pos) => {
                     input.drop_marker(state.marker())?;
-                    return Poll::Ready(Ok((Status::Success(i, err), pos)));
+                    return Poll::Ready(Ok((Status::Success(val, err), pos)));
                 }
                 (Status::Failure(err, false), pos) if err.rewindable(&pos.start) => {
                     input.as_mut().rewind(state.marker())?;
@@ -80,9 +80,9 @@ where
         self.right
             .poll_parse(input, cx, state.inner.right())
             .map_ok(|status| match status {
-                (Status::Success(i, err), pos) => {
+                (Status::Success(val, err), pos) => {
                     merge_errors(&mut state.error, err, &pos);
-                    (Status::Success(i, state.error()), pos)
+                    (Status::Success(val, state.error()), pos)
                 }
                 (Status::Failure(err, false), pos) => {
                     merge_errors(&mut state.error, Some(err), &pos);
@@ -128,10 +128,10 @@ where
             }
 
             match ready!(self.left.poll_parse_next(input.as_mut(), cx, inner)?) {
-                (Status::Success(i, err), pos) => {
+                (Status::Success(val, err), pos) => {
                     input.drop_marker(state.marker())?;
                     state.succeeded = true;
-                    return Poll::Ready(Ok((Status::Success(i, err), pos)));
+                    return Poll::Ready(Ok((Status::Success(val, err), pos)));
                 }
                 (Status::Failure(err, false), pos) if err.rewindable(&pos.start) => {
                     input.as_mut().rewind(state.marker())?;
@@ -152,10 +152,10 @@ where
         self.right
             .poll_parse_next(input, cx, state.inner.right())
             .map_ok(|status| match status {
-                (Status::Success(i, err), pos) => {
+                (Status::Success(val, err), pos) => {
                     state.succeeded = true;
                     merge_errors(&mut state.error, err, &pos);
-                    (Status::Success(i, state.error()), pos)
+                    (Status::Success(val, state.error()), pos)
                 }
                 (Status::Failure(err, false), pos) => {
                     merge_errors(&mut state.error, Some(err), &pos);
