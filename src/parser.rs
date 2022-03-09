@@ -291,6 +291,16 @@ pub trait ParserExt<I: Positioned + ?Sized>: Parser<I> {
         assert_parser((self, p))
     }
 
+    /// Parses with `self`, then with `p` discarding its output.
+    #[inline]
+    fn skip<P>(self, p: P) -> Skip<Self, P>
+    where
+        Self: Sized,
+        P: Parser<I>,
+    {
+        assert_parser(Skip::new(self, p))
+    }
+
     /// Trying another parser if the parser failed parsing.
     #[inline]
     fn or<P>(self, other: P) -> Or<Self, P>

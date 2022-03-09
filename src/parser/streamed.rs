@@ -7,7 +7,7 @@ mod stream;
 use core::pin::Pin;
 use core::task::Context;
 
-use super::{ChoiceStreamedParser, Either, NoState, Or};
+use super::{ChoiceStreamedParser, Either, NoState, Or, Parser, Skip};
 use crate::error::PolledResult;
 use crate::stream::{Input, Positioned};
 use stream::ParserStream;
@@ -126,6 +126,16 @@ pub trait StreamedParserExt<I: Positioned + ?Sized>: StreamedParser<I> {
         P: StreamedParser<I, Item = Self::Item>,
     {
         assert_streamed_parser(Or::new(self, p))
+    }
+
+    /// Parses with `self`, then with `p` discarding its output.
+    #[inline]
+    fn skip<P>(self, p: P) -> Skip<Self, P>
+    where
+        Self: Sized,
+        P: Parser<I>,
+    {
+        assert_streamed_parser(Skip::new(self, p))
     }
 }
 
