@@ -10,7 +10,7 @@ use crate::stream::{Input, Positioned};
 
 /// A parser for method [`or`].
 ///
-/// [`or`]: super::ParserExt::or
+/// [`or`]: crate::parser::ParserExt::or
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Or<P, Q> {
     left: P,
