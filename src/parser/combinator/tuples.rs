@@ -14,10 +14,9 @@ macro_rules! tuple_parser {
             #[allow(non_snake_case)]
             pub struct $state <I, $( $t: Parser ),*> {
                 $( $t: (Option<$t::Output>, $t::State), )*
-                #[opt]
+                #[opt(set = set_start)]
                 start: I::Locator,
-                #[opt]
-                error: Error<I::Ok, I::Locator>,
+                error: Option<Error<I::Ok, I::Locator>>,
             }
         }
 
@@ -38,10 +37,7 @@ macro_rules! tuple_parser {
                 #[allow(non_snake_case)]
                 let ($($t),*,) = self;
 
-
-                if state.start.is_none() {
-                    state.start = Some(input.position());
-                }
+                state.set_start(|| input.position());
 
                 let mut end = None;
 
@@ -56,13 +52,13 @@ macro_rules! tuple_parser {
                             (Status::Failure(err, false), pos) => {
                                 merge_errors(&mut state.error, Some(err), &pos);
                                 return Poll::Ready(Ok((
-                                    Status::Failure(mem::take(&mut state.error).unwrap(), false),
-                                    mem::take(&mut state.start).unwrap()..pos.end,
+                                    Status::Failure(state.error().unwrap(), false),
+                                    state.start()..pos.end,
                                 )))
                             },
                             (Status::Failure(err, true), pos) => return Poll::Ready(Ok((
                                 Status::Failure(err, true),
-                                mem::take(&mut state.start).unwrap()..pos.end,
+                                state.start()..pos.end,
                             )))
                         }
                     }
@@ -72,9 +68,9 @@ macro_rules! tuple_parser {
                 Poll::Ready(Ok((
                     Status::Success(
                         ($(mem::take(&mut state.$t.0).unwrap()),*,),
-                        mem::take(&mut state.error)
+                        state.error()
                     ),
-                    mem::take(&mut state.start).unwrap()..end,
+                    state.start()..end,
                 )))
             }
         }

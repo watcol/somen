@@ -1,5 +1,4 @@
 use core::marker::PhantomData;
-use core::mem;
 use core::pin::Pin;
 use core::str::Chars;
 use core::task::{Context, Poll};
@@ -33,7 +32,7 @@ crate::parser_state! {
     pub struct TagState<I> {
         #[opt]
         iter: Chars<'static>,
-        #[opt]
+        #[opt(set = set_start, get = get_start)]
         start: I::Locator,
         #[opt]
         next: I::Locator,
@@ -53,7 +52,7 @@ where
         cx: &mut Context<'_>,
         state: &mut Self::State,
     ) -> PolledResult<Self::Output, I> {
-        state.start.get_or_insert_with(|| input.position());
+        state.set_start(|| input.position());
         let iter = state.iter.get_or_insert_with(|| self.tag.chars());
         Poll::Ready(Ok((
             loop {
@@ -71,15 +70,14 @@ where
                         break Status::Failure(
                             Error {
                                 expects: Expects::new(ExpectKind::Static(self.tag)),
-                                position: state.start.clone().unwrap()
-                                    ..mem::take(&mut state.next).unwrap(),
+                                position: state.get_start().clone()..state.next(),
                             },
                             false,
                         )
                     }
                 }
             },
-            mem::take(&mut state.start).unwrap()..input.position(),
+            state.start()..input.position(),
         )))
     }
 }

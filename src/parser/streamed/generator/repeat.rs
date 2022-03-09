@@ -1,4 +1,3 @@
-use core::mem;
 use core::ops::{Bound, RangeBounds};
 use core::pin::Pin;
 use core::task::{Context, Poll};
@@ -35,7 +34,7 @@ impl<P, R> Repeat<P, R> {
 crate::parser_state! {
     pub struct RepeatState<I: Input, P: Parser> {
         inner: P::State,
-        #[opt]
+        #[opt(try_set = set_marker)]
         marker: I::Marker,
         count: usize,
     }
@@ -67,9 +66,7 @@ where
         }
 
         // Reserve the marker.
-        if state.marker.is_none() {
-            state.marker = Some(input.as_mut().mark()?);
-        }
+        state.set_marker(|| input.as_mut().mark())?;
 
         Poll::Ready(Ok(
             match ready!(self
@@ -77,7 +74,7 @@ where
                 .poll_parse(input.as_mut(), cx, &mut state.inner)?)
             {
                 (Status::Success(val, err), pos) => {
-                    input.drop_marker(mem::take(&mut state.marker).unwrap())?;
+                    input.drop_marker(state.marker())?;
                     state.count += 1;
                     (Status::Success(Some(val), err), pos)
                 }
@@ -85,14 +82,14 @@ where
                 (Status::Failure(err, false), pos)
                     if err.rewindable(&pos.start) && self.range.contains(&state.count) =>
                 {
-                    input.rewind(mem::take(&mut state.marker).unwrap())?;
+                    input.rewind(state.marker())?;
                     (
                         Status::Success(None, Some(err)),
                         pos.start.clone()..pos.start,
                     )
                 }
                 (Status::Failure(err, exclusive), pos) => {
-                    input.drop_marker(mem::take(&mut state.marker).unwrap())?;
+                    input.drop_marker(state.marker())?;
                     (Status::Failure(err, exclusive), pos)
                 }
             },

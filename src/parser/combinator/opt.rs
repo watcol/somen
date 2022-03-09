@@ -1,4 +1,3 @@
-use core::mem;
 use core::pin::Pin;
 use core::task::{Context, Poll};
 use futures_core::ready;
@@ -32,7 +31,7 @@ impl<P> Opt<P> {
 crate::parser_state! {
     pub struct OptState<I: Input, P: Parser> {
         inner: P::State,
-        #[opt]
+        #[opt(try_set = set_marker)]
         marker: I::Marker,
     }
 }
@@ -51,9 +50,7 @@ where
         cx: &mut Context<'_>,
         state: &mut Self::State,
     ) -> PolledResult<Self::Output, I> {
-        if state.marker.is_none() {
-            state.marker = Some(input.as_mut().mark()?);
-        }
+        state.set_marker(|| input.as_mut().mark())?;
 
         Poll::Ready(Ok(
             match ready!(self
@@ -61,11 +58,11 @@ where
                 .poll_parse(input.as_mut(), cx, &mut state.inner)?)
             {
                 (Status::Success(val, err), pos) => {
-                    input.drop_marker(mem::take(&mut state.marker).unwrap())?;
+                    input.drop_marker(state.marker())?;
                     (Status::Success(Some(val), err), pos)
                 }
                 (Status::Failure(err, false), pos) if err.rewindable(&pos.start) => {
-                    input.rewind(mem::take(&mut state.marker).unwrap())?;
+                    input.rewind(state.marker())?;
                     (
                         Status::Success(None, Some(err)),
                         pos.start.clone()..pos.start,

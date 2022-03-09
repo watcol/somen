@@ -1,5 +1,4 @@
 use core::marker::PhantomData;
-use core::mem;
 use core::pin::Pin;
 use core::task::{Context, Poll};
 use futures_core::ready;
@@ -32,7 +31,7 @@ crate::parser_state! {
     pub struct TokensState<I; T> {
         #[opt]
         iter: T,
-        #[opt]
+        #[opt(set = set_start, get = get_start)]
         start: I::Locator,
         #[opt]
         next: I::Locator,
@@ -54,7 +53,7 @@ where
         cx: &mut Context<'_>,
         state: &mut Self::State,
     ) -> PolledResult<Self::Output, I> {
-        state.start.get_or_insert_with(|| input.position());
+        state.set_start(|| input.position());
         let iter = state
             .iter
             .get_or_insert_with(|| self.tokens.clone().into_iter());
@@ -67,21 +66,21 @@ where
 
                 let parsed = ready!(input.as_mut().try_poll_next(cx)?);
                 state.next.get_or_insert_with(|| input.position());
+
                 match parsed {
                     Some(i) if i == *val => continue,
                     _ => {
                         break Status::Failure(
                             Error {
                                 expects: Expects::new(ExpectKind::Static("<tokens>")),
-                                position: state.start.clone().unwrap()
-                                    ..mem::take(&mut state.next).unwrap(),
+                                position: state.get_start().clone()..state.next(),
                             },
                             false,
                         )
                     }
                 }
             },
-            mem::take(&mut state.start).unwrap()..input.position(),
+            state.start()..input.position(),
         )))
     }
 }

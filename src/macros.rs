@@ -73,16 +73,81 @@ macro_rules! parser_state_inner {
     (@type; {opt} $ty:ty) => {
         core::option::Option<$ty>
     };
+    (@impl; $field:ident : $ty:ty) => {
+        #[allow(dead_code, non_snake_case)]
+        #[inline]
+        fn $field(&mut self) -> $ty {
+            core::mem::take(&mut self.$field)
+        }
+    };
     (@impl; {} $field:ident : $ty:ty) => {
         #[allow(dead_code, non_snake_case)]
+        #[inline]
         fn $field(&mut self) -> $ty {
             core::mem::take(&mut self.$field).unwrap()
         }
     };
-    (@impl; $field:ident : $ty:ty) => {
-        #[allow(dead_code, non_snake_case)]
-        fn $field(&mut self) -> $ty {
-            core::mem::take(&mut self.$field)
+    (@impl; {[set = $func:ident]$([$key:ident = $value:ident])*} $field:ident : $ty:ty) => {
+        #[inline]
+        fn $func<F: FnOnce() -> $ty>(&mut self, f: F) {
+            if self.$field.is_none() {
+                self.$field = Some(f());
+            }
         }
+
+        $crate::parser_state_inner! {@impl; {$([$key = $value])*} $field: $ty}
+    };
+    (@impl; {[try_set = $func:ident]$([$key:ident = $value:ident])*} $field:ident : $ty:ty) => {
+        #[cfg(feature = "nightly")]
+        #[inline]
+        fn $func<F: FnOnce() -> R, R: core::ops::Try<Output = $ty>>(&mut self, f: F)
+            -> <R::Residual as core::ops::Residual<()>>::TryType
+        where R::Residual: core::ops::Residual<()>,
+        {
+            if self.$field.is_none() {
+                self.$field = Some(f()?);
+            }
+            core::ops::Try::from_output(())
+        }
+
+        #[cfg(not(feature = "nightly"))]
+        #[inline]
+        fn $func<F: FnOnce() -> core::result::Result<$ty, E>, E>(&mut self, f: F)
+            -> core::result::Result<(), E>
+        {
+            if self.$field.is_none() {
+                self.$field = Some(f()?);
+            }
+            core::result::Result::Ok(())
+        }
+
+        $crate::parser_state_inner! {@impl; {$([$key = $value])*} $field: $ty}
+    };
+    (@impl; {[get = $func:ident]$([$key:ident = $value:ident])*} $field:ident : $ty:ty) => {
+        #[inline]
+        fn $func(&self) -> &$ty {
+            self.$field.as_ref().unwrap()
+        }
+
+        $crate::parser_state_inner! {@impl; {$([$key = $value])*} $field: $ty}
+    };
+    (@impl; {[get_mut = $func:ident]$([$key:ident = $value:ident])*} $field:ident : $ty:ty) => {
+        #[inline]
+        fn $func(&mut self) -> &mut $ty {
+            self.$field.as_mut().unwrap()
+        }
+
+        $crate::parser_state_inner! {@impl; {$([$key = $value])*} $field: $ty}
+    };
+    (@impl; {[clear = $func:ident]$([$key:ident = $value:ident])*} $field:ident : $ty:ty) => {
+        #[inline]
+        fn $func(&mut self) {
+            self.$field = None;
+        }
+
+        $crate::parser_state_inner! {@impl; {$([$key = $value])*} $field: $ty}
+    };
+    (@impl; {[$k:ident = $v:ident]$([$key:ident = $value:ident])*} $field:ident : $ty:ty) => {
+        $crate::parser_state_inner! {@impl; {$([$key = $value])*} $field: $ty}
     };
 }

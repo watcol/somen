@@ -1,4 +1,3 @@
-use core::mem;
 use core::pin::Pin;
 use core::task::{Context, Poll};
 use futures_core::ready;
@@ -32,7 +31,7 @@ impl<P> Peek<P> {
 crate::parser_state! {
     pub struct PeekState<I: Input, P: Parser> {
         inner: P::State,
-        #[opt]
+        #[opt(try_set = set_marker)]
         marker: I::Marker,
     }
 }
@@ -51,18 +50,16 @@ where
         cx: &mut Context<'_>,
         state: &mut Self::State,
     ) -> PolledResult<Self::Output, I> {
-        if state.marker.is_none() {
-            state.marker = Some(input.as_mut().mark()?);
-        }
+        state.set_marker(|| input.as_mut().mark())?;
 
         Poll::Ready(Ok(
             match ready!(self.inner.poll_parse(input.as_mut(), cx, &mut state.inner))? {
                 (Status::Success(val, err), pos) => {
-                    input.rewind(mem::take(&mut state.marker).unwrap())?;
+                    input.rewind(state.marker())?;
                     (Status::Success(val, err), pos.start.clone()..pos.start)
                 }
                 (Status::Failure(err, exclusive), pos) => {
-                    input.drop_marker(mem::take(&mut state.marker).unwrap())?;
+                    input.drop_marker(state.marker())?;
                     (Status::Failure(err, exclusive), pos)
                 }
             },
