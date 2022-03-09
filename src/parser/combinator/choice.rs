@@ -4,7 +4,7 @@ use futures_core::ready;
 
 use crate::error::{Error, PolledResult, Status};
 use crate::parser::streamed::StreamedParser;
-use crate::parser::utils::merge_errors;
+use crate::parser::utils::{merge_errors, EitherState};
 use crate::parser::Parser;
 use crate::stream::{Input, Positioned};
 
@@ -33,10 +33,8 @@ impl<P, Q> Or<P, Q> {
 
 crate::parser_state! {
     pub struct OrState<I: Input, P: Parser, Q: Parser> {
-        inner_p: P::State,
-        inner_q: Q::State,
-        p_end: bool,
-        #[opt(try_set = set_marker)]
+        inner: EitherState<P::State, Q::State>,
+        #[opt]
         marker: I::Marker,
         error: Option<Error<I::Ok, I::Locator>>,
     }
@@ -57,13 +55,12 @@ where
         cx: &mut Context<'_>,
         state: &mut Self::State,
     ) -> PolledResult<Self::Output, I> {
-        if !state.p_end {
-            state.set_marker(|| input.as_mut().mark())?;
+        if let EitherState::Left(inner) = &mut state.inner {
+            if state.marker.is_none() {
+                state.marker = Some(input.as_mut().mark()?);
+            }
 
-            match ready!(self
-                .left
-                .poll_parse(input.as_mut(), cx, &mut state.inner_p)?)
-            {
+            match ready!(self.left.poll_parse(input.as_mut(), cx, inner)?) {
                 (Status::Success(i, err), pos) => {
                     input.drop_marker(state.marker())?;
                     return Poll::Ready(Ok((Status::Success(i, err), pos)));
@@ -71,7 +68,7 @@ where
                 (Status::Failure(err, false), pos) if err.rewindable(&pos.start) => {
                     input.as_mut().rewind(state.marker())?;
                     state.error = Some(err);
-                    state.p_end = true;
+                    state.inner = EitherState::new_right();
                 }
                 (Status::Failure(err, exclusive), pos) => {
                     input.drop_marker(state.marker())?;
@@ -81,7 +78,7 @@ where
         }
 
         self.right
-            .poll_parse(input, cx, &mut state.inner_q)
+            .poll_parse(input, cx, state.inner.right())
             .map_ok(|status| match status {
                 (Status::Success(i, err), pos) => {
                     merge_errors(&mut state.error, err, &pos);
@@ -98,11 +95,9 @@ where
 
 crate::parser_state! {
     pub struct OrStreamedState<I: Input, P: StreamedParser, Q: StreamedParser> {
-        inner_p: P::State,
-        inner_q: Q::State,
-        p_end: bool,
+        inner: EitherState<P::State, Q::State>,
         succeeded: bool,
-        #[opt(try_set = set_marker)]
+        #[opt]
         marker: I::Marker,
         error: Option<Error<I::Ok, I::Locator>>,
     }
@@ -123,17 +118,16 @@ where
         cx: &mut Context<'_>,
         state: &mut Self::State,
     ) -> PolledResult<Option<Self::Item>, I> {
-        if !state.p_end {
+        if let EitherState::Left(inner) = &mut state.inner {
             if state.succeeded {
-                return self.left.poll_parse_next(input, cx, &mut state.inner_p);
+                return self.left.poll_parse_next(input, cx, inner);
             }
 
-            state.set_marker(|| input.as_mut().mark())?;
+            if state.marker.is_none() {
+                state.marker = Some(input.as_mut().mark()?);
+            }
 
-            match ready!(self
-                .left
-                .poll_parse_next(input.as_mut(), cx, &mut state.inner_p)?)
-            {
+            match ready!(self.left.poll_parse_next(input.as_mut(), cx, inner)?) {
                 (Status::Success(i, err), pos) => {
                     input.drop_marker(state.marker())?;
                     state.succeeded = true;
@@ -142,7 +136,7 @@ where
                 (Status::Failure(err, false), pos) if err.rewindable(&pos.start) => {
                     input.as_mut().rewind(state.marker())?;
                     state.error = Some(err);
-                    state.p_end = true;
+                    state.inner = EitherState::new_right();
                 }
                 (Status::Failure(err, exclusive), pos) => {
                     input.drop_marker(state.marker())?;
@@ -152,11 +146,11 @@ where
         }
 
         if state.succeeded {
-            return self.right.poll_parse_next(input, cx, &mut state.inner_q);
+            return self.right.poll_parse_next(input, cx, state.inner.right());
         }
 
         self.right
-            .poll_parse_next(input, cx, &mut state.inner_q)
+            .poll_parse_next(input, cx, state.inner.right())
             .map_ok(|status| match status {
                 (Status::Success(i, err), pos) => {
                     state.succeeded = true;
