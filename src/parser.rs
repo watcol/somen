@@ -291,7 +291,7 @@ pub trait ParserExt<I: Positioned + ?Sized>: Parser<I> {
         assert_parser((self, p))
     }
 
-    /// Parses with `self`, then with `p` discarding its output.
+    /// Parses with `self`, then skips `p`.
     #[inline]
     fn skip<P>(self, p: P) -> Skip<Self, P>
     where
@@ -299,6 +299,16 @@ pub trait ParserExt<I: Positioned + ?Sized>: Parser<I> {
         P: Parser<I>,
     {
         assert_parser(Skip::new(self, p))
+    }
+
+    /// Parses with `self`, prefixed by `p`.
+    #[inline]
+    fn prefixed_by<P>(self, p: P) -> PrefixedBy<Self, P>
+    where
+        Self: Sized,
+        P: Parser<I>,
+    {
+        assert_parser(PrefixedBy::new(self, p))
     }
 
     /// Trying another parser if the parser failed parsing.
