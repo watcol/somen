@@ -7,13 +7,27 @@ mod stream;
 use core::pin::Pin;
 use core::task::Context;
 
-use super::{Either, NoState};
+use super::{ChoiceStreamedParser, Either, NoState, Or};
 use crate::error::PolledResult;
-use crate::stream::Positioned;
+use crate::stream::{Input, Positioned};
 use stream::ParserStream;
 
 #[cfg(feature = "alloc")]
 use alloc::boxed::Box;
+
+/// A conventional function to produce [`or`] streamed parser from tuples.
+///
+/// For example, `choice_streamed((a, b, c))` is equivalent to `a.or(b).or(c)`.
+///
+/// [`or`]: StreamedParserExt::or
+#[inline]
+pub fn choice_streamed<C, I>(choice: C) -> C::StreamedParser
+where
+    C: ChoiceStreamedParser<I>,
+    I: Positioned + ?Sized,
+{
+    choice.into_streamed_parser()
+}
 
 /// A trait for parsers return multiple outputs with [`TryStream`].
 ///
@@ -101,6 +115,17 @@ pub trait StreamedParserExt<I: Positioned + ?Sized>: StreamedParser<I> {
         L: StreamedParser<I, Item = Self::Item>,
     {
         assert_streamed_parser(Either::Right(self))
+    }
+
+    /// Trys another parser if the first parser failed parsing.
+    #[inline]
+    fn or<P>(self, p: P) -> Or<Self, P>
+    where
+        I: Input,
+        Self: Sized,
+        P: StreamedParser<I, Item = Self::Item>,
+    {
+        assert_streamed_parser(Or::new(self, p))
     }
 }
 

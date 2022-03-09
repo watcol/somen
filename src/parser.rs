@@ -164,6 +164,20 @@ where
     assert_parser(Tag::new(tag))
 }
 
+/// A conventional function to produce [`or`] parser from tuples.
+///
+/// For example, `choice((a, b, c))` is equivalent to `a.or(b).or(c)`.
+///
+/// [`or`]: ParserExt::or
+#[inline]
+pub fn choice<C, I>(choice: C) -> C::Parser
+where
+    C: ChoiceParser<I>,
+    I: Positioned + ?Sized,
+{
+    assert_parser(choice.into_parser())
+}
+
 /// A trait for parsers.
 #[cfg_attr(feature = "nightly", doc(notable_trait))]
 pub trait Parser<I: Positioned + ?Sized> {
@@ -275,6 +289,17 @@ pub trait ParserExt<I: Positioned + ?Sized>: Parser<I> {
         P: Parser<I>,
     {
         assert_parser((self, p))
+    }
+
+    /// Trying another parser if the parser failed parsing.
+    #[inline]
+    fn or<P>(self, other: P) -> Or<Self, P>
+    where
+        Self: Sized,
+        I: Input,
+        P: Parser<I, Output = Self::Output>,
+    {
+        assert_parser(Or::new(self, other))
     }
 
     /// Returns [`Some`] if parsing is succeeded.
