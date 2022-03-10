@@ -355,6 +355,32 @@ pub trait ParserExt<I: Positioned + ?Sized>: Parser<I> {
     {
         assert_streamed_parser(Repeat::new(self, range))
     }
+
+    /// Returns a [`StreamedParser`] by wrapping the parser to return output exactly once.
+    ///
+    /// This method is equivalent to `self.times(1)`.
+    ///
+    /// [`StreamedParser`]: streamed::StreamedParser
+    #[inline]
+    fn once(self) -> Times<Self>
+    where
+        Self: Sized,
+        I: Positioned,
+    {
+        assert_streamed_parser(Times::new(self, 1))
+    }
+
+    /// Returns a [`StreamedParser`] by repeating the parser exactly `n` times.
+    ///
+    /// [`StreamedParser`]: streamed::StreamedParser
+    #[inline]
+    fn times(self, n: usize) -> Times<Self>
+    where
+        Self: Sized,
+        I: Positioned,
+    {
+        assert_streamed_parser(Times::new(self, n))
+    }
 }
 
 impl<P: Parser<I>, I: Positioned + ?Sized> ParserExt<I> for P {}
