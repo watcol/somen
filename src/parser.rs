@@ -395,6 +395,21 @@ pub trait ParserExt<I: Positioned + ?Sized>: Parser<I> {
     {
         assert_streamed_parser(SepBy::new(self, sep, range))
     }
+
+    /// Returns a [`StreamedParser`] of the parser separated by `sep` (trailing separater is
+    /// allowed).
+    ///
+    /// [`StreamedParser`]: streamed::StreamedParser
+    #[inline]
+    fn sep_by_end<P, R>(self, sep: P, range: R) -> SepByEnd<Self, P, R>
+    where
+        Self: Sized,
+        P: Parser<I>,
+        R: RangeBounds<usize>,
+        I: Input,
+    {
+        assert_streamed_parser(SepByEnd::new(self, sep, range))
+    }
 }
 
 impl<P: Parser<I>, I: Positioned + ?Sized> ParserExt<I> for P {}
