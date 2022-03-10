@@ -369,6 +369,32 @@ pub trait ParserExt<I: Positioned + ?Sized>: Parser<I> {
         assert_streamed_parser(Times::new(self, n))
     }
 
+    /// Returns a fixed-size [`StreamedParser`] of the parser separated by `sep`.
+    ///
+    /// [`StreamedParser`]: streamed::StreamedParser
+    #[inline]
+    fn sep_by_times<P, R>(self, sep: P, count: usize) -> SepByTimes<Self, P>
+    where
+        Self: Sized,
+        P: Parser<I>,
+    {
+        assert_streamed_parser(SepByTimes::new(self, sep, count))
+    }
+
+    /// Returns a fixed-size [`StreamedParser`] of the parser separated by `sep` (trailing
+    /// separater is allowed).
+    ///
+    /// [`StreamedParser`]: streamed::StreamedParser
+    #[inline]
+    fn sep_by_end_times<P, R>(self, sep: P, count: usize) -> SepByEndTimes<Self, P>
+    where
+        Self: Sized,
+        I: Input,
+        P: Parser<I>,
+    {
+        assert_streamed_parser(SepByEndTimes::new(self, sep, count))
+    }
+
     /// Returns a [`StreamedParser`] by repeating the parser while succeeding.
     ///
     /// [`StreamedParser`]: streamed::StreamedParser

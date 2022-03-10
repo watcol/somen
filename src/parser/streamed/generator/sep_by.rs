@@ -72,7 +72,6 @@ where
         }
 
         state.set_marker(|| input.as_mut().mark())?;
-        // Reserve the marker.
 
         if let EitherState::Right(inner) = &mut state.inner {
             match ready!(self.sep.poll_parse(input.as_mut(), cx, inner)?) {
