@@ -436,6 +436,19 @@ pub trait ParserExt<I: Positioned + ?Sized>: Parser<I> {
     {
         assert_streamed_parser(SepByEnd::new(self, sep, range))
     }
+
+    /// Returns a [`StreamedParser`] by repeating the parser until the parser `end` succeeds.
+    ///
+    /// [`StreamedParser`]: streamed::StreamedParser
+    #[inline]
+    fn until<P>(self, end: P) -> Until<Self, P>
+    where
+        Self: Sized,
+        P: Parser<I>,
+        I: Input,
+    {
+        assert_streamed_parser(Until::new(self, end))
+    }
 }
 
 impl<P: Parser<I>, I: Positioned + ?Sized> ParserExt<I> for P {}
