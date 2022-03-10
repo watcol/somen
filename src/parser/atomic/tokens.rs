@@ -7,9 +7,9 @@ use crate::error::{Error, ExpectKind, Expects, PolledResult, Status};
 use crate::parser::Parser;
 use crate::stream::Positioned;
 
-/// A parser for function [`token`].
+/// A parser for function [`tokens`].
 ///
-/// [`token`]: crate::parser::token
+/// [`tokens`]: crate::parser::tokens
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct Tokens<'a, I: ?Sized, T> {
     tokens: T,
