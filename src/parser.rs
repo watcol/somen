@@ -343,19 +343,6 @@ pub trait ParserExt<I: Positioned + ?Sized>: Parser<I> {
         assert_parser(Opt::new(self))
     }
 
-    /// Returns a [`StreamedParser`] by repeating the parser while succeeding.
-    ///
-    /// [`StreamedParser`]: streamed::StreamedParser
-    #[inline]
-    fn repeat<R>(self, range: R) -> Repeat<Self, R>
-    where
-        Self: Sized,
-        R: RangeBounds<usize>,
-        I: Input,
-    {
-        assert_streamed_parser(Repeat::new(self, range))
-    }
-
     /// Returns a [`StreamedParser`] by wrapping the parser to return output exactly once.
     ///
     /// This method is equivalent to `self.times(1)`.
@@ -380,6 +367,33 @@ pub trait ParserExt<I: Positioned + ?Sized>: Parser<I> {
         I: Positioned,
     {
         assert_streamed_parser(Times::new(self, n))
+    }
+
+    /// Returns a [`StreamedParser`] by repeating the parser while succeeding.
+    ///
+    /// [`StreamedParser`]: streamed::StreamedParser
+    #[inline]
+    fn repeat<R>(self, range: R) -> Repeat<Self, R>
+    where
+        Self: Sized,
+        R: RangeBounds<usize>,
+        I: Input,
+    {
+        assert_streamed_parser(Repeat::new(self, range))
+    }
+
+    /// Returns a [`StreamedParser`] of the parser separated by `sep`.
+    ///
+    /// [`StreamedParser`]: streamed::StreamedParser
+    #[inline]
+    fn sep_by<P, R>(self, sep: P, range: R) -> SepBy<Self, P, R>
+    where
+        Self: Sized,
+        P: Parser<I>,
+        R: RangeBounds<usize>,
+        I: Input,
+    {
+        assert_streamed_parser(SepBy::new(self, sep, range))
     }
 }
 
