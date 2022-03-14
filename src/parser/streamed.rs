@@ -246,6 +246,16 @@ pub trait StreamedParserExt<I: Positioned + ?Sized>: StreamedParser<I> {
     {
         assert_streamed_parser(Flatten::new(self))
     }
+
+    /// Only returns items matches the condition.
+    #[inline]
+    fn filter<F>(self, f: F) -> Filter<Self, F>
+    where
+        Self: Sized,
+        F: FnMut(&Self::Item) -> bool,
+    {
+        assert_streamed_parser(Filter::new(self, f))
+    }
 }
 
 impl<P: StreamedParser<I> + ?Sized, I: Positioned + ?Sized> StreamedParserExt<I> for P {}
