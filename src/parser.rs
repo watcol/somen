@@ -14,7 +14,7 @@ use core::ops::RangeBounds;
 use core::pin::Pin;
 use core::task::Context;
 
-use crate::error::PolledResult;
+use crate::error::{Expects, PolledResult};
 use crate::stream::{Input, Positioned};
 use atomic::*;
 use combinator::*;
@@ -435,6 +435,35 @@ pub trait ParserExt<I: Positioned + ?Sized>: Parser<I> {
         I: Input,
     {
         assert_streamed_parser(SepByEnd::new(self, sep, range))
+    }
+
+    /// Parses with `self`, passes output to the function `f` and parses with a returned [`Parser`] or
+    /// [`StreamedParser`].
+    ///
+    /// [`StreamedParser`]: streamed::StreamedParser
+    #[inline]
+    fn then<F, Q>(self, f: F) -> Then<Self, F>
+    where
+        Self: Sized,
+        F: FnMut(Self::Output) -> Q,
+    {
+        // Supports both `Parser` and `StreamedParser`.
+        Then::new(self, f)
+    }
+
+    /// Parses with `self`, passes output to the failable function `f` and parses with a returned
+    /// [`Parser`] or [`StreamedParser`].
+    ///
+    /// [`StreamedParser`]: streamed::StreamedParser
+    #[inline]
+    fn try_then<F, Q, E>(self, f: F) -> TryThen<Self, F>
+    where
+        Self: Sized,
+        F: FnMut(Self::Output) -> Result<Q, E>,
+        E: Into<Expects<I::Ok>>,
+    {
+        // Supports both `Parser` and `StreamedParser`.
+        TryThen::new(self, f)
     }
 
     /// Returns a [`StreamedParser`] by repeating the parser until the parser `end` succeeds.
