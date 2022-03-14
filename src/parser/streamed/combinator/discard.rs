@@ -10,7 +10,7 @@ use crate::stream::Positioned;
 
 /// A parser for method [`discard`].
 ///
-/// [`discard`]: crate::parser::StreamedParserExt::discard
+/// [`discard`]: crate::parser::streamed::StreamedParserExt::discard
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Discard<P> {
     inner: P,
