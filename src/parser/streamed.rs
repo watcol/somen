@@ -300,6 +300,31 @@ pub trait StreamedParserExt<I: Positioned + ?Sized>: StreamedParser<I> {
     {
         assert_parser(TryReduce::new(self, f))
     }
+
+    /// Holds internal state, applies the function item by item and returns the output (if it is
+    /// [`Some`]).
+    #[inline]
+    fn scan<Q, F, T>(self, init: Q, f: F) -> Scan<Self, Q, F>
+    where
+        Self: Sized,
+        Q: Parser<I>,
+        F: FnMut(&mut Q::Output, Self::Item) -> Option<T>,
+    {
+        assert_streamed_parser(Scan::new(self, init, f))
+    }
+
+    /// Holds internal state, applies the failable function item by item and tries to return the
+    /// output (if it is [`Some`]).
+    #[inline]
+    fn try_scan<Q, F, T, E>(self, init: Q, f: F) -> TryScan<Self, Q, F>
+    where
+        Self: Sized,
+        Q: Parser<I>,
+        F: FnMut(&mut Q::Output, Self::Item) -> Result<Option<T>, E>,
+        E: Into<Expects<I::Ok>>,
+    {
+        assert_streamed_parser(TryScan::new(self, init, f))
+    }
 }
 
 impl<P: StreamedParser<I> + ?Sized, I: Positioned + ?Sized> StreamedParserExt<I> for P {}

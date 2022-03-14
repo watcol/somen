@@ -8,6 +8,7 @@ mod fold;
 mod last;
 mod nth;
 mod reduce;
+mod scan;
 mod tuples;
 
 pub use collect::Collect;
@@ -19,3 +20,4 @@ pub use fold::{Fold, TryFold};
 pub use last::Last;
 pub use nth::Nth;
 pub use reduce::{Reduce, TryReduce};
+pub use scan::{Scan, TryScan};
