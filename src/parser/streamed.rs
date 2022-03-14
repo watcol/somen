@@ -8,9 +8,10 @@ mod stream;
 use core::pin::Pin;
 use core::task::Context;
 
-use super::{ChoiceStreamedParser, Either, NoState, Opt, Or, Parser, Prefix, Skip};
+use super::{assert_parser, ChoiceStreamedParser, Either, NoState, Opt, Or, Parser, Prefix, Skip};
 use crate::error::PolledResult;
 use crate::stream::{Input, Positioned};
+use combinator::*;
 use stream::ParserStream;
 
 #[cfg(feature = "alloc")]
@@ -168,6 +169,17 @@ pub trait StreamedParserExt<I: Positioned + ?Sized>: StreamedParser<I> {
         R: Parser<I>,
     {
         assert_streamed_parser(Skip::new(Prefix::new(left, self), right))
+    }
+
+    /// Returns a [`Parser`] parses all items and returns `()`.
+    ///
+    /// [`Parser`]: super::Parser
+    #[inline]
+    fn discard(self) -> Discard<Self>
+    where
+        Self: Sized,
+    {
+        assert_parser(Discard::new(self))
     }
 }
 
