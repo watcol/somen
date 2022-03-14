@@ -203,6 +203,39 @@ pub trait StreamedParserExt<I: Positioned + ?Sized>: StreamedParser<I> {
     {
         assert_parser(Collect::new(self))
     }
+
+    /// Consumes all outputs, returns the `n`th element.
+    ///
+    /// Note that `n` starts from `0` and if the length of stream less than `n`, it returns `None`.
+    #[inline]
+    fn nth(self, n: usize) -> Nth<Self>
+    where
+        Self: Sized,
+    {
+        assert_parser(Nth::new(self, n))
+    }
+
+    /// Consumes all outputs, returns the first element.
+    ///
+    /// This method is equivalent to `self.nth(0)`, and if the stream is empty, it returns `None`.
+    #[inline]
+    fn first(self) -> Nth<Self>
+    where
+        Self: Sized,
+    {
+        assert_parser(Nth::new(self, 0))
+    }
+
+    /// Consumes all outputs, returns the last element.
+    ///
+    /// If the stream is empty, it returns `None`.
+    #[inline]
+    fn last(self) -> Last<Self>
+    where
+        Self: Sized,
+    {
+        assert_parser(Last::new(self))
+    }
 }
 
 impl<P: StreamedParser<I> + ?Sized, I: Positioned + ?Sized> StreamedParserExt<I> for P {}
