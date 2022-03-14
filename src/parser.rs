@@ -301,25 +301,25 @@ pub trait ParserExt<I: Positioned + ?Sized>: Parser<I> {
         assert_parser(Skip::new(self, p))
     }
 
-    /// Parses with `self` prefixed by `p`.
+    /// Parses with `p` prefixed by `self`.
     #[inline]
-    fn prefixed_by<P>(self, p: P) -> PrefixedBy<Self, P>
+    fn prefix<P>(self, p: P) -> Prefix<Self, P>
     where
         Self: Sized,
-        P: Parser<I>,
     {
-        assert_parser(PrefixedBy::new(self, p))
+        // Supports both `Parser` and `StreamedParser`.
+        Prefix::new(self, p)
     }
 
     /// Parses with `self` between `left` and `right`.
     #[inline]
-    fn between<L, R>(self, left: L, right: R) -> Skip<PrefixedBy<Self, L>, R>
+    fn between<L, R>(self, left: L, right: R) -> Skip<Prefix<L, Self>, R>
     where
         Self: Sized,
         L: Parser<I>,
         R: Parser<I>,
     {
-        assert_parser(Skip::new(PrefixedBy::new(self, left), right))
+        assert_parser(Skip::new(Prefix::new(left, self), right))
     }
 
     /// Trying another parser if the parser failed parsing.

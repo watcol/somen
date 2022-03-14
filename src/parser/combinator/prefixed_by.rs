@@ -8,45 +8,48 @@ use crate::parser::utils::{merge_errors, EitherState};
 use crate::parser::Parser;
 use crate::stream::Positioned;
 
-/// A parser for method [`prefixed_by`].
+/// A parser for method [`prefix`].
 ///
-/// [`prefixed_by`]: crate::parser::ParserExt::prefixed_by
+/// [`prefix`]: crate::parser::ParserExt::prefix
 #[derive(Clone, Debug, PartialEq, Eq)]
-pub struct PrefixedBy<P, Q> {
-    inner: P,
-    prefix: Q,
+pub struct Prefix<P, Q> {
+    prefix: P,
+    inner: Q,
 }
 
-impl<P, Q> PrefixedBy<P, Q> {
+impl<P, Q> Prefix<P, Q> {
     /// Creating a new instance.
     #[inline]
-    pub fn new(inner: P, prefix: Q) -> Self {
-        Self { inner, prefix }
+    pub fn new(prefix: P, inner: Q) -> Self {
+        Self {
+            prefix,
+            inner,
+        }
     }
 
     /// Extracting the inner parser.
     #[inline]
     pub fn into_inner(self) -> (P, Q) {
-        (self.inner, self.prefix)
+        (self.prefix, self.inner)
     }
 }
 
 crate::parser_state! {
     pub struct PrefixedByState<I, P: Parser, Q: Parser> {
-        inner: EitherState<Q::State, P::State>,
+        inner: EitherState<P::State, Q::State>,
         #[opt]
         start: I::Locator,
         error: Option<Error<I::Ok, I::Locator>>,
     }
 }
 
-impl<P, Q, I> Parser<I> for PrefixedBy<P, Q>
+impl<P, Q, I> Parser<I> for Prefix<P, Q>
 where
     P: Parser<I>,
     Q: Parser<I>,
     I: Positioned + ?Sized,
 {
-    type Output = P::Output;
+    type Output = Q::Output;
     type State = PrefixedByState<I, P, Q>;
 
     fn poll_parse(
@@ -91,8 +94,8 @@ where
 }
 
 crate::parser_state! {
-    pub struct PrefixedByStreamedState<I, P: StreamedParser, Q: Parser> {
-        inner: EitherState<Q::State, P::State>,
+    pub struct PrefixedByStreamedState<I, P: Parser, Q: StreamedParser> {
+        inner: EitherState<P::State, Q::State>,
         #[opt]
         start: I::Locator,
         succeeded: bool,
@@ -100,13 +103,13 @@ crate::parser_state! {
     }
 }
 
-impl<P, Q, I> StreamedParser<I> for PrefixedBy<P, Q>
+impl<P, Q, I> StreamedParser<I> for Prefix<P, Q>
 where
-    P: StreamedParser<I>,
-    Q: Parser<I>,
+    P: Parser<I>,
+    Q: StreamedParser<I>,
     I: Positioned + ?Sized,
 {
-    type Item = P::Item;
+    type Item = Q::Item;
     type State = PrefixedByStreamedState<I, P, Q>;
 
     fn poll_parse_next(
