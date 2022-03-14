@@ -10,7 +10,7 @@ use crate::stream::Input;
 
 /// A streamed parser generated from method [`sep_by_end_times`].
 ///
-/// [`sep_by_end_times`]: super::ParserExt::sep_by_end_times
+/// [`sep_by_end_times`]: crate::parser::ParserExt::sep_by_end_times
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct SepByEndTimes<P, Q> {
     inner: P,

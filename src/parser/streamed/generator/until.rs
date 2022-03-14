@@ -10,7 +10,7 @@ use crate::stream::Input;
 
 /// A streamed parser generated from method [`until`].
 ///
-/// [`until`]: super::ParserExt::until
+/// [`until`]: crate::parser::ParserExt::until
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Until<P, Q> {
     inner: P,

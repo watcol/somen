@@ -11,7 +11,7 @@ use crate::stream::Input;
 
 /// A streamed parser generated from method [`sep_by_end`].
 ///
-/// [`sep_by_end`]: super::ParserExt::sep_by_end
+/// [`sep_by_end`]: crate::parser::ParserExt::sep_by_end
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct SepByEnd<P, Q, R> {
     inner: P,

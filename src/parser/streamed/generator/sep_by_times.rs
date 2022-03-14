@@ -10,7 +10,7 @@ use crate::stream::Positioned;
 
 /// A streamed parser generated from method [`sep_by_times`].
 ///
-/// [`sep_by_times`]: super::ParserExt::sep_by_times
+/// [`sep_by_times`]: crate::parser::ParserExt::sep_by_times
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct SepByTimes<P, Q> {
     inner: P,
