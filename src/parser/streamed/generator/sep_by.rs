@@ -119,14 +119,24 @@ where
                         pos.start.clone()..pos.start,
                     )
                 }
-                (Status::Failure(err, false), pos) => {
+                (Status::Failure(err, exclusive), pos) => {
                     input.drop_marker(state.marker())?;
-                    merge_errors(&mut state.error, Some(err), &pos);
-                    (Status::Failure(state.error().unwrap(), false), pos)
-                }
-                (Status::Failure(err, true), pos) => {
-                    input.drop_marker(state.marker())?;
-                    (Status::Failure(err, true), pos)
+                    if exclusive {
+                        state.error = Some(err);
+                    } else {
+                        merge_errors(&mut state.error, Some(err), &pos);
+                    }
+
+                    let start = if state.start.is_some() {
+                        state.start()
+                    } else {
+                        pos.start
+                    };
+
+                    (
+                        Status::Failure(state.error().unwrap(), exclusive),
+                        start..pos.end,
+                    )
                 }
             },
         ))

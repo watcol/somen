@@ -113,11 +113,23 @@ where
                     };
                     (Status::Success(Some(val), state.error()), start..pos.end)
                 }
-                (Status::Failure(err, false), pos) => {
-                    merge_errors(&mut state.error, Some(err), &pos);
-                    (Status::Failure(state.error().unwrap(), false), pos)
+                (Status::Failure(err, exclusive), pos) => {
+                    if exclusive {
+                        state.error = Some(err);
+                    } else {
+                        merge_errors(&mut state.error, Some(err), &pos);
+                    }
+
+                    let start = if state.start.is_some() {
+                        state.start()
+                    } else {
+                        pos.start
+                    };
+                    (
+                        Status::Failure(state.error().unwrap(), exclusive),
+                        start..pos.end,
+                    )
                 }
-                (Status::Failure(err, true), pos) => (Status::Failure(err, true), pos),
             },
         ))
     }

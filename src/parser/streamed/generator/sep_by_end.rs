@@ -129,11 +129,14 @@ where
                 (Status::Failure(err, false), pos) => {
                     input.drop_marker(state.marker())?;
                     merge_errors(&mut state.error, Some(err), &pos);
-                    (Status::Failure(state.error().unwrap(), false), pos)
+                    (
+                        Status::Failure(state.error().unwrap(), false),
+                        state.start()..pos.end,
+                    )
                 }
                 (Status::Failure(err, true), pos) => {
                     input.drop_marker(state.marker())?;
-                    (Status::Failure(err, true), pos)
+                    (Status::Failure(err, true), state.start()..pos.end)
                 }
             },
         ))

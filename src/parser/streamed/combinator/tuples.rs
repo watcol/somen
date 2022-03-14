@@ -72,10 +72,11 @@ macro_rules! tuple_parser {
                             (Status::Success(None, err), pos) => {
                                 state.$t.1 = true;
                                 merge_errors(&mut state.error, err, &pos);
-                                state.pos = match &state.pos {
-                                    Some(prev) => Some(prev.start.clone()..pos.end),
-                                    None => Some(pos),
-                                };
+                                state.pos = Some(if state.pos.is_some() {
+                                    state.pos().start..pos.end
+                                } else {
+                                    pos
+                                });
                             }
                             res => return Poll::Ready(Ok(res)),
                         }

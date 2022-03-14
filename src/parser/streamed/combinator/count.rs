@@ -66,16 +66,33 @@ where
                 }
                 (Status::Success(None, err), pos) => {
                     merge_errors(&mut state.error, err, &pos);
+
+                    let start = if state.start.is_some() {
+                        state.start()
+                    } else {
+                        pos.start
+                    };
+
+                    break (Status::Success(state.count, state.error()), start..pos.end);
+                }
+                (Status::Failure(err, exclusive), pos) => {
+                    if exclusive {
+                        state.error = Some(err);
+                    } else {
+                        merge_errors(&mut state.error, Some(err), &pos)
+                    }
+
+                    let start = if state.start.is_some() {
+                        state.start()
+                    } else {
+                        pos.start
+                    };
+
                     break (
-                        Status::Success(state.count, state.error()),
-                        state.start()..pos.end,
+                        Status::Failure(state.error().unwrap(), exclusive),
+                        start..pos.end,
                     );
                 }
-                (Status::Failure(err, false), pos) => {
-                    merge_errors(&mut state.error, Some(err), &pos);
-                    break (Status::Failure(state.error().unwrap(), false), pos);
-                }
-                (Status::Failure(err, true), pos) => break (Status::Failure(err, true), pos),
             }
         }))
     }
