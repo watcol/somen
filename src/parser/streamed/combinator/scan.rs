@@ -189,17 +189,16 @@ where
                         state.set_start(|| pos.start);
                     }
                     Err(exp) => {
-                        let Range { start, end } = pos;
-                        state.set_start(|| start.clone());
+                        state.set_start(|| pos.start.clone());
                         break (
                             Status::Failure(
                                 Error {
                                     expects: exp.into(),
-                                    position: start..end.clone(),
+                                    position: pos.start..pos.end.clone(),
                                 },
                                 true,
                             ),
-                            state.start()..end,
+                            state.start()..pos.end,
                         );
                     }
                 },

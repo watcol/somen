@@ -139,6 +139,8 @@ where
                 .poll_parse_next(input.as_mut(), cx, &mut state.inner)?)
             {
                 (Status::Success(Some(val), err), pos) => {
+                    merge_errors(&mut state.error, err, &pos);
+                    state.set_start(|| pos.start.clone());
                     state.acc = Some(match state.acc() {
                         Some(acc) => match (self.f)(acc, val) {
                             Ok(res) => res,
@@ -147,7 +149,7 @@ where
                                     Status::Failure(
                                         Error {
                                             expects: exp.into(),
-                                            position: pos.clone(),
+                                            position: pos.start..pos.end.clone(),
                                         },
                                         true,
                                     ),
@@ -157,8 +159,6 @@ where
                         },
                         None => val,
                     });
-                    merge_errors(&mut state.error, err, &pos);
-                    state.set_start(|| pos.start);
                 }
                 (Status::Success(None, err), pos) => {
                     merge_errors(&mut state.error, err, &pos);

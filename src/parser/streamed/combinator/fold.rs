@@ -64,6 +64,7 @@ where
                 (Status::Success(acc, err), pos) => {
                     state.error = err;
                     state.start = Some(pos.start);
+                    state.inner = EitherState::new_right();
                     state.acc = Some(acc);
                 }
                 res @ (Status::Failure(_, _), _) => return Poll::Ready(Ok(res)),
@@ -147,6 +148,7 @@ where
                 (Status::Success(acc, err), pos) => {
                     state.error = err;
                     state.start = Some(pos.start);
+                    state.inner = EitherState::new_right();
                     state.acc = Some(acc);
                 }
                 res @ (Status::Failure(_, _), _) => return Poll::Ready(Ok(res)),
@@ -168,7 +170,7 @@ where
                             Status::Failure(
                                 Error {
                                     expects: exp.into(),
-                                    position: pos.clone(),
+                                    position: pos.start..pos.end.clone(),
                                 },
                                 true,
                             ),
