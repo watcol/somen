@@ -1,4 +1,3 @@
-use core::ops::Range;
 use core::pin::Pin;
 use core::task::{Context, Poll};
 use futures_core::ready;
