@@ -71,35 +71,23 @@ where
                 }
                 (Status::Success(None, err), pos) => {
                     merge_errors(&mut state.error, err, &pos);
-
-                    let start = if state.start.is_some() {
-                        state.start()
-                    } else {
-                        pos.start
-                    };
-
+                    state.set_start(|| pos.start);
                     break (
                         Status::Success(state.output(), state.error()),
-                        start..pos.end,
+                        state.start()..pos.end,
                     );
                 }
-                (Status::Failure(err, exclusive), pos) => {
-                    if exclusive {
-                        state.error = Some(err);
-                    } else {
-                        merge_errors(&mut state.error, Some(err), &pos)
-                    }
-
-                    let start = if state.start.is_some() {
-                        state.start()
-                    } else {
-                        pos.start
-                    };
-
+                (Status::Failure(err, false), pos) => {
+                    merge_errors(&mut state.error, Some(err), &pos);
+                    state.set_start(|| pos.start);
                     break (
-                        Status::Failure(state.error().unwrap(), exclusive),
-                        start..pos.end,
+                        Status::Failure(state.error().unwrap(), false),
+                        state.start()..pos.end,
                     );
+                }
+                (Status::Failure(err, true), pos) => {
+                    state.set_start(|| pos.start);
+                    break (Status::Failure(err, true), state.start()..pos.end);
                 }
             }
         }))
