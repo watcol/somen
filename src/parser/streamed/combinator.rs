@@ -7,6 +7,7 @@ mod flatten;
 mod fold;
 mod last;
 mod nth;
+mod reduce;
 mod tuples;
 
 pub use collect::Collect;
@@ -17,3 +18,4 @@ pub use flatten::Flatten;
 pub use fold::{Fold, TryFold};
 pub use last::Last;
 pub use nth::Nth;
+pub use reduce::{Reduce, TryReduce};

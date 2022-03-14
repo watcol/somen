@@ -279,6 +279,27 @@ pub trait StreamedParserExt<I: Positioned + ?Sized>: StreamedParser<I> {
     {
         assert_parser(TryFold::new(self, init, f))
     }
+
+    /// Reduces items into a item by repeatedly applying a function.
+    #[inline]
+    fn reduce<F>(self, f: F) -> Reduce<Self, F>
+    where
+        Self: Sized,
+        F: FnMut(Self::Item, Self::Item) -> Self::Item,
+    {
+        assert_parser(Reduce::new(self, f))
+    }
+
+    /// Tries to reduce items into a item by repeatedly applying a failable function.
+    #[inline]
+    fn try_reduce<F, E>(self, f: F) -> TryReduce<Self, F>
+    where
+        Self: Sized,
+        F: FnMut(Self::Item, Self::Item) -> Result<Self::Item, E>,
+        E: Into<Expects<I::Ok>>,
+    {
+        assert_parser(TryReduce::new(self, f))
+    }
 }
 
 impl<P: StreamedParser<I> + ?Sized, I: Positioned + ?Sized> StreamedParserExt<I> for P {}
