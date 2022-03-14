@@ -204,17 +204,6 @@ pub trait StreamedParserExt<I: Positioned + ?Sized>: StreamedParser<I> {
         assert_parser(Collect::new(self))
     }
 
-    /// Consumes all outputs, returns the `n`th element.
-    ///
-    /// Note that `n` starts from `0` and if the length of stream less than `n`, it returns `None`.
-    #[inline]
-    fn nth(self, n: usize) -> Nth<Self>
-    where
-        Self: Sized,
-    {
-        assert_parser(Nth::new(self, n))
-    }
-
     /// Consumes all outputs, returns the first element.
     ///
     /// This method is equivalent to `self.nth(0)`, and if the stream is empty, it returns `None`.
@@ -235,6 +224,45 @@ pub trait StreamedParserExt<I: Positioned + ?Sized>: StreamedParser<I> {
         Self: Sized,
     {
         assert_parser(Last::new(self))
+    }
+
+    /// Consumes all outputs, returns the `n`th element.
+    ///
+    /// Note that `n` starts from `0` and if the length of stream less than `n`, it returns `None`.
+    #[inline]
+    fn nth(self, n: usize) -> Nth<Self>
+    where
+        Self: Sized,
+    {
+        assert_parser(Nth::new(self, n))
+    }
+
+    /// Consumes all outputs, returns `N` elements from index `start`.
+    ///
+    /// This method is equivalent to `self.indexes([start, start+1, ... , start+N-1])`.
+    ///
+    /// [`Parser`]: super::Parser
+    #[inline]
+    fn fill<const N: usize>(self, start: usize) -> Indexes<Self, N>
+    where
+        Self: Sized,
+    {
+        assert_parser(Indexes::new_fill(self, start))
+    }
+
+    /// Consumes all outputs, returns multiple elements specified by `ns`, an ascending ordered array of
+    /// indexes.
+    ///
+    /// Note that `n` starts from `0` and if the length of stream less than `n`, it returns `None`.
+    ///
+    /// # Panics
+    /// if `ns` is not ascending ordered.
+    #[inline]
+    fn indexes<const N: usize>(self, ns: [usize; N]) -> Indexes<Self, N>
+    where
+        Self: Sized,
+    {
+        assert_parser(Indexes::new(self, ns))
     }
 
     /// Flattens iteratable items.
