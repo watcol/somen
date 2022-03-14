@@ -236,6 +236,16 @@ pub trait StreamedParserExt<I: Positioned + ?Sized>: StreamedParser<I> {
     {
         assert_parser(Last::new(self))
     }
+
+    /// Flattens iteratable items.
+    #[inline]
+    fn flatten(self) -> Flatten<Self>
+    where
+        Self: Sized,
+        Self::Item: IntoIterator,
+    {
+        assert_streamed_parser(Flatten::new(self))
+    }
 }
 
 impl<P: StreamedParser<I> + ?Sized, I: Positioned + ?Sized> StreamedParserExt<I> for P {}
