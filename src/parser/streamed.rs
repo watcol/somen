@@ -181,6 +181,28 @@ pub trait StreamedParserExt<I: Positioned + ?Sized>: StreamedParser<I> {
     {
         assert_parser(Discard::new(self))
     }
+
+    /// Returns a [`Parser`] outputs [`usize`] by couting up all items.
+    ///
+    /// [`Parser`]: super::Parser
+    #[inline]
+    fn count(self) -> Count<Self>
+    where
+        Self: Sized,
+    {
+        assert_parser(Count::new(self))
+    }
+
+    /// Returns a [`Parser`] by collecting all the outputs.
+    ///
+    /// [`Parser`]: super::Parser
+    #[inline]
+    fn collect<E: Default + Extend<Self::Item>>(self) -> Collect<Self, E>
+    where
+        Self: Sized,
+    {
+        assert_parser(Collect::new(self))
+    }
 }
 
 impl<P: StreamedParser<I> + ?Sized, I: Positioned + ?Sized> StreamedParserExt<I> for P {}

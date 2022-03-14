@@ -4,6 +4,7 @@
 #![cfg_attr(feature = "nightly", feature(doc_cfg))]
 #![cfg_attr(feature = "nightly", feature(doc_notable_trait))]
 #![cfg_attr(feature = "nightly", feature(try_trait_v2, try_trait_v2_residual))]
+#![cfg_attr(feature = "nightly", feature(extend_one))]
 #![doc(test(attr(warn(warnings))))]
 
 #[cfg(feature = "alloc")]
