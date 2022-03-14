@@ -19,7 +19,8 @@ macro_rules! parser_state {
         $vis:vis struct $name:ident <
             $I:ident $(: $Itrait:path)?
             $(, $Ps:ident: $trait:ident)*
-            $(; $($Ts:ident $(:$def:ident)?),*)? $(,)?
+            $(; $($Ts:ident $(:$def:ident)?),*)?
+            $(| $(const $Cs:ident : $C_ty:ty),*)? $(,)?
         > {
             $($(#[$opt:ident$(($($k:ident = $v:ident),*$(,)?))?])? $field:ident : $ty:ty),*$(,)?
         }
@@ -29,6 +30,7 @@ macro_rules! parser_state {
             $I: $crate::stream::Positioned $(+ $Itrait)? + ?Sized
             $(, $Ps: $trait<$I>)*
             $($(, $Ts)*)?
+            $($(, const $Cs: $C_ty)*)?
         > {
             $($field : $crate::parser_state_inner!{@type; $({$opt})? $ty}),*
         }
@@ -37,10 +39,12 @@ macro_rules! parser_state {
             $I: $crate::stream::Positioned $(+ $Itrait)? + ?Sized
             $(, $Ps: $trait<$I>)*
             $($(, $Ts $(: core::default::$def)?)*)?
+            $($(, const $Cs: $C_ty)*)?
         > core::default::Default for $name <
             $I
             $(, $Ps)*
             $($(, $Ts)*)?
+            $($(, $Cs)*)?
         > {
             #[inline]
             fn default() -> Self {
@@ -54,10 +58,12 @@ macro_rules! parser_state {
             $I: $crate::stream::Positioned $(+ $Itrait)? + ?Sized
             $(, $Ps: $trait<$I>)*
             $($(, $Ts $(: core::default::$def)?)*)?
+            $($(, const $Cs: $C_ty)*)?
         > $name <
             $I
             $(, $Ps)*
             $($(, $Ts)*)?
+            $($(, $Cs)*)?
         > {
             $($crate::parser_state_inner!{@impl; $({$($([$k = $v])*)?})? $field: $ty})*
         }
