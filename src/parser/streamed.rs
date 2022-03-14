@@ -9,7 +9,7 @@ use core::pin::Pin;
 use core::task::Context;
 
 use super::{assert_parser, ChoiceStreamedParser, Either, NoState, Opt, Or, Parser, Prefix, Skip};
-use crate::error::PolledResult;
+use crate::error::{Expects, PolledResult};
 use crate::stream::{Input, Positioned};
 use combinator::*;
 use stream::ParserStream;
@@ -255,6 +255,29 @@ pub trait StreamedParserExt<I: Positioned + ?Sized>: StreamedParser<I> {
         F: FnMut(&Self::Item) -> bool,
     {
         assert_streamed_parser(Filter::new(self, f))
+    }
+
+    /// Folds items into an accumulator by repeatedly applying a function.
+    #[inline]
+    fn fold<Q, F>(self, init: Q, f: F) -> Fold<Self, Q, F>
+    where
+        Self: Sized,
+        Q: Parser<I>,
+        F: FnMut(Q::Output, Self::Item) -> Q::Output,
+    {
+        assert_parser(Fold::new(self, init, f))
+    }
+
+    /// Tries to fold items into an accumulator by repeatedly applying a failable function.
+    #[inline]
+    fn try_fold<Q, F, E>(self, init: Q, f: F) -> TryFold<Self, Q, F>
+    where
+        Self: Sized,
+        Q: Parser<I>,
+        F: FnMut(Q::Output, Self::Item) -> Result<Q::Output, E>,
+        E: Into<Expects<I::Ok>>,
+    {
+        assert_parser(TryFold::new(self, init, f))
     }
 }
 
