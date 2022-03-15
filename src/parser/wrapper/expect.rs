@@ -48,13 +48,15 @@ where
             .map_ok(|(status, pos)| {
                 (
                     match status {
-                        Status::Failure(_, false) => Status::Failure(
-                            Error {
-                                expects: self.expects.clone(),
-                                position: pos.clone(),
-                            },
-                            false,
-                        ),
+                        Status::Failure(err, false) if err.rewindable(&pos.start) => {
+                            Status::Failure(
+                                Error {
+                                    expects: self.expects.clone(),
+                                    position: pos.clone(),
+                                },
+                                false,
+                            )
+                        }
                         res => res,
                     },
                     pos,
