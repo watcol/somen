@@ -261,6 +261,15 @@ pub trait ParserExt<I: Positioned + ?Sized>: Parser<I> {
         assert_parser(Either::Right(self))
     }
 
+    /// Returns the position of parsed tokens with an output.
+    #[inline]
+    fn with_position(self) -> WithPosition<Self>
+    where
+        Self: Sized,
+    {
+        assert_parser(WithPosition::new(self))
+    }
+
     /// Returns a parse result without consuming input.
     #[inline]
     fn peek(self) -> Peek<Self>
