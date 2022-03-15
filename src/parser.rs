@@ -497,6 +497,27 @@ pub trait ParserExt<I: Positioned + ?Sized>: Parser<I> {
         assert_parser(Discard::new(self))
     }
 
+    /// Converting an output value into another type.
+    #[inline]
+    fn map<F, O>(self, f: F) -> Map<Self, F>
+    where
+        Self: Sized,
+        F: FnMut(Self::Output) -> O,
+    {
+        assert_parser(Map::new(self, f))
+    }
+
+    /// Converting an output value into another type with a failable function.
+    #[inline]
+    fn try_map<F, O, E>(self, f: F) -> TryMap<Self, F>
+    where
+        Self: Sized,
+        F: FnMut(Self::Output) -> Result<O, E>,
+        E: Into<Expects<I::Ok>>,
+    {
+        assert_parser(TryMap::new(self, f))
+    }
+
     /// Check an output value with the function.
     #[inline]
     fn satisfy<F, O>(self, f: F) -> Satisfy<Self, F>

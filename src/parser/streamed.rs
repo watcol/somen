@@ -10,7 +10,10 @@ use core::ops::RangeBounds;
 use core::pin::Pin;
 use core::task::Context;
 
-use super::{assert_parser, ChoiceStreamedParser, Either, NoState, Opt, Or, Parser, Prefix, Skip};
+use super::{
+    assert_parser, ChoiceStreamedParser, Either, Map, NoState, Opt, Or, Parser, Prefix, Skip,
+    TryMap,
+};
 use crate::error::{Expects, PolledResult};
 use crate::stream::{Input, Positioned};
 use combinator::*;
@@ -363,6 +366,27 @@ pub trait StreamedParserExt<I: Positioned + ?Sized>: StreamedParser<I> {
         P: Parser<I>,
     {
         assert_streamed_parser(FlatUntil::new(self, end))
+    }
+
+    /// Converting an output value into another type.
+    #[inline]
+    fn map<F, O>(self, f: F) -> Map<Self, F>
+    where
+        Self: Sized,
+        F: FnMut(Self::Item) -> O,
+    {
+        assert_streamed_parser(Map::new(self, f))
+    }
+
+    /// Converting an output value into another type.
+    #[inline]
+    fn try_map<F, O, E>(self, f: F) -> TryMap<Self, F>
+    where
+        Self: Sized,
+        F: FnMut(Self::Item) -> Result<O, E>,
+        E: Into<Expects<I::Ok>>,
+    {
+        assert_streamed_parser(TryMap::new(self, f))
     }
 
     /// Flattens iteratable items.
