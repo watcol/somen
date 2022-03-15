@@ -389,6 +389,17 @@ pub trait StreamedParserExt<I: Positioned + ?Sized>: StreamedParser<I> {
         assert_streamed_parser(TryMap::new(self, f))
     }
 
+    /// Returning current iteration count with outputs.
+    ///
+    /// The returned parser's item will be `(usize, Self::Item)`.
+    #[inline]
+    fn enumerate(self) -> Enumerate<Self>
+    where
+        Self: Sized,
+    {
+        assert_streamed_parser(Enumerate::new(self))
+    }
+
     /// Flattens iteratable items.
     #[inline]
     fn flatten(self) -> Flatten<Self>

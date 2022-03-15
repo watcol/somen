@@ -2,6 +2,7 @@
 mod collect;
 mod count;
 mod discard;
+mod enumerate;
 mod filter;
 mod flatten;
 mod fold;
@@ -15,6 +16,7 @@ mod tuples;
 pub use collect::Collect;
 pub use count::Count;
 pub use discard::Discard;
+pub use enumerate::Enumerate;
 pub use filter::Filter;
 pub use flatten::Flatten;
 pub use fold::{Fold, TryFold};
