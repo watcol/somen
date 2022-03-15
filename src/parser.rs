@@ -1,84 +1,47 @@
 //! Basic parsers and combinators.
 
+pub mod atomic;
+pub mod combinator;
 pub mod streamed;
+pub mod wrapper;
 
-mod any;
-mod choice;
-mod cond;
-mod either;
-mod eof;
-mod errors;
-mod func;
 mod future;
-mod lazy;
-mod map;
-mod no_state;
-mod opt;
-mod or;
-mod peek;
-mod position;
-mod repeat;
-mod satisfy;
-mod sep_by;
-mod sep_by_times;
-mod set;
-mod skip;
-mod tag;
-mod then;
-mod times;
-mod token;
-mod tokens;
-mod tuples;
-mod until;
-mod value;
-
 mod utils;
 
 #[cfg(feature = "alloc")]
-mod record;
-
-#[cfg(feature = "alloc")]
 use alloc::boxed::Box;
-pub use any::Any;
-pub use choice::ChoiceParser;
-pub use cond::{Is, IsNot, IsSome};
-pub use either::Either;
-pub use eof::Eof;
-pub use errors::{Expect, Fatal, MapErr, Spanned};
-pub use func::Function;
-pub use lazy::Lazy;
-pub use map::{Map, TryMap};
-pub use no_state::NoState;
-pub use opt::Opt;
-pub use or::Or;
-pub use peek::{Fail, Peek};
-pub use position::{Position, WithPosition};
-#[cfg(feature = "alloc")]
-pub use record::{Record, WithRecord};
-pub use repeat::Repeat;
-pub use satisfy::Satisfy;
-pub use sep_by::{SepBy, SepByEnd};
-pub use sep_by_times::{SepByEndTimes, SepByTimes};
-pub use set::{NoneOf, OneOf, Set};
-pub use skip::{AheadOf, Behind, Between, Discard};
-pub use tag::Tag;
-pub use then::{Then, TryThen};
-pub use times::Times;
-pub use token::{Not, Token};
-pub use tokens::Tokens;
-pub use until::Until;
-pub use value::{Value, ValueFn};
-
 use core::ops::RangeBounds;
 use core::pin::Pin;
 use core::task::Context;
 
-use crate::error::{Expects, PolledResult, Tracker};
-#[cfg(feature = "alloc")]
-use crate::stream::NoRewindInput;
+use crate::error::{Expects, PolledResult};
 use crate::stream::{Input, Positioned};
+use atomic::*;
+use combinator::*;
 use future::ParseFuture;
 use streamed::assert_streamed_parser;
+use streamed::generator::*;
+use wrapper::*;
+
+/// Wrapping the function into a parser or a streaned parser.
+#[inline]
+pub fn function<F, I, O, E, C>(f: F) -> Function<F, I, C>
+where
+    F: FnMut(Pin<&mut I>, &mut Context<'_>, &mut C) -> PolledResult<O, I>,
+    I: Positioned + ?Sized,
+    C: Default,
+{
+    assert_parser(Function::new(f))
+}
+
+/// Produces the parser (or streamed parser) at the time of parsing.
+#[inline]
+pub fn lazy<F, P>(f: F) -> Lazy<F>
+where
+    F: FnMut() -> P,
+{
+    Lazy::new(f)
+}
 
 /// Parses any token.
 #[inline]
@@ -90,6 +53,64 @@ pub fn any<I: Positioned + ?Sized>() -> Any<I> {
 #[inline]
 pub fn eof<I: Positioned + ?Sized>() -> Eof<I> {
     assert_parser(Eof::new())
+}
+
+/// Produces a value without parsing any tokens.
+#[inline]
+pub fn value<I: Positioned + ?Sized, T: Clone>(value: T) -> Value<I, T> {
+    assert_parser(Value::new(value))
+}
+
+/// Produces a value by the function without parsing any tokens.
+#[inline]
+pub fn value_fn<I: Positioned + ?Sized, F: FnMut() -> T, T>(f: F) -> ValueFn<I, F> {
+    assert_parser(ValueFn::new(f))
+}
+
+/// Returns the current position of input.
+#[inline]
+pub fn position<I: Positioned + ?Sized>() -> Position<I> {
+    assert_parser(Position::new())
+}
+
+/// Parses a token.
+#[inline]
+pub fn token<I>(token: I::Ok) -> Token<I, I::Ok>
+where
+    I: Positioned + ?Sized,
+    I::Ok: Clone + PartialEq,
+{
+    assert_parser(Token::new(token))
+}
+
+/// Parses any token except `token`.
+#[inline]
+pub fn not<I>(token: I::Ok) -> Not<I, I::Ok>
+where
+    I: Positioned + ?Sized,
+    I::Ok: Clone + PartialEq,
+{
+    assert_parser(Not::new(token))
+}
+
+/// Succeeds if a parsed token matches one of the set.
+#[inline]
+pub fn one_of<I, S>(set: S) -> OneOf<I, S>
+where
+    I: Positioned + ?Sized,
+    S: Set<I::Ok>,
+{
+    assert_parser(OneOf::new(set))
+}
+
+/// Succeeds if a parsed token doesn't match one of the set.
+#[inline]
+pub fn none_of<I, S>(set: S) -> NoneOf<I, S>
+where
+    I: Positioned + ?Sized,
+    S: Set<I::Ok>,
+{
+    assert_parser(NoneOf::new(set))
 }
 
 /// Parses a token matches the condition.
@@ -122,46 +143,6 @@ where
     assert_parser(IsSome::new(cond))
 }
 
-/// Succeeds if a parsed token matches one of the set.
-#[inline]
-pub fn one_of<I, S>(set: S) -> OneOf<I, S>
-where
-    I: Positioned + ?Sized,
-    S: Set<I::Ok>,
-{
-    assert_parser(OneOf::new(set))
-}
-
-/// Succeeds if a parsed token doesn't match one of the set.
-#[inline]
-pub fn none_of<I, S>(set: S) -> NoneOf<I, S>
-where
-    I: Positioned + ?Sized,
-    S: Set<I::Ok>,
-{
-    assert_parser(NoneOf::new(set))
-}
-
-/// Parses a token.
-#[inline]
-pub fn token<I>(token: I::Ok) -> Token<I, I::Ok>
-where
-    I: Positioned + ?Sized,
-    I::Ok: Clone + PartialEq,
-{
-    assert_parser(Token::new(token))
-}
-
-/// Parses any token except `token`.
-#[inline]
-pub fn not<I>(token: I::Ok) -> Not<I, I::Ok>
-where
-    I: Positioned + ?Sized,
-    I::Ok: Clone + PartialEq,
-{
-    assert_parser(Not::new(token))
-}
-
 /// Parses a sequence of tokens.
 #[inline]
 pub fn tokens<'a, I, T>(tokens: T) -> Tokens<'a, I, T>
@@ -183,26 +164,6 @@ where
     assert_parser(Tag::new(tag))
 }
 
-/// Wrapping the function into a parser or a streaned parser.
-#[inline]
-pub fn function<F, I, O, E, C>(f: F) -> Function<F, I, C>
-where
-    F: FnMut(Pin<&mut I>, &mut Context<'_>, &mut C, &mut Tracker<I::Ok>) -> PolledResult<O, I>,
-    I: Positioned + ?Sized,
-    C: Default,
-{
-    assert_parser(Function::new(f))
-}
-
-/// Produces the parser (or streamed parser) at the time of parsing.
-#[inline]
-pub fn lazy<F, P>(f: F) -> Lazy<F>
-where
-    F: FnMut() -> P,
-{
-    Lazy::new(f)
-}
-
 /// A conventional function to produce [`or`] parser from tuples.
 ///
 /// For example, `choice((a, b, c))` is equivalent to `a.or(b).or(c)`.
@@ -212,27 +173,9 @@ where
 pub fn choice<C, I>(choice: C) -> C::Parser
 where
     C: ChoiceParser<I>,
-    I: Input + ?Sized,
+    I: Positioned + ?Sized,
 {
     assert_parser(choice.into_parser())
-}
-
-/// Produces a value without parsing any tokens.
-#[inline]
-pub fn value<I: Positioned + ?Sized, T: Clone>(value: T) -> Value<I, T> {
-    assert_parser(Value::new(value))
-}
-
-/// Produces a value by the function without parsing any tokens.
-#[inline]
-pub fn value_fn<I: Positioned + ?Sized, F: FnMut() -> T, T>(f: F) -> ValueFn<I, F> {
-    assert_parser(ValueFn::new(f))
-}
-
-/// Returns the current position of input.
-#[inline]
-pub fn position<I: Positioned + ?Sized>() -> Position<I> {
-    assert_parser(Position::new())
 }
 
 /// A trait for parsers.
@@ -259,7 +202,6 @@ pub trait Parser<I: Positioned + ?Sized> {
         input: Pin<&mut I>,
         cx: &mut Context<'_>,
         state: &mut Self::State,
-        tracker: &mut Tracker<I::Ok>,
     ) -> PolledResult<Self::Output, I>;
 }
 
@@ -270,10 +212,7 @@ pub trait ParserExt<I: Positioned + ?Sized>: Parser<I> {
     /// [`poll_parse`]: Parser::poll_parse
     /// [`Future`]: core::future::Future
     #[inline]
-    fn parse<'a, 'b>(
-        &'a mut self,
-        input: &'b mut I,
-    ) -> ParseFuture<'a, 'b, Self, I, Self::State, I::Ok>
+    fn parse<'a, 'b>(&'a mut self, input: &'b mut I) -> ParseFuture<'a, 'b, Self, I, Self::State>
     where
         I: Unpin,
     {
@@ -331,91 +270,6 @@ pub trait ParserExt<I: Positioned + ?Sized>: Parser<I> {
         assert_parser(WithPosition::new(self))
     }
 
-    /// Returns consumed items instead of an output.
-    #[cfg(feature = "alloc")]
-    #[cfg_attr(feature = "nightly", doc(cfg(feature = "alloc")))]
-    #[inline]
-    fn record(self) -> Record<Self>
-    where
-        Self: Sized,
-        I: NoRewindInput,
-    {
-        assert_parser(Record::new(self))
-    }
-
-    /// Returns an output beside consumed items.
-    #[cfg(feature = "alloc")]
-    #[cfg_attr(feature = "nightly", doc(cfg(feature = "alloc")))]
-    #[inline]
-    fn with_record(self) -> WithRecord<Self>
-    where
-        Self: Sized,
-        I: NoRewindInput,
-    {
-        assert_parser(WithRecord::new(self))
-    }
-
-    /// Trying another parser if the parser failed parsing.
-    #[inline]
-    fn or<P>(self, other: P) -> Or<Self, P>
-    where
-        Self: Sized,
-        I: Input,
-        P: Parser<I, Output = Self::Output>,
-    {
-        assert_parser(Or::new(self, other))
-    }
-
-    /// Parses with `self`, and then with `p`.
-    #[inline]
-    fn and<P>(self, p: P) -> (Self, P)
-    where
-        Self: Sized,
-        P: Parser<I>,
-    {
-        assert_parser((self, p))
-    }
-
-    /// Parses with `self` between `left` and `right`.
-    #[inline]
-    fn between<L, R>(self, left: L, right: R) -> Between<Self, L, R>
-    where
-        Self: Sized,
-        L: Parser<I>,
-        R: Parser<I>,
-    {
-        assert_parser(Between::new(self, left, right))
-    }
-
-    /// Parses with `self` ahead of `p`.
-    #[inline]
-    fn ahead_of<P>(self, p: P) -> AheadOf<Self, P>
-    where
-        Self: Sized,
-        P: Parser<I>,
-    {
-        assert_parser(AheadOf::new(self, p))
-    }
-
-    /// Parses with `self` behind `p`.
-    #[inline]
-    fn behind<P>(self, p: P) -> Behind<Self, P>
-    where
-        Self: Sized,
-        P: Parser<I>,
-    {
-        assert_parser(Behind::new(self, p))
-    }
-
-    /// Discarding the parse results.
-    #[inline]
-    fn discard(self) -> Discard<Self>
-    where
-        Self: Sized,
-    {
-        assert_parser(Discard::new(self))
-    }
-
     /// Returns a parse result without consuming input.
     #[inline]
     fn peek(self) -> Peek<Self>
@@ -434,6 +288,58 @@ pub trait ParserExt<I: Positioned + ?Sized>: Parser<I> {
         I: Input,
     {
         assert_parser(Fail::new(self))
+    }
+
+    /// Parses with `self`, and then with `p`.
+    #[inline]
+    fn and<P>(self, p: P) -> (Self, P)
+    where
+        Self: Sized,
+        P: Parser<I>,
+    {
+        assert_parser((self, p))
+    }
+
+    /// Parses with `self`, then skips `p`.
+    #[inline]
+    fn skip<P>(self, p: P) -> Skip<Self, P>
+    where
+        Self: Sized,
+        P: Parser<I>,
+    {
+        assert_parser(Skip::new(self, p))
+    }
+
+    /// Parses with `p` prefixed by `self`.
+    #[inline]
+    fn prefix<P>(self, p: P) -> Prefix<Self, P>
+    where
+        Self: Sized,
+    {
+        // Supports both `Parser` and `StreamedParser`.
+        Prefix::new(self, p)
+    }
+
+    /// Parses with `self` between `left` and `right`.
+    #[inline]
+    fn between<L, R>(self, left: L, right: R) -> Skip<Prefix<L, Self>, R>
+    where
+        Self: Sized,
+        L: Parser<I>,
+        R: Parser<I>,
+    {
+        assert_parser(Skip::new(Prefix::new(left, self), right))
+    }
+
+    /// Trying another parser if the parser failed parsing.
+    #[inline]
+    fn or<P>(self, other: P) -> Or<Self, P>
+    where
+        Self: Sized,
+        I: Input,
+        P: Parser<I, Output = Self::Output>,
+    {
+        assert_parser(Or::new(self, other))
     }
 
     /// Returns [`Some`] if parsing is succeeded.
@@ -470,6 +376,32 @@ pub trait ParserExt<I: Positioned + ?Sized>: Parser<I> {
         I: Positioned,
     {
         assert_streamed_parser(Times::new(self, n))
+    }
+
+    /// Returns a fixed-size [`StreamedParser`] of the parser separated by `sep`.
+    ///
+    /// [`StreamedParser`]: streamed::StreamedParser
+    #[inline]
+    fn sep_by_times<P, R>(self, sep: P, count: usize) -> SepByTimes<Self, P>
+    where
+        Self: Sized,
+        P: Parser<I>,
+    {
+        assert_streamed_parser(SepByTimes::new(self, sep, count))
+    }
+
+    /// Returns a fixed-size [`StreamedParser`] of the parser separated by `sep` (trailing
+    /// separater is allowed).
+    ///
+    /// [`StreamedParser`]: streamed::StreamedParser
+    #[inline]
+    fn sep_by_end_times<P, R>(self, sep: P, count: usize) -> SepByEndTimes<Self, P>
+    where
+        Self: Sized,
+        I: Input,
+        P: Parser<I>,
+    {
+        assert_streamed_parser(SepByEndTimes::new(self, sep, count))
     }
 
     /// Returns a [`StreamedParser`] by repeating the parser while succeeding.
@@ -514,30 +446,33 @@ pub trait ParserExt<I: Positioned + ?Sized>: Parser<I> {
         assert_streamed_parser(SepByEnd::new(self, sep, range))
     }
 
-    /// Returns a fixed-size [`StreamedParser`] of the parser separated by `sep`.
+    /// Parses with `self`, passes output to the function `f` and parses with a returned [`Parser`] or
+    /// [`StreamedParser`].
     ///
     /// [`StreamedParser`]: streamed::StreamedParser
     #[inline]
-    fn sep_by_times<P, R>(self, sep: P, count: usize) -> SepByTimes<Self, P>
+    fn then<F, Q>(self, f: F) -> Then<Self, F>
     where
         Self: Sized,
-        P: Parser<I>,
+        F: FnMut(Self::Output) -> Q,
     {
-        assert_streamed_parser(SepByTimes::new(self, sep, count))
+        // Supports both `Parser` and `StreamedParser`.
+        Then::new(self, f)
     }
 
-    /// Returns a fixed-size [`StreamedParser`] of the parser separated by `sep` (trailing
-    /// separater is allowed).
+    /// Parses with `self`, passes output to the failable function `f` and parses with a returned
+    /// [`Parser`] or [`StreamedParser`].
     ///
     /// [`StreamedParser`]: streamed::StreamedParser
     #[inline]
-    fn sep_by_end_times<P, R>(self, sep: P, count: usize) -> SepByEndTimes<Self, P>
+    fn try_then<F, Q, E>(self, f: F) -> TryThen<Self, F>
     where
         Self: Sized,
-        I: Input,
-        P: Parser<I>,
+        F: FnMut(Self::Output) -> Result<Q, E>,
+        E: Into<Expects<I::Ok>>,
     {
-        assert_streamed_parser(SepByEndTimes::new(self, sep, count))
+        // Supports both `Parser` and `StreamedParser`.
+        TryThen::new(self, f)
     }
 
     /// Returns a [`StreamedParser`] by repeating the parser until the parser `end` succeeds.
@@ -553,14 +488,13 @@ pub trait ParserExt<I: Positioned + ?Sized>: Parser<I> {
         assert_streamed_parser(Until::new(self, end))
     }
 
-    /// Check an output value with the function.
+    /// Discarding the parse results.
     #[inline]
-    fn satisfy<F, O>(self, f: F) -> Satisfy<Self, F>
+    fn discard(self) -> Discard<Self>
     where
         Self: Sized,
-        F: FnMut(&Self::Output) -> bool,
     {
-        assert_parser(Satisfy::new(self, f))
+        assert_parser(Discard::new(self))
     }
 
     /// Converting an output value into another type.
@@ -584,33 +518,21 @@ pub trait ParserExt<I: Positioned + ?Sized>: Parser<I> {
         assert_parser(TryMap::new(self, f))
     }
 
-    /// Parses with `self`, passes output to the function `f` and parses with a returned parser.
+    /// Check an output value with the function.
     #[inline]
-    fn then<F, Q>(self, f: F) -> Then<Self, F>
+    fn satisfy<F, O>(self, f: F) -> Satisfy<Self, F>
     where
         Self: Sized,
-        F: FnMut(Self::Output) -> Q,
-        Q: Parser<I>,
+        F: FnMut(&Self::Output) -> bool,
     {
-        assert_parser(Then::new(self, f))
-    }
-
-    /// Parses with `self`, passes output to the failable function `f` and parses with a returned parser.
-    #[inline]
-    fn try_then<F, Q, E>(self, f: F) -> TryThen<Self, F>
-    where
-        Self: Sized,
-        F: FnMut(Self::Output) -> Result<Q, E>,
-        Q: Parser<I>,
-        E: Into<Expects<I::Ok>>,
-    {
-        assert_parser(TryThen::new(self, f))
+        assert_parser(Satisfy::new(self, f))
     }
 
     /// Modifying values expected by the parser.
     ///
-    /// It is more easy to use [`expect`] when you just want to override the message by a
-    /// `&'static str`.
+    /// ## Note
+    /// This function only modifies expected values, so error positions are not modified. You can
+    /// use method [`expect`] to override parsing errors completely with new expected values.
     ///
     /// [`expect`]: Self::expect
     #[inline]
@@ -623,50 +545,33 @@ pub trait ParserExt<I: Positioned + ?Sized>: Parser<I> {
         assert_parser(MapErr::new(self, f))
     }
 
-    /// Overriding the error position with the span of tokens parsed by the parser.
-    #[inline]
-    fn spanned(self) -> Spanned<Self>
-    where
-        Self: Sized,
-    {
-        assert_parser(Spanned::new(self))
-    }
-
-    /// Modifying the flag [`fatal`] for the error.
-    ///
-    /// If the flag is `true`, combinators like [`opt`], [`or`] or [`repeat`] will give special
-    /// respects for errors originated by the parser so that the errors will not be ignored.
-    /// Otherwise, the error can be ignored in specific situations.
-    ///
-    /// For example, [`opt`] rewinds input and returns [`None`], or [`or`] tries other choices when
-    /// the parser returns an error.
-    ///
-    /// [`fatal`]: crate::error::ParseError::Parser::fatal
-    /// [`opt`]: Self::opt
-    /// [`or`]: Self::or
-    /// [`repeat`]: Self::repeat
-    #[inline]
-    fn fatal(self, fatal: bool) -> Fatal<Self>
-    where
-        Self: Sized,
-    {
-        assert_parser(Fatal::new(self, fatal))
-    }
-
-    /// A conventional function to override parsing errors.
-    ///
-    /// This function override expected values (by the passed value), the position (by the position of
-    /// parsed tokens), and [`fatal`] flag (by `false`) at once.
-    ///
-    /// [`map_err`]: Self::map_err
-    /// [`fatal`]: crate::error::ParseError::Parser::fatal
+    /// Overriding parsing errors.
     #[inline]
     fn expect<E: Into<Expects<I::Ok>>>(self, expected: E) -> Expect<Self, Expects<I::Ok>>
     where
         Self: Sized,
         I::Ok: Clone,
     {
-        assert_parser(Expect::new(self, expected))
+        assert_parser(Expect::new(self, expected.into()))
+    }
+
+    /// Overriding parsing errors as "exclusive".
+    #[inline]
+    fn exclusive<E: Into<Expects<I::Ok>>>(self, expected: E) -> Exclusive<Self, Expects<I::Ok>>
+    where
+        Self: Sized,
+        I::Ok: Clone,
+    {
+        assert_parser(Exclusive::new(self, expected.into()))
+    }
+
+    /// Modifies "exclusive" errors as rewindable.
+    #[inline]
+    fn rewindable(self) -> Rewindable<Self>
+    where
+        Self: Sized,
+    {
+        assert_parser(Rewindable::new(self))
     }
 }
 
@@ -682,9 +587,8 @@ impl<'a, P: Parser<I> + ?Sized, I: Positioned + ?Sized> Parser<I> for &'a mut P 
         input: Pin<&mut I>,
         cx: &mut Context<'_>,
         state: &mut Self::State,
-        tracker: &mut Tracker<I::Ok>,
     ) -> PolledResult<Self::Output, I> {
-        (**self).poll_parse(input, cx, state, tracker)
+        (**self).poll_parse(input, cx, state)
     }
 }
 
@@ -700,9 +604,8 @@ impl<P: Parser<I> + ?Sized, I: Positioned + ?Sized> Parser<I> for Box<P> {
         input: Pin<&mut I>,
         cx: &mut Context<'_>,
         state: &mut Self::State,
-        tracker: &mut Tracker<I::Ok>,
     ) -> PolledResult<Self::Output, I> {
-        (**self).poll_parse(input, cx, state, tracker)
+        (**self).poll_parse(input, cx, state)
     }
 }
 

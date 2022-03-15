@@ -1,13 +1,8 @@
-use alloc::borrow::Cow;
-use alloc::string::String;
-use alloc::vec::Vec;
-use core::mem;
 use core::pin::Pin;
 use core::task::{Context, Poll};
 use futures_core::{ready, FusedStream, Stream, TryStream};
 use pin_project_lite::pin_project;
 
-use super::Record;
 use crate::stream::Positioned;
 
 pin_project! {
@@ -79,46 +74,5 @@ where
     #[inline]
     fn position(&self) -> Self::Locator {
         self.inner.position()
-    }
-}
-
-impl<S: TryStream> Record for ExtendRecorder<'_, S, Vec<S::Ok>>
-where
-    S::Ok: Clone,
-{
-    type Borrowed = [S::Ok];
-
-    fn start(self: Pin<&mut Self>) {
-        let this = self.project();
-        *this.recording_pos = Some(this.output.len());
-    }
-
-    fn end(self: Pin<&mut Self>) -> Cow<'_, Self::Borrowed> {
-        let this = self.project();
-        let pos = mem::take(this.recording_pos).unwrap_or(this.output.len());
-        Cow::from(
-            this.output
-                .get(pos..this.output.len())
-                .expect("recording_pos <= position"),
-        )
-    }
-}
-
-impl<S: TryStream<Ok = char>> Record for ExtendRecorder<'_, S, String> {
-    type Borrowed = str;
-
-    fn start(self: Pin<&mut Self>) {
-        let this = self.project();
-        *this.recording_pos = Some(this.output.len());
-    }
-
-    fn end(self: Pin<&mut Self>) -> Cow<'_, Self::Borrowed> {
-        let this = self.project();
-        let pos = mem::take(this.recording_pos).unwrap_or(this.output.len());
-        Cow::from(
-            this.output
-                .get(pos..this.output.len())
-                .expect("recording_pos <= position"),
-        )
     }
 }

@@ -1,46 +1,23 @@
 //! Tools for parsers return multiple outputs.
 
-mod choice;
-mod collect;
-mod enumerate;
-mod fill;
-mod filter;
-mod flatten;
-mod fold;
-mod nth;
-mod reduce;
-mod repeat;
-mod scan;
-mod sep_by;
-mod sep_by_times;
+pub mod combinator;
+pub mod flat;
+pub mod generator;
+
 mod stream;
-mod times;
-mod tuples;
-mod until;
 
 use core::ops::RangeBounds;
 use core::pin::Pin;
 use core::task::Context;
 
-pub use choice::ChoiceStreamedParser;
-pub use collect::{Collect, Count, Discard};
-pub use enumerate::Enumerate;
-pub use fill::Fill;
-pub use filter::Filter;
-pub use flatten::Flatten;
-pub use fold::{Fold, TryFold};
-pub use nth::{Last, Nth};
-pub use reduce::{Reduce, TryReduce};
-pub use repeat::FlatRepeat;
-pub use scan::{Scan, TryScan};
-pub use sep_by::{FlatSepBy, FlatSepByEnd};
-pub use sep_by_times::{FlatSepByEndTimes, FlatSepByTimes};
-pub use times::FlatTimes;
-pub use until::FlatUntil;
-
-use super::{assert_parser, AheadOf, Behind, Between, Either, Map, NoState, Or, Parser, TryMap};
-use crate::error::{Expects, PolledResult, Tracker};
+use super::{
+    assert_parser, ChoiceStreamedParser, Either, Map, NoState, Opt, Or, Parser, Prefix, Skip,
+    TryMap,
+};
+use crate::error::{Expects, PolledResult};
 use crate::stream::{Input, Positioned};
+use combinator::*;
+use flat::*;
 use stream::ParserStream;
 
 #[cfg(feature = "alloc")]
@@ -52,7 +29,7 @@ use alloc::boxed::Box;
 ///
 /// [`or`]: StreamedParserExt::or
 #[inline]
-pub fn choice_streamed<C, I>(choice: C) -> C::Parser
+pub fn choice_streamed<C, I>(choice: C) -> C::StreamedParser
 where
     C: ChoiceStreamedParser<I>,
     I: Positioned + ?Sized,
@@ -82,7 +59,6 @@ pub trait StreamedParser<I: Positioned + ?Sized> {
         input: Pin<&mut I>,
         cx: &mut Context<'_>,
         state: &mut Self::State,
-        tracker: &mut Tracker<I::Ok>,
     ) -> PolledResult<Option<Self::Item>, I>;
 
     /// The estimated size of returned stream.
@@ -100,7 +76,7 @@ pub trait StreamedParserExt<I: Positioned + ?Sized>: StreamedParser<I> {
     fn parse_streamed<'a, 'b>(
         &'a mut self,
         input: &'b mut I,
-    ) -> ParserStream<'a, 'b, Self, I, Self::State, I::Ok>
+    ) -> ParserStream<'a, 'b, Self, I, Self::State>
     where
         I: Unpin,
     {
@@ -109,6 +85,7 @@ pub trait StreamedParserExt<I: Positioned + ?Sized>: StreamedParser<I> {
 
     /// Wraps the parser into a [`Box`].
     #[cfg(feature = "alloc")]
+    #[cfg_attr(feature = "nightly", doc(cfg(feature = "alloc")))]
     #[inline]
     fn boxed<'a>(self) -> Box<dyn StreamedParser<I, Item = Self::Item, State = Self::State> + 'a>
     where
@@ -120,7 +97,6 @@ pub trait StreamedParserExt<I: Positioned + ?Sized>: StreamedParser<I> {
     /// Merges [`State`] into the parser itself.
     ///
     /// [`State`]: StreamedParser::State
-    #[cfg(feature = "alloc")]
     #[inline]
     fn no_state(self) -> NoState<Self, Self::State>
     where
@@ -170,35 +146,35 @@ pub trait StreamedParserExt<I: Positioned + ?Sized>: StreamedParser<I> {
         assert_streamed_parser(Or::new(self, p))
     }
 
-    /// Parses with `self` ahead of `p`.
+    /// Returns [`Some`] if parsing is succeeded.
     #[inline]
-    fn ahead_of<P>(self, p: P) -> AheadOf<Self, P>
+    fn opt(self) -> Opt<Self>
     where
         Self: Sized,
-        P: Parser<I>,
+        I: Input,
     {
-        assert_streamed_parser(AheadOf::new(self, p))
+        assert_streamed_parser(Opt::new(self))
     }
 
-    /// Parses with `self` behind `p`.
+    /// Parses with `self`, then skips `p`.
     #[inline]
-    fn behind<P>(self, p: P) -> Behind<Self, P>
+    fn skip<P>(self, p: P) -> Skip<Self, P>
     where
         Self: Sized,
         P: Parser<I>,
     {
-        assert_streamed_parser(Behind::new(self, p))
+        assert_streamed_parser(Skip::new(self, p))
     }
 
     /// Parses with `self` between `left` and `right`.
     #[inline]
-    fn between<L, R>(self, left: L, right: R) -> Between<Self, L, R>
+    fn between<L, R>(self, left: L, right: R) -> Skip<Prefix<L, Self>, R>
     where
         Self: Sized,
         L: Parser<I>,
         R: Parser<I>,
     {
-        assert_streamed_parser(Between::new(self, left, right))
+        assert_streamed_parser(Skip::new(Prefix::new(left, self), right))
     }
 
     /// Returns a [`Parser`] parses all items and returns `()`.
@@ -223,15 +199,15 @@ pub trait StreamedParserExt<I: Positioned + ?Sized>: StreamedParser<I> {
         assert_parser(Count::new(self))
     }
 
-    /// Consumes all outputs, returns the nth element.
+    /// Returns a [`Parser`] by collecting all the outputs.
     ///
-    /// If the length of stream less than `n`, it returns `None`.
+    /// [`Parser`]: super::Parser
     #[inline]
-    fn nth(self, n: usize) -> Nth<Self>
+    fn collect<E: Default + Extend<Self::Item>>(self) -> Collect<Self, E>
     where
         Self: Sized,
     {
-        assert_parser(Nth::new(self, n))
+        assert_parser(Collect::new(self))
     }
 
     /// Consumes all outputs, returns the first element.
@@ -256,15 +232,43 @@ pub trait StreamedParserExt<I: Positioned + ?Sized>: StreamedParser<I> {
         assert_parser(Last::new(self))
     }
 
-    /// Returns a [`Parser`] by collecting all the outputs.
+    /// Consumes all outputs, returns the `n`th element.
     ///
-    /// [`Parser`]: super::Parser
+    /// Note that `n` starts from `0` and if the length of stream less than `n`, it returns `None`.
     #[inline]
-    fn collect<E: Default + Extend<Self::Item>>(self) -> Collect<Self, E>
+    fn nth(self, n: usize) -> Nth<Self>
     where
         Self: Sized,
     {
-        assert_parser(Collect::new(self))
+        assert_parser(Nth::new(self, n))
+    }
+
+    /// Consumes all outputs, returns `N` elements from index `start`.
+    ///
+    /// This method is equivalent to `self.indexes([start, start+1, ... , start+N-1])`.
+    ///
+    /// [`Parser`]: super::Parser
+    #[inline]
+    fn fill<const N: usize>(self, start: usize) -> Indexes<Self, N>
+    where
+        Self: Sized,
+    {
+        assert_parser(Indexes::new_fill(self, start))
+    }
+
+    /// Consumes all outputs, returns multiple elements specified by `ns`, an ascending ordered array of
+    /// indexes.
+    ///
+    /// Note that `n` starts from `0` and if the length of stream less than `n`, it returns `None`.
+    ///
+    /// # Panics
+    /// if `ns` is not ascending ordered.
+    #[inline]
+    fn indexes<const N: usize>(self, ns: [usize; N]) -> Indexes<Self, N>
+    where
+        Self: Sized,
+    {
+        assert_parser(Indexes::new(self, ns))
     }
 
     /// Repeats the streamed parser like [`ParserExt::repeat`], and flattens into one streamed
@@ -362,19 +366,6 @@ pub trait StreamedParserExt<I: Positioned + ?Sized>: StreamedParser<I> {
         P: Parser<I>,
     {
         assert_streamed_parser(FlatUntil::new(self, end))
-    }
-
-    /// Returns a [`Parser`] by collecting exact `N` items into an array.
-    ///
-    /// If the number of items is not `N`, it returns a fatal error.
-    ///
-    /// [`Parser`]: super::Parser
-    #[inline]
-    fn fill<const N: usize>(self) -> Fill<Self, N>
-    where
-        Self: Sized,
-    {
-        assert_parser(Fill::new(self))
     }
 
     /// Converting an output value into another type.
@@ -511,9 +502,8 @@ impl<'a, P: StreamedParser<I> + ?Sized, I: Positioned + ?Sized> StreamedParser<I
         input: Pin<&mut I>,
         cx: &mut Context<'_>,
         state: &mut Self::State,
-        tracker: &mut Tracker<I::Ok>,
     ) -> PolledResult<Option<Self::Item>, I> {
-        (**self).poll_parse_next(input, cx, state, tracker)
+        (**self).poll_parse_next(input, cx, state)
     }
 
     #[inline]
@@ -534,9 +524,8 @@ impl<P: StreamedParser<I> + ?Sized, I: Positioned + ?Sized> StreamedParser<I> fo
         input: Pin<&mut I>,
         cx: &mut Context<'_>,
         state: &mut Self::State,
-        tracker: &mut Tracker<I::Ok>,
     ) -> PolledResult<Option<Self::Item>, I> {
-        (**self).poll_parse_next(input, cx, state, tracker)
+        (**self).poll_parse_next(input, cx, state)
     }
 
     #[inline]

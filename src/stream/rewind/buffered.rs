@@ -1,8 +1,5 @@
 mod error;
 
-use alloc::borrow::Cow;
-pub use error::BufferedError;
-
 use alloc::collections::VecDeque;
 use alloc::vec::Vec;
 use core::pin::Pin;
@@ -10,8 +7,8 @@ use core::task::{Context, Poll};
 use futures_core::{ready, FusedStream, Stream, TryStream};
 use pin_project_lite::pin_project;
 
-use crate::stream::record::Record;
 use crate::stream::{Positioned, Rewind};
+pub use error::BufferedError;
 
 pin_project! {
     /// Wrapping [`TryStream`],  implements [`Positioned`] and [`Rewind`] trait by storing
@@ -152,22 +149,5 @@ where
         } else {
             Err(BufferedError::Buffer)
         }
-    }
-}
-
-impl<S: Record + TryStream> Record for BufferedRewinder<S>
-where
-    S::Ok: Clone,
-{
-    type Borrowed = S::Borrowed;
-
-    #[inline]
-    fn start(self: Pin<&mut Self>) {
-        self.project().inner.start()
-    }
-
-    #[inline]
-    fn end(self: Pin<&mut Self>) -> Cow<'_, Self::Borrowed> {
-        self.project().inner.end()
     }
 }

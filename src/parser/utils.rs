@@ -1,4 +1,7 @@
 use core::mem;
+use core::ops::Range;
+
+use crate::error::Error;
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum EitherState<C, D> {
@@ -9,19 +12,38 @@ pub enum EitherState<C, D> {
 impl<C: Default, D> Default for EitherState<C, D> {
     #[inline]
     fn default() -> Self {
-        Self::Left(Default::default())
+        Self::new_left()
     }
 }
 
 impl<C, D> EitherState<C, D> {
-    pub fn as_mut_left(&mut self) -> &mut C {
+    #[inline]
+    pub fn new_left() -> Self
+    where
+        C: Default,
+    {
+        Self::Left(Default::default())
+    }
+
+    #[inline]
+    pub fn new_right() -> Self
+    where
+        D: Default,
+    {
+        Self::Right(Default::default())
+    }
+
+    #[inline]
+    #[allow(dead_code)]
+    pub fn left(&mut self) -> &mut C {
         match self {
             Self::Left(left) => left,
             Self::Right(_) => unreachable!(),
         }
     }
 
-    pub fn as_mut_right(&mut self) -> &mut D {
+    #[inline]
+    pub fn right(&mut self) -> &mut D {
         match self {
             Self::Left(_) => unreachable!(),
             Self::Right(right) => right,
@@ -29,30 +51,21 @@ impl<C, D> EitherState<C, D> {
     }
 }
 
-#[derive(Clone, Debug, PartialEq, Eq)]
-pub struct SpanState<C, L> {
-    pub inner: C,
-    pub start: Option<L>,
-}
-
-impl<C: Default, L> Default for SpanState<C, L> {
-    #[inline]
-    fn default() -> Self {
-        Self {
-            inner: Default::default(),
-            start: None,
+/// Merges two `Option<Error<T, L>>` into one.
+pub fn merge_errors<T, L: PartialEq>(
+    this: &mut Option<Error<T, L>>,
+    other: Option<Error<T, L>>,
+    pos: &Range<L>,
+) {
+    *this = if pos.start == pos.end {
+        match (mem::take(this), other) {
+            (Some(e), Some(f)) => Some(Error {
+                expects: e.expects.merge(f.expects),
+                position: e.position,
+            }),
+            (this, other) => other.or(this),
         }
-    }
-}
-
-impl<C, L> SpanState<C, L> {
-    pub fn set_start(&mut self, f: impl FnOnce() -> L) {
-        if self.start.is_none() {
-            self.start = Some(f())
-        }
-    }
-
-    pub fn take_start(&mut self) -> L {
-        mem::take(&mut self.start).unwrap()
+    } else {
+        other
     }
 }

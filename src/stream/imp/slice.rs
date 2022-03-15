@@ -1,15 +1,9 @@
-#[cfg(feature = "alloc")]
-use alloc::borrow::Cow;
 use core::convert::Infallible;
-#[cfg(feature = "alloc")]
-use core::mem;
 use core::pin::Pin;
 use core::task::{Context, Poll};
 use futures_core::Stream;
 use pin_project_lite::pin_project;
 
-#[cfg(feature = "alloc")]
-use crate::stream::record::Record;
 use crate::stream::{Positioned, Rewind};
 
 pin_project! {
@@ -79,26 +73,5 @@ impl<T: Clone> Rewind for SliceStream<'_, T> {
     fn rewind(mut self: Pin<&mut Self>, marker: Self::Marker) -> Result<(), Self::Error> {
         self.position = marker;
         Ok(())
-    }
-}
-
-#[cfg(feature = "alloc")]
-#[cfg_attr(feature = "nightly", doc(cfg(feature = "alloc")))]
-impl<T: Clone> Record for SliceStream<'_, T> {
-    type Borrowed = [T];
-
-    fn start(self: Pin<&mut Self>) {
-        let this = self.project();
-        *this.recording_pos = Some(*this.position);
-    }
-
-    fn end(self: Pin<&mut Self>) -> Cow<'_, Self::Borrowed> {
-        let this = self.project();
-        let pos = mem::take(this.recording_pos).unwrap_or(*this.position);
-        Cow::from(
-            this.slice
-                .get(pos..*this.position)
-                .expect("recording_pos <= position"),
-        )
     }
 }
