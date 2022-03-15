@@ -32,15 +32,31 @@ pub type ParseResult<O, I> = Result<
     ParseError<<I as TryStream>::Ok, <I as Positioned>::Locator, <I as TryStream>::Error>,
 >;
 
+/// The parsed status for method [`poll_parse`].
+///
+/// [`poll_parse`]: crate::parser::Parser::poll_parse
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum Status<O, T, L> {
+    /// Succeeded parsing.
+    ///
+    /// If the second elements is [`Some`], it represents that an error has occured, but the parser
+    /// discarded the error by rewinding the input stream.
     Success(O, Option<Error<T, L>>),
+
+    /// Failed parsing.
+    ///
+    /// If the second elements is `true`, it represents that this error is exclusive and merging
+    /// other errors are disallowed.
     Failure(Error<T, L>, bool),
 }
 
+/// Errors while parsing streams.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Error<T, L> {
+    /// Expected tokens.
     pub expects: Expects<T>,
+
+    /// The position where the error has occured.
     pub position: Range<L>,
 }
 
@@ -89,6 +105,7 @@ impl<T: fmt::Debug + fmt::Display, L: fmt::Debug> std::error::Error for Error<T,
 pub enum ParseError<T, L, E> {
     /// A parsing error.
     Parser(Error<T, L>),
+
     /// An error while reading streams.
     Stream(E),
 }
