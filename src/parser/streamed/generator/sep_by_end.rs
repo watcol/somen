@@ -44,7 +44,6 @@ crate::parser_state! {
         output: P::Output,
         error: Option<Error<I::Ok, I::Locator>>,
         count: usize,
-        ended: bool,
     }
 }
 
@@ -69,8 +68,7 @@ where
             Bound::Included(i) => state.count + 1 > *i,
             Bound::Excluded(i) => state.count + 1 >= *i,
             Bound::Unbounded => false,
-        } || state.ended
-        {
+        } {
             let pos = input.position();
             return Poll::Ready(Ok((Status::Success(None, None), pos.clone()..pos)));
         }
@@ -109,21 +107,25 @@ where
                 (Status::Success(_, err), pos) => {
                     input.drop_marker(state.marker())?;
                     state.count += 1;
-                    state.inner = EitherState::new_right();
+                    state.inner = EitherState::new_left();
                     merge_errors(&mut state.error, err, &pos);
                     (
                         Status::Success(Some(state.output()), state.error()),
                         state.start()..pos.end,
                     )
                 }
-                (Status::Failure(err, false), pos) if err.rewindable(&pos.start) => {
+                (Status::Failure(err, false), pos)
+                    if err.rewindable(&pos.start) && self.range.contains(&(state.count + 1)) =>
+                {
                     input.rewind(state.marker())?;
-                    merge_errors(&mut state.error, Some(err), &pos);
-                    state.count += 1;
-                    state.ended = true;
+                    merge_errors(
+                        &mut state.error,
+                        Some(err),
+                        &(pos.start.clone()..pos.start.clone()),
+                    );
                     (
                         Status::Success(None, state.error()),
-                        pos.start.clone()..pos.start,
+                        state.start()..pos.start,
                     )
                 }
                 (Status::Failure(err, false), pos) => {

@@ -148,7 +148,9 @@ where
                     state.count += 1;
                     state.inner = EitherState::new_right();
                 }
-                (Status::Failure(err, false), pos) if err.rewindable(&pos.start) => {
+                (Status::Failure(err, false), pos)
+                    if err.rewindable(&pos.start) && self.range.contains(&state.count) =>
+                {
                     input.rewind(state.marker())?;
                     merge_errors(
                         &mut state.error,

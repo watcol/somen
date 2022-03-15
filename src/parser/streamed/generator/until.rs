@@ -34,7 +34,7 @@ impl<P, Q> Until<P, Q> {
 crate::parser_state! {
     pub struct UntilState<I: Input, P: Parser, Q: Parser> {
         inner: EitherState<Q::State, P::State>,
-        #[opt(try_set = set_marker)]
+        #[opt]
         marker: I::Marker,
         error: Option<Error<I::Ok, I::Locator>>,
     }
@@ -55,9 +55,11 @@ where
         cx: &mut Context<'_>,
         state: &mut Self::State,
     ) -> PolledResult<Option<Self::Item>, I> {
-        state.set_marker(|| input.as_mut().mark())?;
-
         if let EitherState::Left(inner) = &mut state.inner {
+            if state.marker.is_none() {
+                state.marker = Some(input.as_mut().mark()?);
+            }
+
             match ready!(self.end.poll_parse(input.as_mut(), cx, inner)?) {
                 (Status::Success(_, err), pos) => {
                     input.drop_marker(state.marker())?;

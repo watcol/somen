@@ -38,7 +38,7 @@ crate::parser_state! {
         count: usize,
         #[opt(try_set = set_marker)]
         marker: I::Marker,
-        #[opt]
+        #[opt(set = set_start)]
         start: I::Locator,
         error: Option<Error<I::Ok, I::Locator>>,
     }
@@ -106,29 +106,23 @@ where
                     state.count += 1;
                     state.inner = EitherState::new_right();
                     merge_errors(&mut state.error, err, &pos);
-                    let start = if state.start.is_some() {
-                        state.start()
-                    } else {
-                        pos.start
-                    };
-                    (Status::Success(Some(val), state.error()), start..pos.end)
-                }
-                (Status::Failure(err, exclusive), pos) => {
-                    if exclusive {
-                        state.error = Some(err);
-                    } else {
-                        merge_errors(&mut state.error, Some(err), &pos);
-                    }
-
-                    let start = if state.start.is_some() {
-                        state.start()
-                    } else {
-                        pos.start
-                    };
+                    state.set_start(|| pos.start);
                     (
-                        Status::Failure(state.error().unwrap(), exclusive),
-                        start..pos.end,
+                        Status::Success(Some(val), state.error()),
+                        state.start()..pos.end,
                     )
+                }
+                (Status::Failure(err, false), pos) => {
+                    merge_errors(&mut state.error, Some(err), &pos);
+                    state.set_start(|| pos.start);
+                    (
+                        Status::Failure(state.error().unwrap(), false),
+                        state.start()..pos.end,
+                    )
+                }
+                (Status::Failure(err, true), pos) => {
+                    state.set_start(|| pos.start);
+                    (Status::Failure(err, true), state.start()..pos.end)
                 }
             },
         ))
