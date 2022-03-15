@@ -87,7 +87,7 @@ pub trait StreamBuilder: TryStream {
         PositionedStream::new(self, initial)
     }
 
-    /// Implement [`Positioned`], [`Rewind`] and [`Record`] by buffering recent inputs.
+    /// Implement [`Positioned`] and [`Rewind`] by buffering recent inputs.
     ///
     /// # Examples
     /// ```
@@ -124,7 +124,6 @@ pub trait StreamBuilder: TryStream {
     ///
     /// [`Positioned`]: crate::stream::position::Positioned
     /// [`Rewind`]: crate::stream::rewind::Rewind
-    /// [`Record`]: crate::stream::record::Record
     #[cfg(feature = "alloc")]
     #[cfg_attr(feature = "nightly", doc(cfg(feature = "alloc")))]
     #[inline]
@@ -135,7 +134,7 @@ pub trait StreamBuilder: TryStream {
         BufferedRewinder::from(self)
     }
 
-    /// Implements [`Positioned`], [`Rewind`] and [`Record`] by recording all the output to [`Vec`].
+    /// Implements [`Positioned`] and [`Rewind`] by recording all the output to [`Vec`].
     ///
     /// # Examples
     /// ```
@@ -175,7 +174,6 @@ pub trait StreamBuilder: TryStream {
     /// [`Vec`]: alloc::vec::Vec
     /// [`Positioned`]: crate::stream::position::Positioned
     /// [`Rewind`]: crate::stream::rewind::Rewind
-    /// [`Record`]: crate::stream::record::Record
     #[cfg(feature = "alloc")]
     #[cfg_attr(feature = "nightly", doc(cfg(feature = "alloc")))]
     #[inline]
@@ -186,7 +184,7 @@ pub trait StreamBuilder: TryStream {
         VecRecorder::from(self)
     }
 
-    /// Implements [`Record`] using types implements [`Extend`].
+    /// Records consumed items by using types implements [`Extend`].
     ///
     /// # Examples
     /// ```
@@ -208,7 +206,6 @@ pub trait StreamBuilder: TryStream {
     /// ```
     ///
     /// [`Extend`]: core::iter::Extend
-    /// [`Record`]: crate::stream::record::Record
     #[cfg(feature = "alloc")]
     #[cfg_attr(feature = "nightly", doc(cfg(feature = "alloc")))]
     #[inline]
