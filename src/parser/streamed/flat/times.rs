@@ -76,6 +76,7 @@ where
                 (Status::Success(None, err), pos) => {
                     merge_errors(&mut state.error, err, &pos);
                     state.set_start(|| pos.start);
+                    state.inner = Default::default();
                     state.count += 1;
                 }
                 (Status::Failure(err, false), pos) => {

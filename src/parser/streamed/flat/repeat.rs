@@ -79,6 +79,7 @@ where
                         state.error = err;
                         state.start = Some(pos.start);
                         state.streaming = false;
+                        state.inner = Default::default();
                         state.count += 1;
                     }
                     res => break res,
@@ -106,6 +107,7 @@ where
                     input.as_mut().drop_marker(state.marker())?;
                     merge_errors(&mut state.error, err, &pos);
                     state.set_start(|| pos.start);
+                    state.inner = Default::default();
                     state.count += 1;
                 }
                 // Return `None` if `count` already satisfies the minimal bound.

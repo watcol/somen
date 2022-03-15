@@ -62,6 +62,7 @@ where
                 .poll_parse(input.as_mut(), cx, &mut state.inner)?)
             {
                 (Status::Success(val, err), pos) => {
+                    state.inner = Default::default();
                     state.count += 1;
                     (Status::Success(Some(val), err), pos)
                 }

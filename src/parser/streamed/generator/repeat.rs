@@ -75,6 +75,7 @@ where
             {
                 (Status::Success(val, err), pos) => {
                     input.drop_marker(state.marker())?;
+                    state.inner = Default::default();
                     state.count += 1;
                     (Status::Success(Some(val), err), pos)
                 }
