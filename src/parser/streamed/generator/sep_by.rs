@@ -103,7 +103,7 @@ where
                     input.drop_marker(state.marker())?;
                     state.count += 1;
                     state.inner = EitherState::new_right();
-                    merge_errors(&mut state.error, err, &pos);
+                    merge_errors(&mut state.error, err);
                     state.set_start(|| pos.start);
                     (
                         Status::Success(Some(val), state.error()),
@@ -114,11 +114,7 @@ where
                     if err.rewindable(&pos.start) && self.range.contains(&state.count) =>
                 {
                     input.rewind(state.marker())?;
-                    merge_errors(
-                        &mut state.error,
-                        Some(err),
-                        &(pos.start.clone()..pos.start.clone()),
-                    );
+                    merge_errors(&mut state.error, Some(err));
                     state.set_start(|| pos.start.clone());
                     (
                         Status::Success(None, state.error()),
@@ -127,7 +123,7 @@ where
                 }
                 (Status::Failure(err, false), pos) => {
                     input.drop_marker(state.marker())?;
-                    merge_errors(&mut state.error, Some(err), &pos);
+                    merge_errors(&mut state.error, Some(err));
                     state.set_start(|| pos.start);
                     (
                         Status::Failure(state.error().unwrap(), false),

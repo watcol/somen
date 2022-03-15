@@ -95,7 +95,7 @@ where
             {
                 (Status::Success(Some(val), err), pos) => {
                     input.drop_marker(state.marker())?;
-                    merge_errors(&mut state.error, err, &pos);
+                    merge_errors(&mut state.error, err);
                     state.set_start(|| pos.start);
                     state.streaming = true;
                     break (
@@ -105,7 +105,7 @@ where
                 }
                 (Status::Success(None, err), pos) => {
                     input.as_mut().drop_marker(state.marker())?;
-                    merge_errors(&mut state.error, err, &pos);
+                    merge_errors(&mut state.error, err);
                     state.set_start(|| pos.start);
                     state.inner = Default::default();
                     state.count += 1;
@@ -115,11 +115,7 @@ where
                     if err.rewindable(&pos.start) && self.range.contains(&state.count) =>
                 {
                     input.rewind(state.marker())?;
-                    merge_errors(
-                        &mut state.error,
-                        Some(err),
-                        &(pos.start.clone()..pos.start.clone()),
-                    );
+                    merge_errors(&mut state.error, Some(err));
                     state.set_start(|| pos.start.clone());
                     break (
                         Status::Success(None, state.error()),
@@ -128,7 +124,7 @@ where
                 }
                 (Status::Failure(err, false), pos) => {
                     input.drop_marker(state.marker())?;
-                    merge_errors(&mut state.error, Some(err), &pos);
+                    merge_errors(&mut state.error, Some(err));
                     state.set_start(|| pos.start);
                     break (
                         Status::Failure(state.error().unwrap(), false),

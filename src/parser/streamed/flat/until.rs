@@ -66,18 +66,18 @@ where
                 match ready!(self.end.poll_parse(input.as_mut(), cx, inner)?) {
                     (Status::Success(_, err), pos) => {
                         input.drop_marker(state.marker())?;
-                        merge_errors(&mut state.error, err, &pos);
+                        merge_errors(&mut state.error, err);
                         state.set_start(|| pos.start);
                         break (Status::Success(None, state.error()), state.start()..pos.end);
                     }
                     (Status::Failure(err, false), pos) if err.rewindable(&pos.start) => {
                         input.as_mut().rewind(state.marker())?;
                         state.inner = EitherState::new_right();
-                        merge_errors(&mut state.error, Some(err), &(pos.start.clone()..pos.start));
+                        merge_errors(&mut state.error, Some(err));
                     }
                     (Status::Failure(err, false), pos) => {
                         input.drop_marker(state.marker())?;
-                        merge_errors(&mut state.error, Some(err), &pos);
+                        merge_errors(&mut state.error, Some(err));
                         state.set_start(|| pos.start);
                         break (
                             Status::Failure(state.error().unwrap(), false),
@@ -97,7 +97,7 @@ where
                 .poll_parse_next(input.as_mut(), cx, state.inner.right())?)
             {
                 (Status::Success(Some(val), err), pos) => {
-                    merge_errors(&mut state.error, err, &pos);
+                    merge_errors(&mut state.error, err);
                     state.set_start(|| pos.start);
                     break (
                         Status::Success(Some(val), state.error()),
@@ -106,11 +106,11 @@ where
                 }
                 (Status::Success(None, err), pos) => {
                     state.inner = EitherState::new_left();
-                    merge_errors(&mut state.error, err, &pos);
+                    merge_errors(&mut state.error, err);
                     state.set_start(|| pos.start);
                 }
                 (Status::Failure(err, false), pos) => {
-                    merge_errors(&mut state.error, Some(err), &pos);
+                    merge_errors(&mut state.error, Some(err));
                     state.set_start(|| pos.start);
                     break (
                         Status::Failure(state.error().unwrap(), false),

@@ -68,7 +68,7 @@ where
             {
                 (Status::Success(Some(iter), err), pos) => {
                     state.iter = Some(iter.into_iter());
-                    merge_errors(&mut state.error, err, &pos);
+                    merge_errors(&mut state.error, err);
                     state.pos = Some(if state.pos.is_some() {
                         state.pos().start..pos.end
                     } else {
@@ -76,7 +76,7 @@ where
                     });
                 }
                 (Status::Success(None, err), pos) => {
-                    merge_errors(&mut state.error, err, &pos);
+                    merge_errors(&mut state.error, err);
 
                     let start = if state.pos.is_some() {
                         state.pos().start
@@ -90,7 +90,7 @@ where
                     if exclusive {
                         state.error = Some(err);
                     } else {
-                        merge_errors(&mut state.error, Some(err), &pos);
+                        merge_errors(&mut state.error, Some(err));
                     }
 
                     let start = if state.pos.is_some() {

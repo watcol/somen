@@ -67,12 +67,12 @@ where
 
             if let EitherState::Right(inner) = &mut state.inner {
                 match ready!(self.sep.poll_parse(input.as_mut(), cx, inner)?) {
-                    (Status::Success(_, err), pos) => {
+                    (Status::Success(_, err), _) => {
                         state.inner = EitherState::new_left();
-                        merge_errors(&mut state.error, err, &pos);
+                        merge_errors(&mut state.error, err);
                     }
                     (Status::Failure(err, false), pos) => {
-                        merge_errors(&mut state.error, Some(err), &pos);
+                        merge_errors(&mut state.error, Some(err));
                         break (
                             Status::Failure(state.error().unwrap(), false),
                             state.start()..pos.end,
@@ -89,7 +89,7 @@ where
                 .poll_parse_next(input.as_mut(), cx, state.inner.left())?)
             {
                 (Status::Success(Some(val), err), pos) => {
-                    merge_errors(&mut state.error, err, &pos);
+                    merge_errors(&mut state.error, err);
                     state.set_start(|| pos.start);
                     break (
                         Status::Success(Some(val), state.error()),
@@ -99,11 +99,11 @@ where
                 (Status::Success(None, err), pos) => {
                     state.count += 1;
                     state.inner = EitherState::new_right();
-                    merge_errors(&mut state.error, err, &pos);
+                    merge_errors(&mut state.error, err);
                     state.set_start(|| pos.start);
                 }
                 (Status::Failure(err, false), pos) => {
-                    merge_errors(&mut state.error, Some(err), &pos);
+                    merge_errors(&mut state.error, Some(err));
                     state.set_start(|| pos.start);
                     break (
                         Status::Failure(state.error().unwrap(), false),

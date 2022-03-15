@@ -79,14 +79,14 @@ where
             .poll_parse(input, cx, state.inner.right())
             .map_ok(|status| match status {
                 (Status::Success(val, err), pos) => {
-                    merge_errors(&mut state.error, err, &pos);
+                    merge_errors(&mut state.error, err);
                     (Status::Success(val, state.error()), state.start()..pos.end)
                 }
                 (Status::Failure(err, exclusive), pos) => {
                     if exclusive {
                         state.error = Some(err);
                     } else {
-                        merge_errors(&mut state.error, Some(err), &pos);
+                        merge_errors(&mut state.error, Some(err));
                     }
                     (
                         Status::Failure(state.error().unwrap(), exclusive),
@@ -145,14 +145,14 @@ where
             .poll_parse_next(input, cx, state.inner.right())
             .map_ok(|status| match status {
                 (Status::Success(val, err), pos) => {
-                    merge_errors(&mut state.error, err, &pos);
+                    merge_errors(&mut state.error, err);
                     (Status::Success(val, state.error()), state.start()..pos.end)
                 }
                 (Status::Failure(err, exclusive), pos) => {
                     if exclusive {
                         state.error = Some(err);
                     } else {
-                        merge_errors(&mut state.error, Some(err), &pos);
+                        merge_errors(&mut state.error, Some(err));
                     }
                     (
                         Status::Failure(state.error().unwrap(), exclusive),
@@ -238,14 +238,14 @@ where
             .poll_parse(input, cx, state.inner.right())
             .map_ok(|status| match status {
                 (Status::Success(val, err), pos) => {
-                    merge_errors(&mut state.error, err, &pos);
+                    merge_errors(&mut state.error, err);
                     (Status::Success(val, state.error()), state.start()..pos.end)
                 }
                 (Status::Failure(err, exclusive), pos) => {
                     if exclusive {
                         state.error = Some(err);
                     } else {
-                        merge_errors(&mut state.error, Some(err), &pos);
+                        merge_errors(&mut state.error, Some(err));
                     }
                     (
                         Status::Failure(state.error().unwrap(), exclusive),
@@ -308,14 +308,14 @@ where
             .poll_parse_next(input, cx, state.inner.right())
             .map_ok(|status| match status {
                 (Status::Success(val, err), pos) => {
-                    merge_errors(&mut state.error, err, &pos);
+                    merge_errors(&mut state.error, err);
                     (Status::Success(val, state.error()), state.start()..pos.end)
                 }
                 (Status::Failure(err, exclusive), pos) => {
                     if exclusive {
                         state.error = Some(err);
                     } else {
-                        merge_errors(&mut state.error, Some(err), &pos);
+                        merge_errors(&mut state.error, Some(err));
                     }
                     (
                         Status::Failure(state.error().unwrap(), exclusive),

@@ -46,11 +46,11 @@ macro_rules! tuple_parser {
                         match ready!($t.poll_parse(input.as_mut(), cx, &mut state.$t.1)?) {
                             (Status::Success(val, err), pos) => {
                                 state.$t.0 = Some(val);
-                                merge_errors(&mut state.error, err, &pos);
+                                merge_errors(&mut state.error, err);
                                 end = Some(pos.end);
                             }
                             (Status::Failure(err, false), pos) => {
-                                merge_errors(&mut state.error, Some(err), &pos);
+                                merge_errors(&mut state.error, Some(err));
                                 return Poll::Ready(Ok((
                                     Status::Failure(state.error().unwrap(), false),
                                     state.start()..pos.end,

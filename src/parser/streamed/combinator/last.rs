@@ -61,11 +61,11 @@ where
             {
                 (Status::Success(Some(val), err), pos) => {
                     state.output = Some(val);
-                    merge_errors(&mut state.error, err, &pos);
+                    merge_errors(&mut state.error, err);
                     state.set_start(|| pos.start);
                 }
                 (Status::Success(None, err), pos) => {
-                    merge_errors(&mut state.error, err, &pos);
+                    merge_errors(&mut state.error, err);
                     state.set_start(|| pos.start);
                     break (
                         Status::Success(state.output(), state.error()),
@@ -73,7 +73,7 @@ where
                     );
                 }
                 (Status::Failure(err, false), pos) => {
-                    merge_errors(&mut state.error, Some(err), &pos);
+                    merge_errors(&mut state.error, Some(err));
                     state.set_start(|| pos.start);
                     break (
                         Status::Failure(state.error().unwrap(), false),

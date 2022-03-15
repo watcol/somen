@@ -80,7 +80,7 @@ where
             {
                 (Status::Success(Some(i), err), pos) => match (self.f)(state.get_acc(), i) {
                     Some(val) => {
-                        merge_errors(&mut state.error, err, &pos);
+                        merge_errors(&mut state.error, err);
                         state.set_start(|| pos.start);
                         break (
                             Status::Success(Some(val), state.error()),
@@ -88,17 +88,17 @@ where
                         );
                     }
                     None => {
-                        merge_errors(&mut state.error, err, &pos);
+                        merge_errors(&mut state.error, err);
                         state.set_start(|| pos.start);
                     }
                 },
                 (Status::Success(None, err), pos) => {
-                    merge_errors(&mut state.error, err, &pos);
+                    merge_errors(&mut state.error, err);
                     state.set_start(|| pos.start);
                     break (Status::Success(None, state.error()), state.start()..pos.end);
                 }
                 (Status::Failure(err, false), pos) => {
-                    merge_errors(&mut state.error, Some(err), &pos);
+                    merge_errors(&mut state.error, Some(err));
                     state.set_start(|| pos.start);
                     break (
                         Status::Failure(state.error().unwrap(), false),
@@ -176,7 +176,7 @@ where
             {
                 (Status::Success(Some(i), err), pos) => match (self.f)(state.get_acc(), i) {
                     Ok(Some(val)) => {
-                        merge_errors(&mut state.error, err, &pos);
+                        merge_errors(&mut state.error, err);
                         state.set_start(|| pos.start);
                         break (
                             Status::Success(Some(val), state.error()),
@@ -184,7 +184,7 @@ where
                         );
                     }
                     Ok(None) => {
-                        merge_errors(&mut state.error, err, &pos);
+                        merge_errors(&mut state.error, err);
                         state.set_start(|| pos.start);
                     }
                     Err(exp) => {
@@ -202,12 +202,12 @@ where
                     }
                 },
                 (Status::Success(None, err), pos) => {
-                    merge_errors(&mut state.error, err, &pos);
+                    merge_errors(&mut state.error, err);
                     state.set_start(|| pos.start);
                     break (Status::Success(None, state.error()), state.start()..pos.end);
                 }
                 (Status::Failure(err, false), pos) => {
-                    merge_errors(&mut state.error, Some(err), &pos);
+                    merge_errors(&mut state.error, Some(err));
                     state.set_start(|| pos.start);
                     break (
                         Status::Failure(state.error().unwrap(), false),

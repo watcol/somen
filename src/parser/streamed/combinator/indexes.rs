@@ -88,15 +88,15 @@ where
                         }
                     }
                     state.count += 1;
-                    merge_errors(&mut state.error, err, &pos);
+                    merge_errors(&mut state.error, err);
                     state.set_start(|| pos.start);
                 }
                 (Status::Success(Some(_), err), pos) => {
-                    merge_errors(&mut state.error, err, &pos);
+                    merge_errors(&mut state.error, err);
                     state.set_start(|| pos.start);
                 }
                 (Status::Success(None, err), pos) if state.buf.is_filled() => {
-                    merge_errors(&mut state.error, err, &pos);
+                    merge_errors(&mut state.error, err);
                     state.set_start(|| pos.start);
                     break (
                         Status::Success(Some(state.buf.take()), state.error()),
@@ -104,12 +104,12 @@ where
                     );
                 }
                 (Status::Success(None, err), pos) => {
-                    merge_errors(&mut state.error, err, &pos);
+                    merge_errors(&mut state.error, err);
                     state.set_start(|| pos.start.clone());
                     break (Status::Success(None, state.error()), state.start()..pos.end);
                 }
                 (Status::Failure(err, false), pos) => {
-                    merge_errors(&mut state.error, Some(err), &pos);
+                    merge_errors(&mut state.error, Some(err));
                     state.set_start(|| pos.start);
                     break (
                         Status::Failure(state.error().unwrap(), false),

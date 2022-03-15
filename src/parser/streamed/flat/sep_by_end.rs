@@ -95,7 +95,7 @@ where
                     (Status::Success(Some(val), err), pos) => {
                         input.drop_marker(state.marker())?;
                         state.streaming = true;
-                        merge_errors(&mut state.error, err, &pos);
+                        merge_errors(&mut state.error, err);
                         state.set_start(|| pos.start);
                         break (
                             Status::Success(Some(val), state.error()),
@@ -106,16 +106,12 @@ where
                         input.as_mut().drop_marker(state.marker())?;
                         state.set_marker(|| input.as_mut().mark())?;
                         state.inner = EitherState::new_right();
-                        merge_errors(&mut state.error, err, &pos);
+                        merge_errors(&mut state.error, err);
                         state.set_start(|| pos.start);
                     }
                     (Status::Failure(err, false), pos) if err.rewindable(&pos.start) => {
                         input.rewind(state.marker())?;
-                        merge_errors(
-                            &mut state.error,
-                            Some(err),
-                            &(pos.start.clone()..pos.start.clone()),
-                        );
+                        merge_errors(&mut state.error, Some(err));
                         state.set_start(|| pos.start.clone());
                         break (
                             Status::Success(None, state.error()),
@@ -124,7 +120,7 @@ where
                     }
                     (Status::Failure(err, false), pos) => {
                         input.drop_marker(state.marker())?;
-                        merge_errors(&mut state.error, Some(err), &pos);
+                        merge_errors(&mut state.error, Some(err));
                         state.set_start(|| pos.start);
                         break (
                             Status::Failure(state.error().unwrap(), false),
@@ -143,21 +139,17 @@ where
                 .sep
                 .poll_parse(input.as_mut(), cx, state.inner.right())?)
             {
-                (Status::Success(_, err), pos) => {
+                (Status::Success(_, err), _) => {
                     input.as_mut().drop_marker(state.marker())?;
                     state.count += 1;
                     state.inner = EitherState::new_left();
-                    merge_errors(&mut state.error, err, &pos);
+                    merge_errors(&mut state.error, err);
                 }
                 (Status::Failure(err, false), pos)
                     if err.rewindable(&pos.start) && self.range.contains(&(state.count + 1)) =>
                 {
                     input.rewind(state.marker())?;
-                    merge_errors(
-                        &mut state.error,
-                        Some(err),
-                        &(pos.start.clone()..pos.start.clone()),
-                    );
+                    merge_errors(&mut state.error, Some(err));
                     break (
                         Status::Success(None, state.error()),
                         state.start()..pos.start,
@@ -165,7 +157,7 @@ where
                 }
                 (Status::Failure(err, false), pos) => {
                     input.drop_marker(state.marker())?;
-                    merge_errors(&mut state.error, Some(err), &pos);
+                    merge_errors(&mut state.error, Some(err));
                     break (
                         Status::Failure(state.error().unwrap(), false),
                         state.start()..pos.end,

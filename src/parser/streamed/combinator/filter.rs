@@ -60,7 +60,7 @@ where
                 .poll_parse_next(input.as_mut(), cx, &mut state.inner)?)
             {
                 (Status::Success(Some(val), err), pos) if (self.f)(&val) => {
-                    merge_errors(&mut state.error, err, &pos);
+                    merge_errors(&mut state.error, err);
                     state.set_start(|| pos.start);
                     break (
                         Status::Success(Some(val), state.error()),
@@ -68,16 +68,16 @@ where
                     );
                 }
                 (Status::Success(Some(_), err), pos) => {
-                    merge_errors(&mut state.error, err, &pos);
+                    merge_errors(&mut state.error, err);
                     state.set_start(|| pos.start);
                 }
                 (Status::Success(None, err), pos) => {
-                    merge_errors(&mut state.error, err, &pos);
+                    merge_errors(&mut state.error, err);
                     state.set_start(|| pos.start);
                     break (Status::Success(None, state.error()), state.start()..pos.end);
                 }
                 (Status::Failure(err, false), pos) => {
-                    merge_errors(&mut state.error, Some(err), &pos);
+                    merge_errors(&mut state.error, Some(err));
                     state.set_start(|| pos.start);
                     break (
                         Status::Failure(state.error().unwrap(), false),

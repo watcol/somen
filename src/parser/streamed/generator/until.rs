@@ -83,11 +83,11 @@ where
             {
                 (Status::Success(val, err), pos) => {
                     state.inner = EitherState::new_left();
-                    merge_errors(&mut state.error, err, &pos);
+                    merge_errors(&mut state.error, err);
                     (Status::Success(Some(val), state.error()), pos)
                 }
                 (Status::Failure(err, false), pos) => {
-                    merge_errors(&mut state.error, Some(err), &pos);
+                    merge_errors(&mut state.error, Some(err));
                     (Status::Failure(state.error().unwrap(), false), pos)
                 }
                 (Status::Failure(err, true), pos) => (Status::Failure(err, true), pos),

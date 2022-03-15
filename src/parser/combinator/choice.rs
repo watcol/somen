@@ -81,11 +81,11 @@ where
             .poll_parse(input, cx, state.inner.right())
             .map_ok(|status| match status {
                 (Status::Success(val, err), pos) => {
-                    merge_errors(&mut state.error, err, &pos);
+                    merge_errors(&mut state.error, err);
                     (Status::Success(val, state.error()), pos)
                 }
                 (Status::Failure(err, false), pos) => {
-                    merge_errors(&mut state.error, Some(err), &pos);
+                    merge_errors(&mut state.error, Some(err));
                     (Status::Failure(state.error().unwrap(), false), pos)
                 }
                 res @ (Status::Failure(_, true), _) => res,
@@ -154,11 +154,11 @@ where
             .map_ok(|status| match status {
                 (Status::Success(val, err), pos) => {
                     state.succeeded = true;
-                    merge_errors(&mut state.error, err, &pos);
+                    merge_errors(&mut state.error, err);
                     (Status::Success(val, state.error()), pos)
                 }
                 (Status::Failure(err, false), pos) => {
-                    merge_errors(&mut state.error, Some(err), &pos);
+                    merge_errors(&mut state.error, Some(err));
                     (Status::Failure(state.error().unwrap(), false), pos)
                 }
                 res @ (Status::Failure(_, true), _) => res,

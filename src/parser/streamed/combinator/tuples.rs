@@ -56,14 +56,14 @@ macro_rules! tuple_parser {
                     if !state.$t.1 {
                         match ready!($t.poll_parse_next(input.as_mut(), cx, &mut state.$t.0)?) {
                             (Status::Success(Some(val), err), pos) if state.pos.is_some() => {
-                                merge_errors(&mut state.error, err, &pos);
+                                merge_errors(&mut state.error, err);
                                 return Poll::Ready(Ok((
                                     Status::Success(Some(val), state.error()),
                                     state.pos().start..pos.end,
                                 )));
                             }
                             (Status::Failure(err, false), pos) if state.pos.is_some() => {
-                                merge_errors(&mut state.error, Some(err), &pos);
+                                merge_errors(&mut state.error, Some(err));
                                 return Poll::Ready(Ok((
                                     Status::Failure(state.error().unwrap(), false),
                                     state.pos().start..pos.end,
@@ -71,7 +71,7 @@ macro_rules! tuple_parser {
                             }
                             (Status::Success(None, err), pos) => {
                                 state.$t.1 = true;
-                                merge_errors(&mut state.error, err, &pos);
+                                merge_errors(&mut state.error, err);
                                 state.pos = Some(if state.pos.is_some() {
                                     state.pos().start..pos.end
                                 } else {

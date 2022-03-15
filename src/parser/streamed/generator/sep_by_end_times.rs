@@ -105,7 +105,7 @@ where
                 (Status::Success(val, err), pos) => {
                     state.count += 1;
                     state.inner = EitherState::new_right();
-                    merge_errors(&mut state.error, err, &pos);
+                    merge_errors(&mut state.error, err);
                     state.set_start(|| pos.start);
                     (
                         Status::Success(Some(val), state.error()),
@@ -113,7 +113,7 @@ where
                     )
                 }
                 (Status::Failure(err, false), pos) => {
-                    merge_errors(&mut state.error, Some(err), &pos);
+                    merge_errors(&mut state.error, Some(err));
                     state.set_start(|| pos.start);
                     (
                         Status::Failure(state.error().unwrap(), false),
