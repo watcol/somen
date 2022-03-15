@@ -1,17 +1,20 @@
 //! Tools for parsers return multiple outputs.
 
 pub mod combinator;
+pub mod flat;
 pub mod generator;
 
 mod stream;
 
 use core::pin::Pin;
 use core::task::Context;
+use core::ops::RangeBounds;
 
 use super::{assert_parser, ChoiceStreamedParser, Either, NoState, Opt, Or, Parser, Prefix, Skip};
 use crate::error::{Expects, PolledResult};
 use crate::stream::{Input, Positioned};
 use combinator::*;
+use flat::*;
 use stream::ParserStream;
 
 #[cfg(feature = "alloc")]
@@ -263,6 +266,103 @@ pub trait StreamedParserExt<I: Positioned + ?Sized>: StreamedParser<I> {
         Self: Sized,
     {
         assert_parser(Indexes::new(self, ns))
+    }
+
+    /// Repeats the streamed parser like [`ParserExt::repeat`], and flattens into one streamed
+    /// parser.
+    ///
+    /// [`ParserExt::repeat`]: super::ParserExt::repeat
+    #[inline]
+    fn flat_repeat<R>(self, range: R) -> FlatRepeat<Self, R>
+    where
+        Self: Sized,
+        I: Input,
+        R: RangeBounds<usize>,
+    {
+        assert_streamed_parser(FlatRepeat::new(self, range))
+    }
+
+    /// Repeats the streamed parser like [`ParserExt::times`], and flattens into one streamed
+    /// parser.
+    ///
+    /// [`ParserExt::times`]: super::ParserExt::times
+    #[inline]
+    fn flat_times(self, n: usize) -> FlatTimes<Self>
+    where
+        Self: Sized,
+    {
+        assert_streamed_parser(FlatTimes::new(self, n))
+    }
+
+    /// Repeats the streamed parser with separaters like [`ParserExt::sep_by`], and flattens into one
+    /// streamed parser.
+    ///
+    /// [`ParserExt::sep_by`]: super::ParserExt::sep_by
+    #[inline]
+    fn flat_sep_by<P, R>(self, sep: P, range: R) -> FlatSepBy<Self, P, R>
+    where
+        Self: Sized,
+        I: Input,
+        P: Parser<I>,
+        R: RangeBounds<usize>,
+    {
+        assert_streamed_parser(FlatSepBy::new(self, sep, range))
+    }
+
+    /// Repeats the streamed parser with separaters like [`ParserExt::sep_by_end`], and flattens
+    /// into one streamed parser.
+    ///
+    /// [`ParserExt::sep_by_end`]: super::ParserExt::sep_by_end
+    #[inline]
+    fn flat_sep_by_end<P, R>(self, sep: P, range: R) -> FlatSepByEnd<Self, P, R>
+    where
+        Self: Sized,
+        I: Input,
+        P: Parser<I>,
+        R: RangeBounds<usize>,
+    {
+        assert_streamed_parser(FlatSepByEnd::new(self, sep, range))
+    }
+
+    /// Repeats the streamed parser with separaters like [`ParserExt::sep_by_times`], and flattens
+    /// into one streamed parser.
+    ///
+    /// [`ParserExt::sep_by_times`]: super::ParserExt::sep_by_times
+    #[inline]
+    fn flat_sep_by_times<P>(self, sep: P, count: usize) -> FlatSepByTimes<Self, P>
+    where
+        Self: Sized,
+        P: Parser<I>,
+    {
+        assert_streamed_parser(FlatSepByTimes::new(self, sep, count))
+    }
+
+    /// Repeats the streamed parser with separaters like [`ParserExt::sep_by_end_times`], and
+    /// flattens into one streamed parser.
+    ///
+    /// [`ParserExt::sep_by_end_times`]: super::ParserExt::sep_by_end_times
+    #[inline]
+    fn flat_sep_by_end_times<P>(self, sep: P, count: usize) -> FlatSepByEndTimes<Self, P>
+    where
+        Self: Sized,
+        I: Input,
+        P: Parser<I>,
+    {
+        assert_streamed_parser(FlatSepByEndTimes::new(self, sep, count))
+    }
+
+    /// Repeats the streamed parser until `end` like [`ParserExt::until`], and flattens into one
+    /// streamed parser.
+    ///
+    /// [`ParserExt::until`]: super::ParserExt::until
+    #[inline]
+    fn flat_until<P>(self, end: P) -> FlatUntil<Self, P>
+    where
+        Self: Sized,
+        I: Input,
+        P: Parser<I>,
+    {
+        assert_streamed_parser(FlatUntil::new(self, end))
     }
 
     /// Flattens iteratable items.
