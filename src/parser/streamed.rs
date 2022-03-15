@@ -6,9 +6,9 @@ pub mod generator;
 
 mod stream;
 
+use core::ops::RangeBounds;
 use core::pin::Pin;
 use core::task::Context;
-use core::ops::RangeBounds;
 
 use super::{assert_parser, ChoiceStreamedParser, Either, NoState, Opt, Or, Parser, Prefix, Skip};
 use crate::error::{Expects, PolledResult};
@@ -82,6 +82,7 @@ pub trait StreamedParserExt<I: Positioned + ?Sized>: StreamedParser<I> {
 
     /// Wraps the parser into a [`Box`].
     #[cfg(feature = "alloc")]
+    #[cfg_attr(feature = "nightly", doc(cfg(feature = "alloc")))]
     #[inline]
     fn boxed<'a>(self) -> Box<dyn StreamedParser<I, Item = Self::Item, State = Self::State> + 'a>
     where
@@ -93,7 +94,6 @@ pub trait StreamedParserExt<I: Positioned + ?Sized>: StreamedParser<I> {
     /// Merges [`State`] into the parser itself.
     ///
     /// [`State`]: StreamedParser::State
-    #[cfg(feature = "alloc")]
     #[inline]
     fn no_state(self) -> NoState<Self, Self::State>
     where
