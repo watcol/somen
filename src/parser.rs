@@ -487,6 +487,15 @@ pub trait ParserExt<I: Positioned + ?Sized>: Parser<I> {
     {
         assert_streamed_parser(Until::new(self, end))
     }
+
+    /// Discarding the parse results.
+    #[inline]
+    fn discard(self) -> Discard<Self>
+    where
+        Self: Sized,
+    {
+        assert_parser(Discard::new(self))
+    }
 }
 
 impl<P: Parser<I>, I: Positioned + ?Sized> ParserExt<I> for P {}
