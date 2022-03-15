@@ -496,6 +496,16 @@ pub trait ParserExt<I: Positioned + ?Sized>: Parser<I> {
     {
         assert_parser(Discard::new(self))
     }
+
+    /// Check an output value with the function.
+    #[inline]
+    fn satisfy<F, O>(self, f: F) -> Satisfy<Self, F>
+    where
+        Self: Sized,
+        F: FnMut(&Self::Output) -> bool,
+    {
+        assert_parser(Satisfy::new(self, f))
+    }
 }
 
 impl<P: Parser<I>, I: Positioned + ?Sized> ParserExt<I> for P {}
