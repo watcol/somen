@@ -7,7 +7,24 @@
 ![Lint](https://img.shields.io/github/workflow/status/watcol/somen/Lint?label=lint&style=flat-square)
 ![Test](https://img.shields.io/github/workflow/status/watcol/somen/Test?label=test&style=flat-square)
 
-Somen is an asynchronous parser combinator.
+Somen is an asynchronous LL(k) parser combinator.
+
+## Usage
+Add to your `Cargo.toml`:
+```toml
+[dependencies]
+somen = "0.1.0"
+```
+
+If you are in the `no_std` environment:
+```toml
+[dependencies.somen]
+version = "0.1.0"
+default-features = false
+features = ["alloc"]   # If you have an allocator implementation
+```
+
+See [examples](https://github.com/watcol/somen/blob/main/examples) for more usage.
 
 ## Documentation
 API Documentations are available on [here](https://docs.rs/somen).
