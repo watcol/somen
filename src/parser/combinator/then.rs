@@ -18,13 +18,13 @@ pub struct Then<P, F> {
 }
 
 impl<P, F> Then<P, F> {
-    /// Creating a new instance.
+    /// Creates a new instance.
     #[inline]
     pub fn new(inner: P, f: F) -> Self {
         Self { inner, f }
     }
 
-    /// Extracting the inner parser.
+    /// Extracts the inner parser.
     #[inline]
     pub fn into_inner(self) -> P {
         self.inner
@@ -155,13 +155,13 @@ pub struct TryThen<P, F> {
 }
 
 impl<P, F> TryThen<P, F> {
-    /// Creating a new instance.
+    /// Creates a new instance.
     #[inline]
     pub fn new(inner: P, f: F) -> Self {
         Self { inner, f }
     }
 
-    /// Extracting the inner parser.
+    /// Extracts the inner parser.
     #[inline]
     pub fn into_inner(self) -> P {
         self.inner

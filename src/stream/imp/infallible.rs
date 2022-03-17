@@ -5,7 +5,7 @@ use futures_core::{FusedStream, Stream};
 use pin_project_lite::pin_project;
 
 pin_project! {
-    /// Wrapping normal(infallible) [`Stream`], implements [`TryStream`].
+    /// Wraps normal(infallible) [`Stream`], implements [`TryStream`].
     ///
     /// The [`TryStream`] always returns [`Ok`], and the error type is [`Infallible`].
     ///
@@ -25,13 +25,13 @@ impl<S: Stream> From<S> for InfallibleStream<S> {
 }
 
 impl<S: Stream> InfallibleStream<S> {
-    /// Creating a new instance.
+    /// Creates a new instance.
     #[inline]
     pub fn new(stream: S) -> Self {
         Self::from(stream)
     }
 
-    /// Extracting the original stream.
+    /// Extracts the original stream.
     #[inline]
     pub fn into_inner(self) -> S {
         self.inner

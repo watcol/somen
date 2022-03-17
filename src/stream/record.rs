@@ -1,4 +1,4 @@
-//! Recording stream outputs.
+//! Records stream outputs.
 
 mod extend;
 mod vec;

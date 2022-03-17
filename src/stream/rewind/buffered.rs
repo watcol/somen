@@ -11,7 +11,7 @@ use crate::stream::{Positioned, Rewind};
 pub use error::BufferedError;
 
 pin_project! {
-    /// Wrapping [`TryStream`],  implements [`Positioned`] and [`Rewind`] trait by storing
+    /// Wraps [`TryStream`],  implements [`Positioned`] and [`Rewind`] trait by storing
     /// recent output to buffer, which will live until it becomes unneeded.
     ///
     /// [`TryStream`]: futures_core::stream::TryStream
@@ -45,13 +45,13 @@ impl<S: TryStream> From<S> for BufferedRewinder<S> {
 }
 
 impl<S: TryStream> BufferedRewinder<S> {
-    /// Creating a new instance.
+    /// Creates a new instance.
     #[inline]
     pub fn new(inner: S) -> Self {
         Self::from(inner)
     }
 
-    /// Extracting the original stream.
+    /// Extracts the original stream.
     #[inline]
     pub fn into_inner(self) -> S {
         self.inner

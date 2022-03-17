@@ -18,13 +18,13 @@ pub struct Reduce<P, F> {
 }
 
 impl<P, F> Reduce<P, F> {
-    /// Creating a new instance.
+    /// Creates a new instance.
     #[inline]
     pub fn new(inner: P, f: F) -> Self {
         Self { inner, f }
     }
 
-    /// Extracting the inner parser.
+    /// Extracts the inner parser.
     #[inline]
     pub fn into_inner(self) -> P {
         self.inner
@@ -92,13 +92,13 @@ pub struct TryReduce<P, F> {
 }
 
 impl<P, F> TryReduce<P, F> {
-    /// Creating a new instance.
+    /// Creates a new instance.
     #[inline]
     pub fn new(inner: P, f: F) -> Self {
         Self { inner, f }
     }
 
-    /// Extracting the inner parser.
+    /// Extracts the inner parser.
     #[inline]
     pub fn into_inner(self) -> P {
         self.inner

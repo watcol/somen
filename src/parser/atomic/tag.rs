@@ -18,7 +18,7 @@ pub struct Tag<I: ?Sized> {
 }
 
 impl<I: ?Sized> Tag<I> {
-    /// Creating a new instance.
+    /// Creates a new instance.
     #[inline]
     pub fn new(tag: &'static str) -> Self {
         Self {

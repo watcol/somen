@@ -17,7 +17,7 @@ pub struct Tokens<'a, I: ?Sized, T> {
 }
 
 impl<'a, I: ?Sized, T> Tokens<'a, I, T> {
-    /// Creating a new instance.
+    /// Creates a new instance.
     #[inline]
     pub fn new(tokens: T) -> Self {
         Self {

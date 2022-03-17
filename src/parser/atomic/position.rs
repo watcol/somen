@@ -24,7 +24,7 @@ impl<I: ?Sized> Default for Position<I> {
 }
 
 impl<I: ?Sized> Position<I> {
-    /// Creating a new instance.
+    /// Creates a new instance.
     #[inline]
     pub fn new() -> Self {
         Self::default()

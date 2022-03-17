@@ -6,7 +6,7 @@ use pin_project_lite::pin_project;
 use crate::stream::Positioned;
 
 pin_project! {
-    /// Wrapping [`TryStream`], storing the stream outputs to any types implementing [`Extend`].
+    /// Wraps [`TryStream`], storing the stream outputs to any types implementing [`Extend`].
     #[derive(Debug)]
     pub struct ExtendRecorder<'a, S: TryStream, E: ?Sized> {
         #[pin]
@@ -17,7 +17,7 @@ pin_project! {
 }
 
 impl<'a, S: TryStream, E: ?Sized> ExtendRecorder<'a, S, E> {
-    /// Creating a new instance.
+    /// Creates new instance.
     #[inline]
     pub fn new(inner: S, output: &'a mut E) -> Self {
         Self {
@@ -27,7 +27,7 @@ impl<'a, S: TryStream, E: ?Sized> ExtendRecorder<'a, S, E> {
         }
     }
 
-    /// Extracting the original stream.
+    /// Extracts the original stream.
     #[inline]
     pub fn into_inner(self) -> S {
         self.inner

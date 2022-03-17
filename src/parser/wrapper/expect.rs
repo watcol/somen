@@ -15,13 +15,13 @@ pub struct Expect<P, E> {
 }
 
 impl<P, E> Expect<P, E> {
-    /// Creating a new instance.
+    /// Creates a new instance.
     #[inline]
     pub fn new(inner: P, expects: E) -> Self {
         Self { inner, expects }
     }
 
-    /// Extracting the inner parser.
+    /// Extracts the inner parser.
     #[inline]
     pub fn into_inner(self) -> P {
         self.inner

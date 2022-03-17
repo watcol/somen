@@ -23,7 +23,7 @@ use streamed::assert_streamed_parser;
 use streamed::generator::*;
 use wrapper::*;
 
-/// Wrapping the function into a parser or a streaned parser.
+/// Wraps the function into a parser or a streaned parser.
 #[inline]
 pub fn function<F, I, O, E, C>(f: F) -> Function<F, I, C>
 where
@@ -192,11 +192,9 @@ pub trait Parser<I: Positioned + ?Sized> {
     /// [`Future`]: core::future::Future
     type State: Default;
 
-    /// Parses the `input`, give an output.
+    /// Parses the `input`, give an [`Status`].
     ///
-    /// `tracker` is for tracking ignored errors. When an error has occured, tracked errors will be
-    /// merged to the original error. Tracked errors are valid only until a new token is consumed,
-    /// so you must invoke `tracker.clear` beside `input.try_poll_next`.
+    /// [`Status`]: crate::error::Status
     fn poll_parse(
         &mut self,
         input: Pin<&mut I>,
@@ -331,7 +329,7 @@ pub trait ParserExt<I: Positioned + ?Sized>: Parser<I> {
         assert_parser(Skip::new(Prefix::new(left, self), right))
     }
 
-    /// Trying another parser if the parser failed parsing.
+    /// Tries another parser if the parser failed parsing.
     #[inline]
     fn or<P>(self, other: P) -> Or<Self, P>
     where
@@ -488,7 +486,7 @@ pub trait ParserExt<I: Positioned + ?Sized>: Parser<I> {
         assert_streamed_parser(Until::new(self, end))
     }
 
-    /// Discarding the parse results.
+    /// Discards the parse results.
     #[inline]
     fn discard(self) -> Discard<Self>
     where
@@ -497,7 +495,7 @@ pub trait ParserExt<I: Positioned + ?Sized>: Parser<I> {
         assert_parser(Discard::new(self))
     }
 
-    /// Converting an output value into another type.
+    /// Converts an output value into another type.
     #[inline]
     fn map<F, O>(self, f: F) -> Map<Self, F>
     where
@@ -507,7 +505,7 @@ pub trait ParserExt<I: Positioned + ?Sized>: Parser<I> {
         assert_parser(Map::new(self, f))
     }
 
-    /// Converting an output value into another type with a failable function.
+    /// Converts an output value into another type with a failable function.
     #[inline]
     fn try_map<F, O, E>(self, f: F) -> TryMap<Self, F>
     where
@@ -518,7 +516,7 @@ pub trait ParserExt<I: Positioned + ?Sized>: Parser<I> {
         assert_parser(TryMap::new(self, f))
     }
 
-    /// Check an output value with the function.
+    /// Checks an output value with the function.
     #[inline]
     fn satisfy<F, O>(self, f: F) -> Satisfy<Self, F>
     where
@@ -528,7 +526,7 @@ pub trait ParserExt<I: Positioned + ?Sized>: Parser<I> {
         assert_parser(Satisfy::new(self, f))
     }
 
-    /// Modifying expected values.
+    /// Modifies expected values.
     #[inline]
     fn map_err<F, E>(self, f: F) -> MapErr<Self, F>
     where
@@ -539,7 +537,7 @@ pub trait ParserExt<I: Positioned + ?Sized>: Parser<I> {
         assert_parser(MapErr::new(self, f))
     }
 
-    /// Overriding expected values.
+    /// Overrides expected values.
     #[inline]
     fn expect<E: Into<Expects<I::Ok>>>(self, expected: E) -> Expect<Self, Expects<I::Ok>>
     where
@@ -549,7 +547,7 @@ pub trait ParserExt<I: Positioned + ?Sized>: Parser<I> {
         assert_parser(Expect::new(self, expected.into()))
     }
 
-    /// Overriding parsing errors as "exclusive".
+    /// Overrides parsing errors as "exclusive".
     #[inline]
     fn exclusive<E: Into<Expects<I::Ok>>>(self, expected: E) -> Exclusive<Self, Expects<I::Ok>>
     where
@@ -559,7 +557,7 @@ pub trait ParserExt<I: Positioned + ?Sized>: Parser<I> {
         assert_parser(Exclusive::new(self, expected.into()))
     }
 
-    /// Modifing "exclusive" errors as rewindable.
+    /// Modifies "exclusive" errors as rewindable.
     #[inline]
     fn rewindable(self) -> Rewindable<Self>
     where

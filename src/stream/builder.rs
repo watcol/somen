@@ -15,7 +15,7 @@ use super::ReaderStream;
 
 /// An utility trait to build a stream from various type.
 pub trait StreamBuilder: TryStream {
-    /// Implement [`Positioned`] to a stream.
+    /// Implements [`Positioned`] to a stream.
     ///
     /// # Examples
     /// ```
@@ -51,7 +51,7 @@ pub trait StreamBuilder: TryStream {
         PositionedStream::from(self)
     }
 
-    /// Implement [`Positioned`] to a stream, with a custom initial value.
+    /// Implements [`Positioned`] to a stream, with a custom initial value.
     ///
     /// # Examples
     /// ```
@@ -87,7 +87,7 @@ pub trait StreamBuilder: TryStream {
         PositionedStream::new(self, initial)
     }
 
-    /// Implement [`Positioned`] and [`Rewind`] by buffering recent inputs.
+    /// Implements [`Positioned`] and [`Rewind`] by buffering recent inputs.
     ///
     /// # Examples
     /// ```

@@ -18,13 +18,13 @@ pub struct Repeat<P, R> {
 }
 
 impl<P, R> Repeat<P, R> {
-    /// Creating a new instance.
+    /// Creates a new instance.
     #[inline]
     pub fn new(inner: P, range: R) -> Self {
         Self { inner, range }
     }
 
-    /// Extracting the inner parser.
+    /// Extracts the inner parser.
     #[inline]
     pub fn into_inner(self) -> P {
         self.inner

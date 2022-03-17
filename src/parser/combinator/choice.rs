@@ -18,13 +18,13 @@ pub struct Or<P, Q> {
 }
 
 impl<P, Q> Or<P, Q> {
-    /// Creating a new instance.
+    /// Creates a new instance.
     #[inline]
     pub fn new(left: P, right: Q) -> Self {
         Self { left, right }
     }
 
-    /// Extracting the inner parser.
+    /// Extracts the inner parser.
     #[inline]
     pub fn into_inner(self) -> (P, Q) {
         (self.left, self.right)

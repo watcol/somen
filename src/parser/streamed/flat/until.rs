@@ -18,13 +18,13 @@ pub struct FlatUntil<P, Q> {
 }
 
 impl<P, Q> FlatUntil<P, Q> {
-    /// Creating a new instance.
+    /// Creates a new instance.
     #[inline]
     pub fn new(inner: P, end: Q) -> Self {
         Self { inner, end }
     }
 
-    /// Extracting the inner parser.
+    /// Extracts the inner parser.
     #[inline]
     pub fn into_inner(self) -> (P, Q) {
         (self.inner, self.end)

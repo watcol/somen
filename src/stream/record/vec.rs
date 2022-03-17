@@ -7,7 +7,7 @@ use pin_project_lite::pin_project;
 use crate::stream::{Positioned, Rewind};
 
 pin_project! {
-    /// Wrapping [`TryStream`],  implements [`Positioned`] and [`Rewind`] trait by storing
+    /// Wraps [`TryStream`],  implements [`Positioned`] and [`Rewind`] trait by storing
     /// the stream outputs to [`Vec`].
     #[derive(Debug)]
     pub struct VecRecorder<S: TryStream> {
@@ -32,31 +32,31 @@ impl<S: TryStream> From<S> for VecRecorder<S> {
 }
 
 impl<S: TryStream> VecRecorder<S> {
-    /// Creating a new instance.
+    /// Creates a new instance.
     #[inline]
     pub fn new(stream: S) -> Self {
         Self::from(stream)
     }
 
-    /// Extracting the original stream.
+    /// Extracts the original stream.
     #[inline]
     pub fn into_inner(self) -> S {
         self.inner
     }
 
-    /// Getting the reference of the vector.
+    /// Returns a reference of the vector.
     #[inline]
     pub fn as_vec(&self) -> &Vec<S::Ok> {
         &self.record
     }
 
-    /// Getting the mutable reference of the vector.
+    /// Returns a mutable reference of the vector.
     #[inline]
     pub fn as_vec_mut(&mut self) -> &mut Vec<S::Ok> {
         &mut self.record
     }
 
-    /// Extracting the vector from the stream.
+    /// Extracts the vector from the stream.
     #[inline]
     pub fn into_vec(self) -> Vec<S::Ok> {
         self.record

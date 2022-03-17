@@ -5,7 +5,7 @@ use futures_io::{AsyncRead, AsyncSeek, Error};
 use pin_project_lite::pin_project;
 
 pin_project! {
-    /// Wrapping [`AsyncRead`], implements [`TryStream`] trait.
+    /// Wraps [`AsyncRead`], implements [`TryStream`] trait.
     ///
     /// [`TryStream`]: futures_core::stream::TryStream
     #[derive(Debug)]
@@ -24,13 +24,13 @@ impl<R: AsyncRead> From<R> for ReaderStream<R> {
 }
 
 impl<R: AsyncRead> ReaderStream<R> {
-    /// Creating a new instance.
+    /// Creates a new instance.
     #[inline]
     pub fn new(reader: R) -> Self {
         Self::from(reader)
     }
 
-    /// Extracting the original reader.
+    /// Extracts the original reader.
     #[inline]
     pub fn into_inner(self) -> R {
         self.reader

@@ -1,4 +1,4 @@
-//! Positioning streams.
+//! Positions for streams.
 
 mod locator;
 mod positioned;
@@ -16,6 +16,6 @@ pub trait Positioned: TryStream {
     /// The type of the position.
     type Locator: Locator<Self::Ok>;
 
-    /// Getting the current position.
+    /// Returns the current position.
     fn position(&self) -> Self::Locator;
 }

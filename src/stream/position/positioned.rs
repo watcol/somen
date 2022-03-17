@@ -7,7 +7,7 @@ use super::Locator;
 use crate::stream::{Positioned, Rewind};
 
 pin_project! {
-    /// Wrapping [`TryStream`], implements [`Positioned`] trait.
+    /// Wraps [`TryStream`], implements [`Positioned`] trait.
     #[derive(Debug)]
     pub struct PositionedStream<S, L> {
         #[pin]
@@ -27,13 +27,13 @@ impl<S, L: Default> From<S> for PositionedStream<S, L> {
 }
 
 impl<S, L> PositionedStream<S, L> {
-    /// Creating a new instance.
+    /// Creates a new instance.
     #[inline]
     pub fn new(inner: S, position: L) -> Self {
         Self { inner, position }
     }
 
-    /// Extracting the original stream.
+    /// Extracts the original stream.
     #[inline]
     pub fn into_inner(self) -> S {
         self.inner

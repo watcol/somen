@@ -4,7 +4,7 @@ use futures_core::Stream;
 use pin_project_lite::pin_project;
 
 pin_project! {
-    /// Wrapping [`Iterator`], implements [`Stream`].
+    /// Wraps [`Iterator`], implements [`Stream`].
     ///
     /// ### Note
     /// The returned stream is not a [`TryStream`], you should combinate it with
@@ -34,7 +34,7 @@ impl<I: Iterator> IteratorStream<I> {
         Self::from(iter)
     }
 
-    /// Extracting the original iterator.
+    /// Extracts the original iterator.
     #[inline]
     pub fn into_inner(self) -> I {
         self.iter

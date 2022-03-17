@@ -16,13 +16,13 @@ pub struct Times<P> {
 }
 
 impl<P> Times<P> {
-    /// Creating a new instance.
+    /// Creates a new instance.
     #[inline]
     pub fn new(inner: P, count: usize) -> Self {
         Self { inner, count }
     }
 
-    /// Extracting the inner parser.
+    /// Extracts the inner parser.
     #[inline]
     pub fn into_inner(self) -> P {
         self.inner

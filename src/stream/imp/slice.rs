@@ -7,14 +7,14 @@ use pin_project_lite::pin_project;
 use crate::stream::{Positioned, Rewind};
 
 pin_project! {
-    /// Wrapping slices, implements [`TryStream`], [`Positioned`], [`Rewind`] and [`Record`] trait.
+    /// Wraps slices, implements [`TryStream`], [`Positioned`] and [`Rewind`] trait.
     ///
     /// [`TryStream`]: futures_core::stream::TryStream
     #[derive(Debug)]
     pub struct SliceStream<'a, T> {
         slice: &'a [T],
         position: usize,
-        recording_pos: Option<usize>,
+        records_pos: Option<usize>,
     }
 }
 
@@ -24,12 +24,12 @@ impl<'a, T: Clone> From<&'a [T]> for SliceStream<'a, T> {
         Self {
             slice,
             position: 0,
-            recording_pos: None,
+            records_pos: None,
         }
     }
 }
 impl<'a, T: Clone> SliceStream<'a, T> {
-    /// Creating a new instance.
+    /// Creates a new instance.
     #[inline]
     pub fn new(slice: &'a [T]) -> Self {
         Self::from(slice)

@@ -11,14 +11,14 @@ pub use expects::*;
 
 use crate::stream::Positioned;
 
-/// The Result type for [`poll_parse`].
+/// The result type for [`poll_parse`].
 ///
 /// [`poll_parse`]: crate::parser::Parser::poll_parse
 pub type PolledResult<O, I> = Poll<
     Result<Status<O, <I as TryStream>::Ok, <I as Positioned>::Locator>, <I as TryStream>::Error>,
 >;
 
-/// The Result type for [`parse`].
+/// The result type for [`parse`].
 ///
 /// [`parse`]: crate::parser::ParserExt::parse
 pub type ParseResult<O, I> = Result<
@@ -55,7 +55,7 @@ pub struct Error<T, L> {
 }
 
 impl<T, L> Error<T, L> {
-    /// Check if the parser can rewind input to `pos` discarding this error, or not.
+    /// Checks if the parser can rewind input to `pos` discarding this error, or not.
     #[inline]
     pub fn rewindable(&self, pos: &L) -> bool
     where
@@ -64,7 +64,7 @@ impl<T, L> Error<T, L> {
         self.position.start == *pos
     }
 
-    /// Sort and remove duplicates in the expected tokens.
+    /// Sorts and removes duplicates in the expected tokens.
     #[inline]
     pub fn sort_expects(&mut self)
     where
@@ -73,7 +73,7 @@ impl<T, L> Error<T, L> {
         self.expects.sort()
     }
 
-    /// Converting [`ExpectKind::Token`] of each expects.
+    /// Converts [`ExpectKind::Token`] of each expects.
     #[inline]
     pub fn map_tokens<F: FnMut(T) -> U, U>(self, f: F) -> Error<U, L> {
         Error {

@@ -14,13 +14,13 @@ pub struct Discard<P> {
 }
 
 impl<P> Discard<P> {
-    /// Creating a new instance.
+    /// Creates a new instance.
     #[inline]
     pub fn new(inner: P) -> Self {
         Self { inner }
     }
 
-    /// Extracting the inner parser.
+    /// Extracts the inner parser.
     #[inline]
     pub fn into_inner(self) -> P {
         self.inner

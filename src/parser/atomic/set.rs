@@ -20,7 +20,7 @@ pub struct OneOf<I: ?Sized, S> {
 }
 
 impl<I: ?Sized, S> OneOf<I, S> {
-    /// Creating a new instance.
+    /// Creates a new instance.
     #[inline]
     pub fn new(set: S) -> Self {
         Self {
@@ -68,7 +68,7 @@ pub struct NoneOf<I: ?Sized, S> {
 }
 
 impl<I: ?Sized, S> NoneOf<I, S> {
-    /// Creating a new instance.
+    /// Creates a new instance.
     #[inline]
     pub fn new(set: S) -> Self {
         Self {

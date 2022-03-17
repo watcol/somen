@@ -17,7 +17,7 @@ pub struct Is<I: ?Sized, F> {
 }
 
 impl<I: ?Sized, F> Is<I, F> {
-    /// Creating a new instance.
+    /// Creates a new instance.
     #[inline]
     pub fn new(cond: F) -> Self {
         Self {
@@ -65,7 +65,7 @@ pub struct IsNot<I: ?Sized, F> {
 }
 
 impl<I: ?Sized, F> IsNot<I, F> {
-    /// Creating a new instance.
+    /// Creates a new instance.
     #[inline]
     pub fn new(cond: F) -> Self {
         Self {
@@ -113,7 +113,7 @@ pub struct IsSome<I: ?Sized, F> {
 }
 
 impl<I: ?Sized, F> IsSome<I, F> {
-    /// Creating a new instance.
+    /// Creates a new instance.
     #[inline]
     pub fn new(cond: F) -> Self {
         Self {

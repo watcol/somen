@@ -53,7 +53,9 @@ pub trait StreamedParser<I: Positioned + ?Sized> {
     /// [`TryStream`]: futures_core::TryStream
     type State: Default;
 
-    /// Takes an input, returns a next output or [`None`].
+    /// Takes an input, returns a [`Status`] of next output or [`None`].
+    ///
+    /// [`Status`]: crate::error::Status
     fn poll_parse_next(
         &mut self,
         input: Pin<&mut I>,
@@ -68,7 +70,7 @@ pub trait StreamedParser<I: Positioned + ?Sized> {
 }
 
 pub trait StreamedParserExt<I: Positioned + ?Sized>: StreamedParser<I> {
-    /// Returning a [`TryStream`] by invoking [`poll_parse_next`].
+    /// Returns a [`TryStream`] by invoking [`poll_parse_next`].
     ///
     /// [`TryStream`]: futures_core::TryStream
     /// [`poll_parse_next`]: StreamedParser::poll_parse_next
@@ -135,7 +137,7 @@ pub trait StreamedParserExt<I: Positioned + ?Sized>: StreamedParser<I> {
         assert_streamed_parser((self, p))
     }
 
-    /// Trys another parser if the first parser failed parsing.
+    /// Tries another parser if the first parser failed parsing.
     #[inline]
     fn or<P>(self, p: P) -> Or<Self, P>
     where
@@ -368,7 +370,7 @@ pub trait StreamedParserExt<I: Positioned + ?Sized>: StreamedParser<I> {
         assert_streamed_parser(FlatUntil::new(self, end))
     }
 
-    /// Converting an output value into another type.
+    /// Converts an output value into another type.
     #[inline]
     fn map<F, O>(self, f: F) -> Map<Self, F>
     where
@@ -378,7 +380,7 @@ pub trait StreamedParserExt<I: Positioned + ?Sized>: StreamedParser<I> {
         assert_streamed_parser(Map::new(self, f))
     }
 
-    /// Converting an output value into another type.
+    /// Converts an output value into another type.
     #[inline]
     fn try_map<F, O, E>(self, f: F) -> TryMap<Self, F>
     where
@@ -389,7 +391,7 @@ pub trait StreamedParserExt<I: Positioned + ?Sized>: StreamedParser<I> {
         assert_streamed_parser(TryMap::new(self, f))
     }
 
-    /// Returning current iteration count with outputs.
+    /// Returns current iteration count with elements.
     ///
     /// The returned parser's item will be `(usize, Self::Item)`.
     #[inline]

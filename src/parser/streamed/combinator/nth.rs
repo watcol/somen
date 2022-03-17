@@ -18,13 +18,13 @@ pub struct Nth<P> {
 }
 
 impl<P> Nth<P> {
-    /// Creating a new instance.
+    /// Creates a new instance.
     #[inline]
     pub fn new(inner: P, n: usize) -> Self {
         Self { inner, n }
     }
 
-    /// Extracting the inner parser.
+    /// Extracts the inner parser.
     #[inline]
     pub fn into_inner(self) -> P {
         self.inner

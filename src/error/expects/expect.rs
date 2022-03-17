@@ -19,7 +19,7 @@ impl<T: fmt::Display> fmt::Display for Expect<T> {
 }
 
 impl<T> Expect<T> {
-    /// Negate the element.
+    /// Negates the element.
     pub fn negate(self) -> Self {
         match self {
             Self::Positive(inner) => Self::Negative(inner),
@@ -27,7 +27,7 @@ impl<T> Expect<T> {
         }
     }
 
-    /// Converting the inner [`ExpectKind`].
+    /// Converts the inner [`ExpectKind`].
     #[inline]
     pub fn map<F, U>(self, f: F) -> Expect<U>
     where
@@ -39,7 +39,7 @@ impl<T> Expect<T> {
         }
     }
 
-    /// Converting the value of inner [`ExpectKind::Token`]
+    /// Converts the value of inner [`ExpectKind::Token`]
     #[inline]
     pub fn map_token<F, U>(self, f: F) -> Expect<U>
     where
@@ -83,7 +83,7 @@ impl<T: fmt::Display> fmt::Display for ExpectKind<T> {
 }
 
 impl<T> ExpectKind<T> {
-    /// Converting the value of variant [`Token`]
+    /// Converts the value of variant [`Token`]
     ///
     /// [`Token`]: Self::Token
     pub fn map_token<F, U>(self, f: F) -> ExpectKind<U>

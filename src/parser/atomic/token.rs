@@ -17,7 +17,7 @@ pub struct Token<I: ?Sized, T> {
 }
 
 impl<I: ?Sized, T> Token<I, T> {
-    /// Creating a new instance.
+    /// Creates a new instance.
     #[inline]
     pub fn new(token: T) -> Self {
         Self {
@@ -65,7 +65,7 @@ pub struct Not<I: ?Sized, T> {
 }
 
 impl<I: ?Sized, T> Not<I, T> {
-    /// Creating a new instance.
+    /// Creates a new instance.
     #[inline]
     pub fn new(token: T) -> Self {
         Self {

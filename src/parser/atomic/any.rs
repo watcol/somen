@@ -21,7 +21,7 @@ impl<I: ?Sized> Default for Any<I> {
 }
 
 impl<I: ?Sized> Any<I> {
-    /// Creating a new instance.
+    /// Creates a new instance.
     #[inline]
     pub fn new() -> Self {
         Self::default()

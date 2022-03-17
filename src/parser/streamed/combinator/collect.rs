@@ -19,7 +19,7 @@ pub struct Collect<P, E> {
 }
 
 impl<P, E> Collect<P, E> {
-    /// Creating a new instance.
+    /// Creates a new instance.
     #[inline]
     pub fn new(inner: P) -> Self {
         Self {
@@ -28,7 +28,7 @@ impl<P, E> Collect<P, E> {
         }
     }
 
-    /// Extracting the inner parser.
+    /// Extracts the inner parser.
     #[inline]
     pub fn into_inner(self) -> P {
         self.inner

@@ -18,13 +18,13 @@ pub struct Skip<P, Q> {
 }
 
 impl<P, Q> Skip<P, Q> {
-    /// Creating a new instance.
+    /// Creates a new instance.
     #[inline]
     pub fn new(inner: P, skipped: Q) -> Self {
         Self { inner, skipped }
     }
 
-    /// Extracting the inner parser.
+    /// Extracts the inner parser.
     #[inline]
     pub fn into_inner(self) -> (P, Q) {
         (self.inner, self.skipped)

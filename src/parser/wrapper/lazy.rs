@@ -15,7 +15,7 @@ pub struct Lazy<F> {
 }
 
 impl<F> Lazy<F> {
-    /// Creating a new instance.
+    /// Creates a new instance.
     #[inline]
     pub fn new(f: F) -> Self {
         Self { f }

@@ -18,13 +18,13 @@ pub struct Prefix<P, Q> {
 }
 
 impl<P, Q> Prefix<P, Q> {
-    /// Creating a new instance.
+    /// Creates a new instance.
     #[inline]
     pub fn new(prefix: P, inner: Q) -> Self {
         Self { prefix, inner }
     }
 
-    /// Extracting the inner parser.
+    /// Extracts the inner parser.
     #[inline]
     pub fn into_inner(self) -> (P, Q) {
         (self.prefix, self.inner)

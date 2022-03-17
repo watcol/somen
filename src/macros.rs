@@ -1,4 +1,4 @@
-/// Call recursive parsers.
+/// Calls recursive parsers.
 #[macro_export]
 macro_rules! call {
     ($func:expr) => {{
@@ -8,7 +8,7 @@ macro_rules! call {
     }};
 }
 
-/// Automatically generate a [`Parser::State`] or [`StreamedParser::State`].
+/// Automatically generates a [`Parser::State`] or [`StreamedParser::State`].
 ///
 /// [`Parser::State`]: crate::parser::Parser::State
 /// [`StreamedParser::State`]: crate::parser::streamed::StreamedParser::State

@@ -25,25 +25,25 @@ impl<T> From<&'static str> for Expects<T> {
 }
 
 impl<T> Expects<T> {
-    /// Creating a new instance.
+    /// Creates a new instance.
     #[inline]
     pub fn new(first: ExpectKind<T>) -> Self {
         Self::from(first)
     }
 
-    /// Creating a new instance with [`Expect::Negative`].
+    /// Creates a new instance with [`Expect::Negative`].
     #[inline]
     pub fn new_neg(first: ExpectKind<T>) -> Self {
         Self::from(Expect::Negative(first))
     }
 
-    /// Negate all elements.
+    /// Negates all elements.
     #[inline]
     pub fn negate(self) -> Self {
         self.map(Expect::negate)
     }
 
-    /// Converting variant [`ExpectKind::Token`] of each elements.
+    /// Converts variant [`ExpectKind::Token`] of each elements.
     #[inline]
     pub fn map_tokens<F: FnMut(T) -> U, U>(self, mut f: F) -> Expects<U> {
         self.map(|e| e.map_token(&mut f))

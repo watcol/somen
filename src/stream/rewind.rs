@@ -1,4 +1,4 @@
-//! Rewinding streams.
+//! Rewinds streams.
 
 #[cfg(feature = "alloc")]
 mod buffered;
@@ -15,15 +15,15 @@ pub trait Rewind: TryStream {
     /// The type of markers.
     type Marker;
 
-    /// Marking current position, and return a marker.
+    /// Marks current position, and return a marker.
     fn mark(self: Pin<&mut Self>) -> Result<Self::Marker, Self::Error>;
 
-    /// Rewinding the postion to the marker.
+    /// Rewinds the postion to the marker.
     ///
     /// Note that some types implement this require using from most recent generated marker.
     fn rewind(self: Pin<&mut Self>, marker: Self::Marker) -> Result<(), Self::Error>;
 
-    /// Dropping unused markers.
+    /// Drops unused markers.
     ///
     /// Users can use it for explicitly declare as the marker will no longer be used.
     #[allow(unused_variables)]
@@ -32,7 +32,7 @@ pub trait Rewind: TryStream {
         Ok(())
     }
 
-    /// Perform [`mark`] for unpinned stream.
+    /// Performs [`mark`] for unpinned stream.
     ///
     /// [`mark`]: Self::mark
     #[inline]
@@ -43,7 +43,7 @@ pub trait Rewind: TryStream {
         Pin::new(&mut *self).mark()
     }
 
-    /// Perform [`rewind`] for unpinned stream.
+    /// Performs [`rewind`] for unpinned stream.
     ///
     /// [`rewind`]: Self::rewind
     #[inline]
@@ -54,7 +54,7 @@ pub trait Rewind: TryStream {
         Pin::new(&mut *self).rewind(marker)
     }
 
-    /// Perform [`drop_marker`] for unpinned stream.
+    /// Performs [`drop_marker`] for unpinned stream.
     ///
     /// [`drop_marker`]: Self::drop_marker
     #[inline]

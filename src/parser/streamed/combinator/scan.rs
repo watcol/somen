@@ -19,13 +19,13 @@ pub struct Scan<P, Q, F> {
 }
 
 impl<P, Q, F> Scan<P, Q, F> {
-    /// Creating a new instance.
+    /// Creates a new instance.
     #[inline]
     pub fn new(inner: P, init: Q, f: F) -> Self {
         Self { inner, init, f }
     }
 
-    /// Extracting the inner parser.
+    /// Extracts the inner parser.
     #[inline]
     pub fn into_inner(self) -> (P, Q) {
         (self.inner, self.init)
@@ -109,13 +109,13 @@ pub struct TryScan<P, Q, F> {
 }
 
 impl<P, Q, F> TryScan<P, Q, F> {
-    /// Creating a new instance.
+    /// Creates a new instance.
     #[inline]
     pub fn new(inner: P, init: Q, f: F) -> Self {
         Self { inner, init, f }
     }
 
-    /// Extracting the inner parser.
+    /// Extracts the inner parser.
     #[inline]
     pub fn into_inner(self) -> (P, Q) {
         (self.inner, self.init)

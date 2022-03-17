@@ -20,13 +20,13 @@ pub struct FlatSepBy<P, Q, R> {
 }
 
 impl<P, Q, R> FlatSepBy<P, Q, R> {
-    /// Creating a new instance.
+    /// Creates a new instance.
     #[inline]
     pub fn new(inner: P, sep: Q, range: R) -> Self {
         Self { inner, sep, range }
     }
 
-    /// Extracting the inner parser.
+    /// Extracts the inner parser.
     #[inline]
     pub fn into_inner(self) -> P {
         self.inner

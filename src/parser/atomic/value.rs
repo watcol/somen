@@ -16,7 +16,7 @@ pub struct Value<I: ?Sized, T> {
 }
 
 impl<I: ?Sized, T> Value<I, T> {
-    /// Creating a new instance.
+    /// Creates a new instance.
     #[inline]
     pub fn new(value: T) -> Self {
         Self {
@@ -51,7 +51,7 @@ pub struct ValueFn<I: ?Sized, F> {
 }
 
 impl<I: ?Sized, F> ValueFn<I, F> {
-    /// Creating a new instance.
+    /// Creates a new instance.
     #[inline]
     pub fn new(f: F) -> Self {
         Self {

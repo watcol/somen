@@ -16,7 +16,7 @@ pub struct NoState<P, C> {
 }
 
 impl<P, C> NoState<P, C> {
-    /// Creating a new instance.
+    /// Creates a new instance.
     #[inline]
     pub fn new(inner: P) -> Self
     where
@@ -28,7 +28,7 @@ impl<P, C> NoState<P, C> {
         }
     }
 
-    /// Extracting the inner parser.
+    /// Extracts the inner parser.
     #[inline]
     pub fn into_inner(self) -> P {
         self.inner

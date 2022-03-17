@@ -58,18 +58,18 @@ impl<T> IntoIterator for Expects<T> {
 }
 
 impl<T> Expects<T> {
-    /// Merge two sets.
+    /// Merges two sets.
     pub fn merge(mut self, mut other: Expects<T>) -> Self {
         self.0.append(&mut other.0);
         self
     }
 
-    /// Converting each elements.
+    /// Converts each elements.
     pub fn map<F: FnMut(Expect<T>) -> Expect<U>, U>(self, mut f: F) -> Expects<U> {
         Expects(self.into_iter().map(&mut f).collect())
     }
 
-    /// Sort and remove duplicates.
+    /// Sorts and removes duplicates.
     pub fn sort(&mut self)
     where
         T: Ord,

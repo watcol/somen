@@ -19,13 +19,13 @@ pub struct Indexes<P, const N: usize> {
 }
 
 impl<P, const N: usize> Indexes<P, N> {
-    /// Creating a new instance.
+    /// Creates a new instance.
     #[inline]
     pub fn new(inner: P, ns: [usize; N]) -> Self {
         Self { inner, ns }
     }
 
-    /// Creating a new instance for method [`fill`].
+    /// Creates a new instance for method [`fill`].
     ///
     /// [`fill`]: crate::parser::streamed::StreamedParserExt::fill
     pub fn new_fill(inner: P, start: usize) -> Self {
@@ -41,7 +41,7 @@ impl<P, const N: usize> Indexes<P, N> {
         }
     }
 
-    /// Extracting the inner parser.
+    /// Extracts the inner parser.
     #[inline]
     pub fn into_inner(self) -> P {
         self.inner
