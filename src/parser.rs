@@ -528,13 +528,7 @@ pub trait ParserExt<I: Positioned + ?Sized>: Parser<I> {
         assert_parser(Satisfy::new(self, f))
     }
 
-    /// Modifying values expected by the parser.
-    ///
-    /// ## Note
-    /// This function only modifies expected values, so error positions are not modified. You can
-    /// use method [`expect`] to override parsing errors completely with new expected values.
-    ///
-    /// [`expect`]: Self::expect
+    /// Modifying expected values.
     #[inline]
     fn map_err<F, E>(self, f: F) -> MapErr<Self, F>
     where
@@ -545,7 +539,7 @@ pub trait ParserExt<I: Positioned + ?Sized>: Parser<I> {
         assert_parser(MapErr::new(self, f))
     }
 
-    /// Overriding parsing errors.
+    /// Overriding expected values.
     #[inline]
     fn expect<E: Into<Expects<I::Ok>>>(self, expected: E) -> Expect<Self, Expects<I::Ok>>
     where
@@ -565,7 +559,7 @@ pub trait ParserExt<I: Positioned + ?Sized>: Parser<I> {
         assert_parser(Exclusive::new(self, expected.into()))
     }
 
-    /// Modifies "exclusive" errors as rewindable.
+    /// Modifing "exclusive" errors as rewindable.
     #[inline]
     fn rewindable(self) -> Rewindable<Self>
     where

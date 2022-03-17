@@ -31,7 +31,7 @@ impl<P, E> Expect<P, E> {
 crate::parser_state! {
     pub struct ExpectState<I, P: Parser> {
         inner: P::State,
-        #[opt(set = set_start, get = get_start)]
+        #[opt(set = set_start)]
         start: I::Locator,
     }
 }
@@ -55,15 +55,13 @@ where
         self.inner
             .poll_parse(input.as_mut(), cx, &mut state.inner)
             .map_ok(|status| match status {
-                Status::Failure(err, false) if err.rewindable(state.get_start()) => {
-                    Status::Failure(
-                        Error {
-                            expects: self.expects.clone(),
-                            position: state.start()..input.position(),
-                        },
-                        false,
-                    )
-                }
+                Status::Failure(err, false) if err.rewindable(&state.start()) => Status::Failure(
+                    Error {
+                        expects: self.expects.clone(),
+                        position: err.position,
+                    },
+                    false,
+                ),
                 res => res,
             })
     }
