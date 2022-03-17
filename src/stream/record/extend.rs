@@ -12,7 +12,6 @@ pin_project! {
         #[pin]
         inner: S,
         output: &'a mut E,
-        recording_pos: Option<usize>,
     }
 }
 
@@ -23,7 +22,6 @@ impl<'a, S: TryStream, E: ?Sized> ExtendRecorder<'a, S, E> {
         Self {
             inner,
             output,
-            recording_pos: None,
         }
     }
 

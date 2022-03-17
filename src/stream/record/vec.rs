@@ -14,7 +14,6 @@ pin_project! {
         #[pin]
         inner: S,
         position: usize,
-        recording_pos: Option<usize>,
         record: Vec<S::Ok>,
     }
 }
@@ -25,7 +24,6 @@ impl<S: TryStream> From<S> for VecRecorder<S> {
         Self {
             inner,
             position: 0,
-            recording_pos: None,
             record: Vec::new(),
         }
     }

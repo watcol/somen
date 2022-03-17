@@ -14,18 +14,13 @@ pin_project! {
     pub struct SliceStream<'a, T> {
         slice: &'a [T],
         position: usize,
-        records_pos: Option<usize>,
     }
 }
 
 impl<'a, T: Clone> From<&'a [T]> for SliceStream<'a, T> {
     #[inline]
     fn from(slice: &'a [T]) -> Self {
-        Self {
-            slice,
-            position: 0,
-            records_pos: None,
-        }
+        Self { slice, position: 0 }
     }
 }
 impl<'a, T: Clone> SliceStream<'a, T> {

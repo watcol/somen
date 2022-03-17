@@ -26,7 +26,6 @@ pin_project! {
         buffer: VecDeque<S::Ok>,
         buffer_offset: usize,
         markers: Vec<usize>,
-        recording_pos: Option<usize>,
     }
 }
 
@@ -39,7 +38,6 @@ impl<S: TryStream> From<S> for BufferedRewinder<S> {
             buffer: VecDeque::new(),
             buffer_offset: 0,
             markers: Vec::new(),
-            recording_pos: None,
         }
     }
 }
@@ -81,17 +79,14 @@ where
                 ready!(this.inner.try_poll_next(cx)).map(|r| r.map_err(BufferedError::Stream));
             if let Some(Ok(ref i)) = res {
                 *this.position += 1;
-                if !this.markers.is_empty() || this.recording_pos.is_some() {
+                if !this.markers.is_empty() {
                     this.buffer.push_back(i.clone());
                 } else {
                     *this.buffer_offset += 1;
                 }
             }
             Poll::Ready(res)
-        } else if *this.position == *this.buffer_offset
-            && this.markers.is_empty()
-            && this.recording_pos.is_none()
-        {
+        } else if *this.position == *this.buffer_offset && this.markers.is_empty() {
             let res = this.buffer.pop_front();
             *this.position += 1;
             *this.buffer_offset += 1;
