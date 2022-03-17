@@ -65,7 +65,7 @@ impl<S: TryStream, L: Locator<S::Ok>> Stream for PositionedStream<S, L> {
     }
 }
 
-impl<S: TryStream, L: Locator<S::Ok> + Clone> Positioned for PositionedStream<S, L> {
+impl<S: TryStream, L: Locator<S::Ok> + PartialEq + Clone> Positioned for PositionedStream<S, L> {
     type Locator = L;
 
     #[inline]

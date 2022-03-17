@@ -14,7 +14,7 @@ use futures_core::TryStream;
 /// where errors have occured), so all streams should implement this.
 pub trait Positioned: TryStream {
     /// The type of the position.
-    type Locator: Locator<Self::Ok>;
+    type Locator: PartialEq;
 
     /// Returns the current position.
     fn position(&self) -> Self::Locator;

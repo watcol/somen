@@ -4,7 +4,7 @@ use futures_core::{ready, Stream};
 
 use super::StreamedParser;
 use crate::error::{ParseError, ParseResult, Status};
-use crate::stream::Positioned;
+use crate::stream::{Input, Positioned, Rewind};
 
 #[derive(Debug)]
 pub struct ParserStream<'a, 'b, P: ?Sized, I: ?Sized, C> {
@@ -51,5 +51,35 @@ impl<P: StreamedParser<I> + ?Sized, I: Positioned + Unpin + ?Sized> Stream
     #[inline]
     fn size_hint(&self) -> (usize, Option<usize>) {
         self.parser.size_hint()
+    }
+}
+
+impl<P: StreamedParser<I> + ?Sized, I: Positioned + Unpin + ?Sized> Positioned
+    for ParserStream<'_, '_, P, I, P::State>
+{
+    type Locator = I::Locator;
+
+    #[inline]
+    fn position(&self) -> Self::Locator {
+        self.input.position()
+    }
+}
+
+impl<P: StreamedParser<I> + ?Sized, I: Input + Unpin + ?Sized> Rewind
+    for ParserStream<'_, '_, P, I, P::State>
+{
+    type Marker = I::Marker;
+
+    #[inline]
+    fn mark(mut self: Pin<&mut Self>) -> Result<Self::Marker, Self::Error> {
+        Pin::new(&mut *self.input)
+            .mark()
+            .map_err(ParseError::Stream)
+    }
+
+    fn rewind(mut self: Pin<&mut Self>, marker: Self::Marker) -> Result<(), Self::Error> {
+        Pin::new(&mut *self.input)
+            .rewind(marker)
+            .map_err(ParseError::Stream)
     }
 }
