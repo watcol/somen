@@ -66,18 +66,14 @@ where
                 Bound::Excluded(i) => state.count + 1 >= *i,
                 Bound::Unbounded => false,
             } {
-                break (
-                    Status::Success(None, state.error()),
-                    state.start()..input.position(),
-                );
+                break Status::Success(None, state.error());
             } else if state.streaming {
                 match ready!(self
                     .inner
                     .poll_parse_next(input.as_mut(), cx, &mut state.inner)?)
                 {
-                    (Status::Success(None, err), pos) => {
+                    Status::Success(None, err) => {
                         state.error = err;
-                        state.start = Some(pos.start);
                         state.streaming = false;
                         state.inner = Default::default();
                         state.count += 1;
@@ -88,53 +84,42 @@ where
 
             // Reserve the marker.
             state.set_marker(|| input.as_mut().mark())?;
+            state.set_start(|| input.position());
 
             match ready!(self
                 .inner
                 .poll_parse_next(input.as_mut(), cx, &mut state.inner)?)
             {
-                (Status::Success(Some(val), err), pos) => {
+                Status::Success(Some(val), err) => {
                     input.drop_marker(state.marker())?;
+                    state.start = None;
                     merge_errors(&mut state.error, err);
-                    state.set_start(|| pos.start);
                     state.streaming = true;
-                    break (
-                        Status::Success(Some(val), state.error()),
-                        state.start()..pos.end,
-                    );
+                    break Status::Success(Some(val), state.error());
                 }
-                (Status::Success(None, err), pos) => {
+                Status::Success(None, err) => {
                     input.as_mut().drop_marker(state.marker())?;
+                    state.start = None;
                     merge_errors(&mut state.error, err);
-                    state.set_start(|| pos.start);
                     state.inner = Default::default();
                     state.count += 1;
                 }
                 // Return `None` if `count` already satisfies the minimal bound.
-                (Status::Failure(err, false), pos)
-                    if err.rewindable(&pos.start) && self.range.contains(&state.count) =>
+                Status::Failure(err, false)
+                    if err.rewindable(&state.start()) && self.range.contains(&state.count) =>
                 {
                     input.rewind(state.marker())?;
                     merge_errors(&mut state.error, Some(err));
-                    state.set_start(|| pos.start.clone());
-                    break (
-                        Status::Success(None, state.error()),
-                        state.start()..pos.start,
-                    );
+                    break Status::Success(None, state.error());
                 }
-                (Status::Failure(err, false), pos) => {
+                Status::Failure(err, false) => {
                     input.drop_marker(state.marker())?;
                     merge_errors(&mut state.error, Some(err));
-                    state.set_start(|| pos.start);
-                    break (
-                        Status::Failure(state.error().unwrap(), false),
-                        state.start()..pos.end,
-                    );
+                    break Status::Failure(state.error().unwrap(), false);
                 }
-                (Status::Failure(err, true), pos) => {
+                Status::Failure(err, true) => {
                     input.drop_marker(state.marker())?;
-                    state.set_start(|| pos.start);
-                    break (Status::Failure(err, true), state.start()..pos.end);
+                    break Status::Failure(err, true);
                 }
             }
         }))

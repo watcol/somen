@@ -15,13 +15,7 @@ use crate::stream::Positioned;
 ///
 /// [`poll_parse`]: crate::parser::Parser::poll_parse
 pub type PolledResult<O, I> = Poll<
-    Result<
-        (
-            Status<O, <I as TryStream>::Ok, <I as Positioned>::Locator>,
-            Range<<I as Positioned>::Locator>,
-        ),
-        <I as TryStream>::Error,
-    >,
+    Result<Status<O, <I as TryStream>::Ok, <I as Positioned>::Locator>, <I as TryStream>::Error>,
 >;
 
 /// The Result type for [`parse`].

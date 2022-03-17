@@ -50,19 +50,14 @@ where
     ) -> PolledResult<Option<Self::Item>, I> {
         self.inner
             .poll_parse_next(input.as_mut(), cx, &mut state.inner)
-            .map_ok(|(status, pos)| {
-                (
-                    match status {
-                        Status::Success(Some(val), err) => {
-                            let i = state.count;
-                            state.count += 1;
-                            Status::Success(Some((i, val)), err)
-                        }
-                        Status::Success(None, err) => Status::Success(None, err),
-                        Status::Failure(err, exclusive) => Status::Failure(err, exclusive),
-                    },
-                    pos,
-                )
+            .map_ok(|status| match status {
+                Status::Success(Some(val), err) => {
+                    let i = state.count;
+                    state.count += 1;
+                    Status::Success(Some((i, val)), err)
+                }
+                Status::Success(None, err) => Status::Success(None, err),
+                Status::Failure(err, exclusive) => Status::Failure(err, exclusive),
             })
     }
 }

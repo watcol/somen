@@ -46,14 +46,9 @@ where
     ) -> PolledResult<Self::Output, I> {
         self.inner
             .poll_parse(input.as_mut(), cx, state)
-            .map_ok(|(status, pos)| {
-                (
-                    match status {
-                        Status::Success(val, err) => Status::Success((self.f)(val), err),
-                        Status::Failure(err, exclusive) => Status::Failure(err, exclusive),
-                    },
-                    pos,
-                )
+            .map_ok(|status| match status {
+                Status::Success(val, err) => Status::Success((self.f)(val), err),
+                Status::Failure(err, exclusive) => Status::Failure(err, exclusive),
             })
     }
 }
@@ -75,14 +70,9 @@ where
     ) -> PolledResult<Option<Self::Item>, I> {
         self.inner
             .poll_parse_next(input.as_mut(), cx, state)
-            .map_ok(|(status, pos)| {
-                (
-                    match status {
-                        Status::Success(val, err) => Status::Success(val.map(&mut self.f), err),
-                        Status::Failure(err, exclusive) => Status::Failure(err, exclusive),
-                    },
-                    pos,
-                )
+            .map_ok(|status| match status {
+                Status::Success(val, err) => Status::Success(val.map(&mut self.f), err),
+                Status::Failure(err, exclusive) => Status::Failure(err, exclusive),
             })
     }
 }
@@ -110,6 +100,14 @@ impl<P, F> TryMap<P, F> {
     }
 }
 
+crate::parser_state! {
+    pub struct TryMapState<I, P: Parser> {
+        inner: P::State,
+        #[opt(set = set_start)]
+        start: I::Locator,
+    }
+}
+
 impl<P, F, O, E, I> Parser<I> for TryMap<P, F>
 where
     P: Parser<I>,
@@ -118,7 +116,7 @@ where
     I: Positioned + ?Sized,
 {
     type Output = O;
-    type State = P::State;
+    type State = TryMapState<I, P>;
 
     fn poll_parse(
         &mut self,
@@ -126,26 +124,30 @@ where
         cx: &mut Context<'_>,
         state: &mut Self::State,
     ) -> PolledResult<Self::Output, I> {
+        state.set_start(|| input.position());
         self.inner
-            .poll_parse(input.as_mut(), cx, state)
-            .map_ok(|(status, pos)| {
-                (
-                    match status {
-                        Status::Success(val, err) => match (self.f)(val) {
-                            Ok(res) => Status::Success(res, err),
-                            Err(exp) => Status::Failure(
-                                Error {
-                                    expects: exp.into(),
-                                    position: pos.clone(),
-                                },
-                                true,
-                            ),
+            .poll_parse(input.as_mut(), cx, &mut state.inner)
+            .map_ok(|status| match status {
+                Status::Success(val, err) => match (self.f)(val) {
+                    Ok(res) => Status::Success(res, err),
+                    Err(exp) => Status::Failure(
+                        Error {
+                            expects: exp.into(),
+                            position: state.start()..input.position(),
                         },
-                        Status::Failure(err, exclusive) => Status::Failure(err, exclusive),
-                    },
-                    pos,
-                )
+                        true,
+                    ),
+                },
+                Status::Failure(err, exclusive) => Status::Failure(err, exclusive),
             })
+    }
+}
+
+crate::parser_state! {
+    pub struct TryMapStreamedState<I, P: StreamedParser> {
+        inner: P::State,
+        #[opt(set = set_start)]
+        start: I::Locator,
     }
 }
 
@@ -157,7 +159,7 @@ where
     I: Positioned + ?Sized,
 {
     type Item = T;
-    type State = P::State;
+    type State = TryMapStreamedState<I, P>;
 
     fn poll_parse_next(
         &mut self,
@@ -165,26 +167,22 @@ where
         cx: &mut Context<'_>,
         state: &mut Self::State,
     ) -> PolledResult<Option<Self::Item>, I> {
+        state.set_start(|| input.position());
         self.inner
-            .poll_parse_next(input.as_mut(), cx, state)
-            .map_ok(|(status, pos)| {
-                (
-                    match status {
-                        Status::Success(Some(val), err) => match (self.f)(val) {
-                            Ok(res) => Status::Success(Some(res), err),
-                            Err(exp) => Status::Failure(
-                                Error {
-                                    expects: exp.into(),
-                                    position: pos.clone(),
-                                },
-                                true,
-                            ),
+            .poll_parse_next(input.as_mut(), cx, &mut state.inner)
+            .map_ok(|status| match status {
+                Status::Success(Some(val), err) => match (self.f)(val) {
+                    Ok(res) => Status::Success(Some(res), err),
+                    Err(exp) => Status::Failure(
+                        Error {
+                            expects: exp.into(),
+                            position: state.start()..input.position(),
                         },
-                        Status::Success(None, err) => Status::Success(None, err),
-                        Status::Failure(err, exclusive) => Status::Failure(err, exclusive),
-                    },
-                    pos,
-                )
+                        true,
+                    ),
+                },
+                Status::Success(None, err) => Status::Success(None, err),
+                Status::Failure(err, exclusive) => Status::Failure(err, exclusive),
             })
     }
 }

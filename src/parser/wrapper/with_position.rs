@@ -28,13 +28,21 @@ impl<P> WithPosition<P> {
     }
 }
 
+crate::parser_state! {
+    pub struct WithPositionState<I, P: Parser> {
+        inner: P::State,
+        #[opt(set = set_start)]
+        start: I::Locator,
+    }
+}
+
 impl<P, I> Parser<I> for WithPosition<P>
 where
     P: Parser<I>,
     I: Positioned + ?Sized,
 {
     type Output = (P::Output, Range<I::Locator>);
-    type State = P::State;
+    type State = WithPositionState<I, P>;
 
     fn poll_parse(
         &mut self,
@@ -42,16 +50,14 @@ where
         cx: &mut Context<'_>,
         state: &mut Self::State,
     ) -> PolledResult<Self::Output, I> {
+        state.set_start(|| input.position());
         self.inner
-            .poll_parse(input.as_mut(), cx, state)
-            .map_ok(|(status, pos)| {
-                (
-                    match status {
-                        Status::Success(val, err) => Status::Success((val, pos.clone()), err),
-                        Status::Failure(err, exclusive) => Status::Failure(err, exclusive),
-                    },
-                    pos,
-                )
+            .poll_parse(input.as_mut(), cx, &mut state.inner)
+            .map_ok(|status| match status {
+                Status::Success(val, err) => {
+                    Status::Success((val, state.start()..input.position()), err)
+                }
+                Status::Failure(err, exclusive) => Status::Failure(err, exclusive),
             })
     }
 }

@@ -42,21 +42,16 @@ where
         _state: &mut Self::State,
     ) -> PolledResult<Self::Output, I> {
         let start = input.position();
-        let res = ready!(input.as_mut().try_poll_next(cx)?);
-        let end = input.position();
-        Poll::Ready(Ok((
-            match res {
-                Some(val) if (self.cond)(&val) => Status::Success(val, None),
-                _ => Status::Failure(
-                    Error {
-                        expects: Expects::from("<cond>"),
-                        position: start.clone()..end.clone(),
-                    },
-                    false,
-                ),
-            },
-            start..end,
-        )))
+        Poll::Ready(Ok(match ready!(input.as_mut().try_poll_next(cx)?) {
+            Some(val) if (self.cond)(&val) => Status::Success(val, None),
+            _ => Status::Failure(
+                Error {
+                    expects: Expects::from("<cond>"),
+                    position: start..input.position(),
+                },
+                false,
+            ),
+        }))
     }
 }
 
@@ -95,21 +90,16 @@ where
         _state: &mut Self::State,
     ) -> PolledResult<Self::Output, I> {
         let start = input.position();
-        let res = ready!(input.as_mut().try_poll_next(cx)?);
-        let end = input.position();
-        Poll::Ready(Ok((
-            match res {
-                Some(val) if !(self.cond)(&val) => Status::Success(val, None),
-                _ => Status::Failure(
-                    Error {
-                        expects: Expects::from("<cond>").negate(),
-                        position: start.clone()..end.clone(),
-                    },
-                    false,
-                ),
-            },
-            start..end,
-        )))
+        Poll::Ready(Ok(match ready!(input.as_mut().try_poll_next(cx)?) {
+            Some(val) if !(self.cond)(&val) => Status::Success(val, None),
+            _ => Status::Failure(
+                Error {
+                    expects: Expects::from("<cond>").negate(),
+                    position: start..input.position(),
+                },
+                false,
+            ),
+        }))
     }
 }
 
@@ -148,30 +138,25 @@ where
         _state: &mut Self::State,
     ) -> PolledResult<Self::Output, I> {
         let start = input.position();
-        let res = ready!(input.as_mut().try_poll_next(cx)?);
-        let end = input.position();
-        Poll::Ready(Ok((
-            match res {
-                // TODO: fix it on "if_let_guard" are stabilized.
-                Some(i) => match (self.cond)(&i) {
-                    Some(val) => Status::Success(val, None),
-                    None => Status::Failure(
-                        Error {
-                            expects: Expects::from("<some>"),
-                            position: start.clone()..end.clone(),
-                        },
-                        false,
-                    ),
-                },
-                _ => Status::Failure(
+        Poll::Ready(Ok(match ready!(input.as_mut().try_poll_next(cx)?) {
+            // TODO: fix it on "if_let_guard" are stabilized.
+            Some(i) => match (self.cond)(&i) {
+                Some(val) => Status::Success(val, None),
+                None => Status::Failure(
                     Error {
                         expects: Expects::from("<some>"),
-                        position: start.clone()..end.clone(),
+                        position: start..input.position(),
                     },
                     false,
                 ),
             },
-            start..end,
-        )))
+            _ => Status::Failure(
+                Error {
+                    expects: Expects::from("<some>"),
+                    position: start..input.position(),
+                },
+                false,
+            ),
+        }))
     }
 }

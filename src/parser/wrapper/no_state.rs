@@ -1,6 +1,5 @@
 use core::pin::Pin;
 use core::task::{Context, Poll};
-use futures_core::ready;
 
 use crate::error::{PolledResult, Status};
 use crate::parser::streamed::StreamedParser;
@@ -74,15 +73,14 @@ where
         cx: &mut Context<'_>,
         _state: &mut Self::State,
     ) -> PolledResult<Option<Self::Item>, I> {
-        Poll::Ready(Ok(
-            match ready!(self.inner.poll_parse_next(input, cx, &mut self.state)?) {
-                res @ (Status::Success(Some(_), _), _) => res,
-                res => {
+        self.inner
+            .poll_parse_next(input, cx, &mut self.state)
+            .map_ok(|status| {
+                if !matches!(status, Status::Success(Some(_), _)) {
                     self.state = Default::default();
-                    res
                 }
-            },
-        ))
+                status
+            })
     }
 
     #[inline]

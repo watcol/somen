@@ -36,6 +36,8 @@ crate::parser_state! {
         inner: EitherState<P::State, Q::State>,
         #[opt]
         marker: I::Marker,
+        #[opt]
+        start: I::Locator,
         error: Option<Error<I::Ok, I::Locator>>,
     }
 }
@@ -60,19 +62,23 @@ where
                 state.marker = Some(input.as_mut().mark()?);
             }
 
+            if state.start.is_none() {
+                state.start = Some(input.position());
+            }
+
             match ready!(self.left.poll_parse(input.as_mut(), cx, inner)?) {
-                (Status::Success(val, err), pos) => {
+                Status::Success(val, err) => {
                     input.drop_marker(state.marker())?;
-                    return Poll::Ready(Ok((Status::Success(val, err), pos)));
+                    return Poll::Ready(Ok(Status::Success(val, err)));
                 }
-                (Status::Failure(err, false), pos) if err.rewindable(&pos.start) => {
+                Status::Failure(err, false) if err.rewindable(&state.start()) => {
                     input.as_mut().rewind(state.marker())?;
                     state.error = Some(err);
                     state.inner = EitherState::new_right();
                 }
-                (Status::Failure(err, exclusive), pos) => {
+                Status::Failure(err, exclusive) => {
                     input.drop_marker(state.marker())?;
-                    return Poll::Ready(Ok((Status::Failure(err, exclusive), pos)));
+                    return Poll::Ready(Ok(Status::Failure(err, exclusive)));
                 }
             }
         }
@@ -80,15 +86,15 @@ where
         self.right
             .poll_parse(input, cx, state.inner.right())
             .map_ok(|status| match status {
-                (Status::Success(val, err), pos) => {
+                Status::Success(val, err) => {
                     merge_errors(&mut state.error, err);
-                    (Status::Success(val, state.error()), pos)
+                    Status::Success(val, state.error())
                 }
-                (Status::Failure(err, false), pos) => {
+                Status::Failure(err, false) => {
                     merge_errors(&mut state.error, Some(err));
-                    (Status::Failure(state.error().unwrap(), false), pos)
+                    Status::Failure(state.error().unwrap(), false)
                 }
-                res @ (Status::Failure(_, true), _) => res,
+                res => res,
             })
     }
 }
@@ -99,6 +105,8 @@ crate::parser_state! {
         succeeded: bool,
         #[opt]
         marker: I::Marker,
+        #[opt]
+        start: I::Locator,
         error: Option<Error<I::Ok, I::Locator>>,
     }
 }
@@ -127,20 +135,24 @@ where
                 state.marker = Some(input.as_mut().mark()?);
             }
 
+            if state.start.is_none() {
+                state.start = Some(input.position());
+            }
+
             match ready!(self.left.poll_parse_next(input.as_mut(), cx, inner)?) {
-                (Status::Success(val, err), pos) => {
+                Status::Success(val, err) => {
                     input.drop_marker(state.marker())?;
                     state.succeeded = true;
-                    return Poll::Ready(Ok((Status::Success(val, err), pos)));
+                    return Poll::Ready(Ok(Status::Success(val, err)));
                 }
-                (Status::Failure(err, false), pos) if err.rewindable(&pos.start) => {
+                Status::Failure(err, false) if err.rewindable(&state.start()) => {
                     input.as_mut().rewind(state.marker())?;
                     state.error = Some(err);
                     state.inner = EitherState::new_right();
                 }
-                (Status::Failure(err, exclusive), pos) => {
+                Status::Failure(err, exclusive) => {
                     input.drop_marker(state.marker())?;
-                    return Poll::Ready(Ok((Status::Failure(err, exclusive), pos)));
+                    return Poll::Ready(Ok(Status::Failure(err, exclusive)));
                 }
             }
         }
@@ -152,16 +164,16 @@ where
         self.right
             .poll_parse_next(input, cx, state.inner.right())
             .map_ok(|status| match status {
-                (Status::Success(val, err), pos) => {
+                Status::Success(val, err) => {
                     state.succeeded = true;
                     merge_errors(&mut state.error, err);
-                    (Status::Success(val, state.error()), pos)
+                    Status::Success(val, state.error())
                 }
-                (Status::Failure(err, false), pos) => {
+                Status::Failure(err, false) => {
                     merge_errors(&mut state.error, Some(err));
-                    (Status::Failure(state.error().unwrap(), false), pos)
+                    Status::Failure(state.error().unwrap(), false)
                 }
-                res @ (Status::Failure(_, true), _) => res,
+                res => res,
             })
     }
 

@@ -30,17 +30,14 @@ impl<I: Positioned + ?Sized, T: Clone> Parser<I> for Value<I, T> {
     type Output = T;
     type State = ();
 
+    #[inline]
     fn poll_parse(
         &mut self,
-        input: Pin<&mut I>,
+        _input: Pin<&mut I>,
         _cx: &mut Context<'_>,
         _state: &mut Self::State,
     ) -> PolledResult<Self::Output, I> {
-        let pos = input.position();
-        Poll::Ready(Ok((
-            Status::Success(self.value.clone(), None),
-            pos.clone()..pos,
-        )))
+        Poll::Ready(Ok(Status::Success(self.value.clone(), None)))
     }
 }
 
@@ -71,11 +68,10 @@ impl<I: Positioned + ?Sized, F: FnMut() -> T, T> Parser<I> for ValueFn<I, F> {
     #[inline]
     fn poll_parse(
         &mut self,
-        input: Pin<&mut I>,
+        _input: Pin<&mut I>,
         _cx: &mut Context<'_>,
         _state: &mut Self::State,
     ) -> PolledResult<Self::Output, I> {
-        let pos = input.position();
-        Poll::Ready(Ok((Status::Success((self.f)(), None), pos.clone()..pos)))
+        Poll::Ready(Ok(Status::Success((self.f)(), None)))
     }
 }

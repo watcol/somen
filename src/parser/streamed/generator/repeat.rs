@@ -36,6 +36,8 @@ crate::parser_state! {
         inner: P::State,
         #[opt(try_set = set_marker)]
         marker: I::Marker,
+        #[opt(set = set_start)]
+        start: I::Locator,
         count: usize,
     }
 }
@@ -61,37 +63,35 @@ where
             Bound::Excluded(i) => state.count + 1 >= *i,
             Bound::Unbounded => false,
         } {
-            let pos = input.position();
-            return Poll::Ready(Ok((Status::Success(None, None), pos.clone()..pos)));
+            return Poll::Ready(Ok(Status::Success(None, None)));
         }
 
         // Reserve the marker.
         state.set_marker(|| input.as_mut().mark())?;
+        state.set_start(|| input.position());
 
         Poll::Ready(Ok(
             match ready!(self
                 .inner
                 .poll_parse(input.as_mut(), cx, &mut state.inner)?)
             {
-                (Status::Success(val, err), pos) => {
+                Status::Success(val, err) => {
                     input.drop_marker(state.marker())?;
+                    state.start = None;
                     state.inner = Default::default();
                     state.count += 1;
-                    (Status::Success(Some(val), err), pos)
+                    Status::Success(Some(val), err)
                 }
                 // Return `None` if `count` already satisfies the minimal bound.
-                (Status::Failure(err, false), pos)
-                    if err.rewindable(&pos.start) && self.range.contains(&state.count) =>
+                Status::Failure(err, false)
+                    if err.rewindable(&state.start()) && self.range.contains(&state.count) =>
                 {
                     input.rewind(state.marker())?;
-                    (
-                        Status::Success(None, Some(err)),
-                        pos.start.clone()..pos.start,
-                    )
+                    Status::Success(None, Some(err))
                 }
-                (Status::Failure(err, exclusive), pos) => {
+                Status::Failure(err, exclusive) => {
                     input.drop_marker(state.marker())?;
-                    (Status::Failure(err, exclusive), pos)
+                    Status::Failure(err, exclusive)
                 }
             },
         ))

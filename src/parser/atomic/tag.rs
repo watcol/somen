@@ -32,7 +32,7 @@ crate::parser_state! {
     pub struct TagState<I> {
         #[opt]
         iter: Chars<'static>,
-        #[opt(set = set_start, get = get_start)]
+        #[opt(set = set_start)]
         start: I::Locator,
         #[opt]
         next: I::Locator,
@@ -54,30 +54,27 @@ where
     ) -> PolledResult<Self::Output, I> {
         state.set_start(|| input.position());
         let iter = state.iter.get_or_insert_with(|| self.tag.chars());
-        Poll::Ready(Ok((
-            loop {
-                let val = match iter.next() {
-                    Some(i) => i,
-                    None => break Status::Success(self.tag, None),
-                };
+        Poll::Ready(Ok(loop {
+            let val = match iter.next() {
+                Some(i) => i,
+                None => break Status::Success(self.tag, None),
+            };
 
-                let parsed = ready!(input.as_mut().try_poll_next(cx)?);
-                state.next.get_or_insert_with(|| input.position());
+            let parsed = ready!(input.as_mut().try_poll_next(cx)?);
+            state.next.get_or_insert_with(|| input.position());
 
-                match parsed {
-                    Some(i) if i == val => continue,
-                    _ => {
-                        break Status::Failure(
-                            Error {
-                                expects: Expects::new(ExpectKind::Static(self.tag)),
-                                position: state.get_start().clone()..state.next(),
-                            },
-                            false,
-                        )
-                    }
+            match parsed {
+                Some(i) if i == val => continue,
+                _ => {
+                    break Status::Failure(
+                        Error {
+                            expects: Expects::new(ExpectKind::Static(self.tag)),
+                            position: state.start()..state.next(),
+                        },
+                        false,
+                    )
                 }
-            },
-            state.start()..input.position(),
-        )))
+            }
+        }))
     }
 }

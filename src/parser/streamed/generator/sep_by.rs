@@ -67,29 +67,25 @@ where
             Bound::Excluded(i) => state.count + 1 >= *i,
             Bound::Unbounded => false,
         } {
-            let pos = input.position();
-            return Poll::Ready(Ok((Status::Success(None, None), pos.clone()..pos)));
+            return Poll::Ready(Ok(Status::Success(None, None)));
         }
 
         state.set_marker(|| input.as_mut().mark())?;
+        state.set_start(|| input.position());
 
         if let EitherState::Right(inner) = &mut state.inner {
             match ready!(self.sep.poll_parse(input.as_mut(), cx, inner)?) {
-                (Status::Success(_, err), pos) => {
+                Status::Success(_, err) => {
                     state.inner = EitherState::new_left();
                     state.error = err;
-                    state.start = Some(pos.start);
                 }
-                (Status::Failure(err, false), pos) if err.rewindable(&pos.start) => {
+                Status::Failure(err, false) if err.rewindable(&state.start()) => {
                     input.rewind(state.marker())?;
-                    return Poll::Ready(Ok((
-                        Status::Success(None, Some(err)),
-                        pos.start.clone()..pos.start,
-                    )));
+                    return Poll::Ready(Ok(Status::Success(None, Some(err))));
                 }
-                (Status::Failure(err, exclusive), pos) => {
+                Status::Failure(err, exclusive) => {
                     input.drop_marker(state.marker())?;
-                    return Poll::Ready(Ok((Status::Failure(err, exclusive), pos)));
+                    return Poll::Ready(Ok(Status::Failure(err, exclusive)));
                 }
             }
         }
@@ -99,41 +95,29 @@ where
                 .inner
                 .poll_parse(input.as_mut(), cx, state.inner.left())?)
             {
-                (Status::Success(val, err), pos) => {
+                Status::Success(val, err) => {
                     input.drop_marker(state.marker())?;
+                    state.start = None;
                     state.count += 1;
                     state.inner = EitherState::new_right();
                     merge_errors(&mut state.error, err);
-                    state.set_start(|| pos.start);
-                    (
-                        Status::Success(Some(val), state.error()),
-                        state.start()..pos.end,
-                    )
+                    Status::Success(Some(val), state.error())
                 }
-                (Status::Failure(err, false), pos)
-                    if err.rewindable(&pos.start) && self.range.contains(&state.count) =>
+                Status::Failure(err, false)
+                    if err.rewindable(&state.start()) && self.range.contains(&state.count) =>
                 {
                     input.rewind(state.marker())?;
                     merge_errors(&mut state.error, Some(err));
-                    state.set_start(|| pos.start.clone());
-                    (
-                        Status::Success(None, state.error()),
-                        state.start()..pos.start,
-                    )
+                    Status::Success(None, state.error())
                 }
-                (Status::Failure(err, false), pos) => {
+                Status::Failure(err, false) => {
                     input.drop_marker(state.marker())?;
                     merge_errors(&mut state.error, Some(err));
-                    state.set_start(|| pos.start);
-                    (
-                        Status::Failure(state.error().unwrap(), false),
-                        state.start()..pos.end,
-                    )
+                    Status::Failure(state.error().unwrap(), false)
                 }
-                (Status::Failure(err, true), pos) => {
+                Status::Failure(err, true) => {
                     input.drop_marker(state.marker())?;
-                    state.set_start(|| pos.start);
-                    (Status::Failure(err, true), state.start()..pos.end)
+                    Status::Failure(err, true)
                 }
             },
         ))

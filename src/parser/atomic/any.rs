@@ -39,20 +39,15 @@ impl<I: Positioned + ?Sized> Parser<I> for Any<I> {
         _state: &mut Self::State,
     ) -> PolledResult<Self::Output, I> {
         let start = input.position();
-        let res = ready!(input.as_mut().try_poll_next(cx)?);
-        let end = input.position();
-        Poll::Ready(Ok((
-            match res {
-                Some(i) => Status::Success(i, None),
-                None => Status::Failure(
-                    Error {
-                        expects: Expects::new(ExpectKind::Any),
-                        position: start.clone()..end.clone(),
-                    },
-                    false,
-                ),
-            },
-            start..end,
-        )))
+        Poll::Ready(Ok(match ready!(input.as_mut().try_poll_next(cx)?) {
+            Some(i) => Status::Success(i, None),
+            None => Status::Failure(
+                Error {
+                    expects: Expects::new(ExpectKind::Any),
+                    position: start..input.position(),
+                },
+                false,
+            ),
+        }))
     }
 }

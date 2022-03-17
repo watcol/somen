@@ -37,8 +37,6 @@ crate::parser_state! {
         inner: EitherState<Q::State, P::State>,
         #[opt(get_mut = get_acc)]
         acc: Q::Output,
-        #[opt(set = set_start)]
-        start: I::Locator,
         error: Option<Error<I::Ok, I::Locator>>,
     }
 }
@@ -61,14 +59,13 @@ where
     ) -> PolledResult<Option<Self::Item>, I> {
         if let EitherState::Left(inner) = &mut state.inner {
             match ready!(self.init.poll_parse(input.as_mut(), cx, inner)?) {
-                (Status::Success(acc, err), pos) => {
-                    state.start = Some(pos.start);
+                Status::Success(acc, err) => {
                     state.error = err;
                     state.inner = EitherState::new_right();
                     state.acc = Some(acc);
                 }
-                (Status::Failure(err, exclusive), pos) => {
-                    return Poll::Ready(Ok((Status::Failure(err, exclusive), pos)))
+                Status::Failure(err, exclusive) => {
+                    return Poll::Ready(Ok(Status::Failure(err, exclusive)))
                 }
             }
         }
@@ -78,37 +75,24 @@ where
                 .inner
                 .poll_parse_next(input.as_mut(), cx, state.inner.right())?)
             {
-                (Status::Success(Some(i), err), pos) => match (self.f)(state.get_acc(), i) {
+                Status::Success(Some(i), err) => match (self.f)(state.get_acc(), i) {
                     Some(val) => {
                         merge_errors(&mut state.error, err);
-                        state.set_start(|| pos.start);
-                        break (
-                            Status::Success(Some(val), state.error()),
-                            state.start()..pos.end,
-                        );
+                        break Status::Success(Some(val), state.error());
                     }
                     None => {
                         merge_errors(&mut state.error, err);
-                        state.set_start(|| pos.start);
                     }
                 },
-                (Status::Success(None, err), pos) => {
+                Status::Success(None, err) => {
                     merge_errors(&mut state.error, err);
-                    state.set_start(|| pos.start);
-                    break (Status::Success(None, state.error()), state.start()..pos.end);
+                    break Status::Success(None, state.error());
                 }
-                (Status::Failure(err, false), pos) => {
+                Status::Failure(err, false) => {
                     merge_errors(&mut state.error, Some(err));
-                    state.set_start(|| pos.start);
-                    break (
-                        Status::Failure(state.error().unwrap(), false),
-                        state.start()..pos.end,
-                    );
+                    break Status::Failure(state.error().unwrap(), false);
                 }
-                (Status::Failure(err, true), pos) => {
-                    state.set_start(|| pos.start);
-                    break (Status::Failure(err, true), state.start()..pos.end);
-                }
+                Status::Failure(err, true) => break Status::Failure(err, true),
             }
         }))
     }
@@ -138,6 +122,17 @@ impl<P, Q, F> TryScan<P, Q, F> {
     }
 }
 
+crate::parser_state! {
+    pub struct TryScanState<I, P: StreamedParser, Q: Parser> {
+        inner: EitherState<Q::State, P::State>,
+        #[opt(get_mut = get_acc)]
+        acc: Q::Output,
+        #[opt(set = set_start)]
+        start: I::Locator,
+        error: Option<Error<I::Ok, I::Locator>>,
+    }
+}
+
 impl<P, Q, F, T, E, I> StreamedParser<I> for TryScan<P, Q, F>
 where
     P: StreamedParser<I>,
@@ -147,7 +142,7 @@ where
     I: Positioned + ?Sized,
 {
     type Item = T;
-    type State = ScanState<I, P, Q>;
+    type State = TryScanState<I, P, Q>;
 
     fn poll_parse_next(
         &mut self,
@@ -157,66 +152,56 @@ where
     ) -> PolledResult<Option<Self::Item>, I> {
         if let EitherState::Left(inner) = &mut state.inner {
             match ready!(self.init.poll_parse(input.as_mut(), cx, inner)?) {
-                (Status::Success(acc, err), pos) => {
-                    state.start = Some(pos.start);
+                Status::Success(acc, err) => {
                     state.error = err;
                     state.inner = EitherState::new_right();
                     state.acc = Some(acc);
                 }
-                (Status::Failure(err, exclusive), pos) => {
-                    return Poll::Ready(Ok((Status::Failure(err, exclusive), pos)))
+                Status::Failure(err, exclusive) => {
+                    return Poll::Ready(Ok(Status::Failure(err, exclusive)))
                 }
             }
         }
 
         Poll::Ready(Ok(loop {
+            state.set_start(|| input.position());
             match ready!(self
                 .inner
                 .poll_parse_next(input.as_mut(), cx, state.inner.right())?)
             {
-                (Status::Success(Some(i), err), pos) => match (self.f)(state.get_acc(), i) {
+                Status::Success(Some(i), err) => match (self.f)(state.get_acc(), i) {
                     Ok(Some(val)) => {
                         merge_errors(&mut state.error, err);
-                        state.set_start(|| pos.start);
-                        break (
-                            Status::Success(Some(val), state.error()),
-                            state.start()..pos.end,
-                        );
+                        state.start = None;
+                        break Status::Success(Some(val), state.error());
                     }
                     Ok(None) => {
                         merge_errors(&mut state.error, err);
-                        state.set_start(|| pos.start);
+                        state.start = None;
                     }
                     Err(exp) => {
-                        state.set_start(|| pos.start.clone());
-                        break (
-                            Status::Failure(
-                                Error {
-                                    expects: exp.into(),
-                                    position: pos.start..pos.end.clone(),
-                                },
-                                true,
-                            ),
-                            state.start()..pos.end,
+                        break Status::Failure(
+                            Error {
+                                expects: exp.into(),
+                                position: state.start()..input.position(),
+                            },
+                            true,
                         );
                     }
                 },
-                (Status::Success(None, err), pos) => {
+                Status::Success(None, err) => {
                     merge_errors(&mut state.error, err);
-                    state.set_start(|| pos.start);
-                    break (Status::Success(None, state.error()), state.start()..pos.end);
+                    state.start = None;
+                    break Status::Success(None, state.error());
                 }
-                (Status::Failure(err, false), pos) => {
+                Status::Failure(err, false) => {
                     merge_errors(&mut state.error, Some(err));
-                    state.set_start(|| pos.start);
-                    break (
-                        Status::Failure(state.error().unwrap(), false),
-                        state.start()..pos.end,
-                    );
+                    state.start = None;
+                    break Status::Failure(state.error().unwrap(), false);
                 }
-                (Status::Failure(err, true), pos) => {
-                    state.set_start(|| pos.start);
-                    break (Status::Failure(err, true), state.start()..pos.end);
+                Status::Failure(err, true) => {
+                    state.start = None;
+                    break Status::Failure(err, true);
                 }
             }
         }))

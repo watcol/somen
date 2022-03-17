@@ -43,14 +43,9 @@ where
     ) -> PolledResult<Self::Output, I> {
         self.inner
             .poll_parse(input.as_mut(), cx, state)
-            .map_ok(|(status, pos)| {
-                (
-                    match status {
-                        Status::Success(_, err) => Status::Success((), err),
-                        Status::Failure(err, exclusive) => Status::Failure(err, exclusive),
-                    },
-                    pos,
-                )
+            .map_ok(|status| match status {
+                Status::Success(_, err) => Status::Success((), err),
+                Status::Failure(err, exclusive) => Status::Failure(err, exclusive),
             })
     }
 }

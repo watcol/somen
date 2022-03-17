@@ -34,6 +34,8 @@ crate::parser_state! {
         inner: P::State,
         #[opt(try_set = set_marker)]
         marker: I::Marker,
+        #[opt(set = set_start)]
+        start: I::Locator,
     }
 }
 
@@ -51,6 +53,7 @@ where
         cx: &mut Context<'_>,
         state: &mut Self::State,
     ) -> PolledResult<Self::Output, I> {
+        state.set_start(|| input.position());
         state.set_marker(|| input.as_mut().mark())?;
 
         Poll::Ready(Ok(
@@ -58,18 +61,15 @@ where
                 .inner
                 .poll_parse(input.as_mut(), cx, &mut state.inner)?)
             {
-                (Status::Success(val, err), pos) => {
+                Status::Success(val, err) => {
                     input.drop_marker(state.marker())?;
-                    (Status::Success(Some(val), err), pos)
+                    Status::Success(Some(val), err)
                 }
-                (Status::Failure(err, false), pos) if err.rewindable(&pos.start) => {
+                Status::Failure(err, false) if err.rewindable(&state.start()) => {
                     input.rewind(state.marker())?;
-                    (
-                        Status::Success(None, Some(err)),
-                        pos.start.clone()..pos.start,
-                    )
+                    Status::Success(None, Some(err))
                 }
-                (Status::Failure(err, exclusive), pos) => (Status::Failure(err, exclusive), pos),
+                Status::Failure(err, exclusive) => Status::Failure(err, exclusive),
             },
         ))
     }
@@ -81,6 +81,8 @@ crate::parser_state! {
         #[opt(try_set = set_marker)]
         marker: I::Marker,
         succeeded: bool,
+        #[opt(set = set_start)]
+        start: I::Locator,
     }
 }
 
@@ -102,6 +104,7 @@ where
             return self.inner.poll_parse_next(input, cx, &mut state.inner);
         }
 
+        state.set_start(|| input.position());
         state.set_marker(|| input.as_mut().mark())?;
 
         Poll::Ready(Ok(
@@ -109,18 +112,15 @@ where
                 .inner
                 .poll_parse_next(input.as_mut(), cx, &mut state.inner)?)
             {
-                (Status::Success(val, err), pos) => {
+                Status::Success(val, err) => {
                     input.drop_marker(state.marker())?;
-                    (Status::Success(val, err), pos)
+                    Status::Success(val, err)
                 }
-                (Status::Failure(err, false), pos) if err.rewindable(&pos.start) => {
+                Status::Failure(err, false) if err.rewindable(&state.start()) => {
                     input.rewind(state.marker())?;
-                    (
-                        Status::Success(None, Some(err)),
-                        pos.start.clone()..pos.start,
-                    )
+                    Status::Success(None, Some(err))
                 }
-                (Status::Failure(err, exclusive), pos) => (Status::Failure(err, exclusive), pos),
+                Status::Failure(err, exclusive) => Status::Failure(err, exclusive),
             },
         ))
     }

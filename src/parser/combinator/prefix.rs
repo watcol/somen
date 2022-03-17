@@ -21,10 +21,7 @@ impl<P, Q> Prefix<P, Q> {
     /// Creating a new instance.
     #[inline]
     pub fn new(prefix: P, inner: Q) -> Self {
-        Self {
-            prefix,
-            inner,
-        }
+        Self { prefix, inner }
     }
 
     /// Extracting the inner parser.
@@ -37,8 +34,6 @@ impl<P, Q> Prefix<P, Q> {
 crate::parser_state! {
     pub struct PrefixedByState<I, P: Parser, Q: Parser> {
         inner: EitherState<P::State, Q::State>,
-        #[opt]
-        start: I::Locator,
         error: Option<Error<I::Ok, I::Locator>>,
     }
 }
@@ -60,13 +55,12 @@ where
     ) -> PolledResult<Self::Output, I> {
         if let EitherState::Left(inner) = &mut state.inner {
             match ready!(self.prefix.poll_parse(input.as_mut(), cx, inner)?) {
-                (Status::Success(_, err), pos) => {
+                Status::Success(_, err) => {
                     state.inner = EitherState::new_right();
-                    state.start = Some(pos.start);
                     state.error = err;
                 }
-                (Status::Failure(err, exclusive), pos) => {
-                    return Poll::Ready(Ok((Status::Failure(err, exclusive), pos)))
+                Status::Failure(err, exclusive) => {
+                    return Poll::Ready(Ok(Status::Failure(err, exclusive)))
                 }
             }
         }
@@ -74,21 +68,15 @@ where
         self.inner
             .poll_parse(input, cx, state.inner.right())
             .map_ok(|status| match status {
-                (Status::Success(val, err), pos) => {
+                Status::Success(val, err) => {
                     merge_errors(&mut state.error, err);
-                    (Status::Success(val, state.error()), state.start()..pos.end)
+                    Status::Success(val, state.error())
                 }
-                (Status::Failure(err, exclusive), pos) => {
-                    if exclusive {
-                        state.error = Some(err);
-                    } else {
-                        merge_errors(&mut state.error, Some(err));
-                    }
-                    (
-                        Status::Failure(state.error().unwrap(), exclusive),
-                        state.start()..pos.end,
-                    )
+                Status::Failure(err, false) => {
+                    merge_errors(&mut state.error, Some(err));
+                    Status::Failure(state.error().unwrap(), false)
                 }
+                exclusive => exclusive,
             })
     }
 }
@@ -96,8 +84,6 @@ where
 crate::parser_state! {
     pub struct PrefixedByStreamedState<I, P: Parser, Q: StreamedParser> {
         inner: EitherState<P::State, Q::State>,
-        #[opt]
-        start: I::Locator,
         succeeded: bool,
         error: Option<Error<I::Ok, I::Locator>>,
     }
@@ -120,13 +106,12 @@ where
     ) -> PolledResult<Option<Self::Item>, I> {
         if let EitherState::Left(inner) = &mut state.inner {
             match ready!(self.prefix.poll_parse(input.as_mut(), cx, inner)?) {
-                (Status::Success(_, err), pos) => {
+                Status::Success(_, err) => {
                     state.inner = EitherState::new_right();
-                    state.start = Some(pos.start);
                     state.error = err;
                 }
-                (Status::Failure(err, exclusive), pos) => {
-                    return Poll::Ready(Ok((Status::Failure(err, exclusive), pos)))
+                Status::Failure(err, exclusive) => {
+                    return Poll::Ready(Ok(Status::Failure(err, exclusive)));
                 }
             }
         }
@@ -138,22 +123,15 @@ where
         self.inner
             .poll_parse_next(input, cx, state.inner.right())
             .map_ok(|status| match status {
-                (Status::Success(val, err), pos) => {
+                Status::Success(val, err) => {
                     merge_errors(&mut state.error, err);
-                    state.succeeded = true;
-                    (Status::Success(val, state.error()), state.start()..pos.end)
+                    Status::Success(val, state.error())
                 }
-                (Status::Failure(err, exclusive), pos) => {
-                    if exclusive {
-                        state.error = Some(err);
-                    } else {
-                        merge_errors(&mut state.error, Some(err));
-                    }
-                    (
-                        Status::Failure(state.error().unwrap(), exclusive),
-                        state.start()..pos.end,
-                    )
+                Status::Failure(err, false) => {
+                    merge_errors(&mut state.error, Some(err));
+                    Status::Failure(state.error().unwrap(), false)
                 }
+                exclusive => exclusive,
             })
     }
 

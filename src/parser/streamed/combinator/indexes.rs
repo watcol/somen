@@ -54,8 +54,6 @@ crate::parser_state! {
         count: usize,
         buf: UninitBuffer<P::Item, N>,
         end: bool,
-        #[opt(set = set_start)]
-        start: I::Locator,
         error: Option<Error<I::Ok, I::Locator>>,
     }
 }
@@ -79,7 +77,7 @@ where
                 .inner
                 .poll_parse_next(input.as_mut(), cx, &mut state.inner)?)
             {
-                (Status::Success(Some(val), err), pos) if !state.buf.is_filled() => {
+                Status::Success(Some(val), err) if !state.buf.is_filled() => {
                     let index = self.ns[state.buf.index()];
                     if state.count == index {
                         state.buf.push(val);
@@ -89,37 +87,23 @@ where
                     }
                     state.count += 1;
                     merge_errors(&mut state.error, err);
-                    state.set_start(|| pos.start);
                 }
-                (Status::Success(Some(_), err), pos) => {
+                Status::Success(Some(_), err) => {
                     merge_errors(&mut state.error, err);
-                    state.set_start(|| pos.start);
                 }
-                (Status::Success(None, err), pos) if state.buf.is_filled() => {
+                Status::Success(None, err) if state.buf.is_filled() => {
                     merge_errors(&mut state.error, err);
-                    state.set_start(|| pos.start);
-                    break (
-                        Status::Success(Some(state.buf.take()), state.error()),
-                        state.start()..pos.end,
-                    );
+                    break Status::Success(Some(state.buf.take()), state.error());
                 }
-                (Status::Success(None, err), pos) => {
+                Status::Success(None, err) => {
                     merge_errors(&mut state.error, err);
-                    state.set_start(|| pos.start.clone());
-                    break (Status::Success(None, state.error()), state.start()..pos.end);
+                    break Status::Success(None, state.error());
                 }
-                (Status::Failure(err, false), pos) => {
+                Status::Failure(err, false) => {
                     merge_errors(&mut state.error, Some(err));
-                    state.set_start(|| pos.start);
-                    break (
-                        Status::Failure(state.error().unwrap(), false),
-                        state.start()..pos.end,
-                    );
+                    break Status::Failure(state.error().unwrap(), false);
                 }
-                (Status::Failure(err, true), pos) => {
-                    state.set_start(|| pos.start);
-                    break (Status::Failure(err, true), state.start()..pos.end);
-                }
+                Status::Failure(err, true) => break Status::Failure(err, true),
             }
         }))
     }

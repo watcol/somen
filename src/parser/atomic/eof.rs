@@ -39,22 +39,15 @@ impl<I: Positioned + ?Sized> Parser<I> for Eof<I> {
         _state: &mut Self::State,
     ) -> PolledResult<Self::Output, I> {
         let start = input.position();
-
         Poll::Ready(Ok(match ready!(input.as_mut().try_poll_next(cx)?) {
-            Some(_) => {
-                let end = input.position();
-                (
-                    Status::Failure(
-                        Error {
-                            expects: Expects::new_neg(ExpectKind::Any),
-                            position: start.clone()..end.clone(),
-                        },
-                        false,
-                    ),
-                    start..end,
-                )
-            }
-            None => (Status::Success((), None), start.clone()..start),
+            Some(_) => Status::Failure(
+                Error {
+                    expects: Expects::new_neg(ExpectKind::Any),
+                    position: start..input.position(),
+                },
+                false,
+            ),
+            None => Status::Success((), None),
         }))
     }
 }

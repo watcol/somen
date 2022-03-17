@@ -42,21 +42,16 @@ where
         _state: &mut Self::State,
     ) -> PolledResult<Self::Output, I> {
         let start = input.position();
-        let res = ready!(input.as_mut().try_poll_next(cx)?);
-        let end = input.position();
-        Poll::Ready(Ok((
-            match res {
-                Some(i) if i == self.token => Status::Success(i, None),
-                _ => Status::Failure(
-                    Error {
-                        expects: Expects::new(ExpectKind::Token(self.token.clone())),
-                        position: start.clone()..end.clone(),
-                    },
-                    false,
-                ),
-            },
-            start..end,
-        )))
+        Poll::Ready(Ok(match ready!(input.as_mut().try_poll_next(cx)?) {
+            Some(i) if i == self.token => Status::Success(i, None),
+            _ => Status::Failure(
+                Error {
+                    expects: Expects::new(ExpectKind::Token(self.token.clone())),
+                    position: start..input.position(),
+                },
+                false,
+            ),
+        }))
     }
 }
 
@@ -95,20 +90,15 @@ where
         _state: &mut Self::State,
     ) -> PolledResult<Self::Output, I> {
         let start = input.position();
-        let res = ready!(input.as_mut().try_poll_next(cx)?);
-        let end = input.position();
-        Poll::Ready(Ok((
-            match res {
-                Some(i) if i != self.token => Status::Success(i, None),
-                _ => Status::Failure(
-                    Error {
-                        expects: Expects::new_neg(ExpectKind::Token(self.token.clone())),
-                        position: start.clone()..end.clone(),
-                    },
-                    false,
-                ),
-            },
-            start..end,
-        )))
+        Poll::Ready(Ok(match ready!(input.as_mut().try_poll_next(cx)?) {
+            Some(i) if i != self.token => Status::Success(i, None),
+            _ => Status::Failure(
+                Error {
+                    expects: Expects::new_neg(ExpectKind::Token(self.token.clone())),
+                    position: start..input.position(),
+                },
+                false,
+            ),
+        }))
     }
 }

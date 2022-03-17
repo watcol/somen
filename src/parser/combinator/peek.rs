@@ -54,13 +54,13 @@ where
 
         Poll::Ready(Ok(
             match ready!(self.inner.poll_parse(input.as_mut(), cx, &mut state.inner))? {
-                (Status::Success(val, err), pos) => {
+                Status::Success(val, err) => {
                     input.rewind(state.marker())?;
-                    (Status::Success(val, err), pos.start.clone()..pos.start)
+                    Status::Success(val, err)
                 }
-                (Status::Failure(err, exclusive), pos) => {
+                Status::Failure(err, exclusive) => {
                     input.drop_marker(state.marker())?;
-                    (Status::Failure(err, exclusive), pos)
+                    Status::Failure(err, exclusive)
                 }
             },
         ))

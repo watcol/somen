@@ -1,4 +1,3 @@
-use core::ops::Range;
 use core::pin::Pin;
 use core::task::{Context, Poll};
 use futures_core::ready;
@@ -34,8 +33,6 @@ crate::parser_state! {
     pub struct FlattenState<I, P: StreamedParser; T> {
         inner: P::State,
         iter: Option<T>,
-        #[opt]
-        pos: Range<I::Locator>,
         error: Option<Error<I::Ok, I::Locator>>,
     }
 }
@@ -58,7 +55,7 @@ where
         Poll::Ready(Ok(loop {
             if let Some(iter) = &mut state.iter {
                 if let Some(val) = iter.next() {
-                    break (Status::Success(Some(val), state.error()), state.pos());
+                    break Status::Success(Some(val), state.error());
                 }
             }
 
@@ -66,44 +63,19 @@ where
                 .inner
                 .poll_parse_next(input.as_mut(), cx, &mut state.inner)?)
             {
-                (Status::Success(Some(iter), err), pos) => {
+                Status::Success(Some(iter), err) => {
                     state.iter = Some(iter.into_iter());
                     merge_errors(&mut state.error, err);
-                    state.pos = Some(if state.pos.is_some() {
-                        state.pos().start..pos.end
-                    } else {
-                        pos
-                    });
                 }
-                (Status::Success(None, err), pos) => {
+                Status::Success(None, err) => {
                     merge_errors(&mut state.error, err);
-
-                    let start = if state.pos.is_some() {
-                        state.pos().start
-                    } else {
-                        pos.start
-                    };
-
-                    break (Status::Success(None, state.error()), start..pos.end);
+                    break Status::Success(None, state.error());
                 }
-                (Status::Failure(err, exclusive), pos) => {
-                    if exclusive {
-                        state.error = Some(err);
-                    } else {
-                        merge_errors(&mut state.error, Some(err));
-                    }
-
-                    let start = if state.pos.is_some() {
-                        state.pos().start
-                    } else {
-                        pos.start
-                    };
-
-                    break (
-                        Status::Failure(state.error().unwrap(), exclusive),
-                        start..pos.end,
-                    );
+                Status::Failure(err, false) => {
+                    merge_errors(&mut state.error, Some(err));
+                    break Status::Failure(state.error().unwrap(), false);
                 }
+                Status::Failure(err, true) => break Status::Failure(err, true),
             }
         }))
     }

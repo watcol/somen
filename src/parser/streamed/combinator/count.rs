@@ -34,8 +34,6 @@ crate::parser_state! {
     pub struct CountState<I, P: StreamedParser> {
         inner: P::State,
         count: usize,
-        #[opt(set = set_start)]
-        start: I::Locator,
         error: Option<Error<I::Ok, I::Locator>>,
     }
 }
@@ -59,30 +57,20 @@ where
                 .inner
                 .poll_parse_next(input.as_mut(), cx, &mut state.inner)?)
             {
-                (Status::Success(Some(_), err), pos) => {
+                Status::Success(Some(_), err) => {
                     state.count += 1;
                     merge_errors(&mut state.error, err);
-                    state.set_start(|| pos.start);
                 }
-                (Status::Success(None, err), pos) => {
+                Status::Success(None, err) => {
                     merge_errors(&mut state.error, err);
-                    state.set_start(|| pos.start);
-                    break (
-                        Status::Success(state.count, state.error()),
-                        state.start()..pos.end,
-                    );
+                    break Status::Success(state.count, state.error());
                 }
-                (Status::Failure(err, false), pos) => {
+                Status::Failure(err, false) => {
                     merge_errors(&mut state.error, Some(err));
-                    state.set_start(|| pos.start);
-                    break (
-                        Status::Failure(state.error().unwrap(), false),
-                        state.start()..pos.end,
-                    );
+                    break Status::Failure(state.error().unwrap(), false);
                 }
-                (Status::Failure(err, true), pos) => {
-                    state.set_start(|| pos.start);
-                    break (Status::Failure(err, true), state.start()..pos.end);
+                Status::Failure(err, true) => {
+                    break Status::Failure(err, true);
                 }
             }
         }))

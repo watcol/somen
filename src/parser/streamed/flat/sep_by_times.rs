@@ -36,8 +36,6 @@ crate::parser_state! {
     pub struct FlatSepByTimesState<I, P: StreamedParser, Q: Parser> {
         inner: EitherState<P::State, Q::State>,
         count: usize,
-        #[opt(set = set_start)]
-        start: I::Locator,
         error: Option<Error<I::Ok, I::Locator>>,
     }
 }
@@ -59,27 +57,21 @@ where
     ) -> PolledResult<Option<Self::Item>, I> {
         Poll::Ready(Ok(loop {
             if state.count >= self.count {
-                break (
-                    Status::Success(None, state.error()),
-                    state.start()..input.position(),
-                );
+                break Status::Success(None, state.error());
             }
 
             if let EitherState::Right(inner) = &mut state.inner {
                 match ready!(self.sep.poll_parse(input.as_mut(), cx, inner)?) {
-                    (Status::Success(_, err), _) => {
+                    Status::Success(_, err) => {
                         state.inner = EitherState::new_left();
                         merge_errors(&mut state.error, err);
                     }
-                    (Status::Failure(err, false), pos) => {
+                    Status::Failure(err, false) => {
                         merge_errors(&mut state.error, Some(err));
-                        break (
-                            Status::Failure(state.error().unwrap(), false),
-                            state.start()..pos.end,
-                        );
+                        break Status::Failure(state.error().unwrap(), false);
                     }
-                    (Status::Failure(err, true), pos) => {
-                        break (Status::Failure(err, true), state.start()..pos.end);
+                    Status::Failure(err, true) => {
+                        break Status::Failure(err, true);
                     }
                 }
             }
@@ -88,32 +80,20 @@ where
                 .inner
                 .poll_parse_next(input.as_mut(), cx, state.inner.left())?)
             {
-                (Status::Success(Some(val), err), pos) => {
+                Status::Success(Some(val), err) => {
                     merge_errors(&mut state.error, err);
-                    state.set_start(|| pos.start);
-                    break (
-                        Status::Success(Some(val), state.error()),
-                        state.start()..pos.end,
-                    );
+                    break Status::Success(Some(val), state.error());
                 }
-                (Status::Success(None, err), pos) => {
+                Status::Success(None, err) => {
                     state.count += 1;
                     state.inner = EitherState::new_right();
                     merge_errors(&mut state.error, err);
-                    state.set_start(|| pos.start);
                 }
-                (Status::Failure(err, false), pos) => {
+                Status::Failure(err, false) => {
                     merge_errors(&mut state.error, Some(err));
-                    state.set_start(|| pos.start);
-                    break (
-                        Status::Failure(state.error().unwrap(), false),
-                        state.start()..pos.end,
-                    );
+                    break Status::Failure(state.error().unwrap(), false);
                 }
-                (Status::Failure(err, true), pos) => {
-                    state.set_start(|| pos.start);
-                    break (Status::Failure(err, true), state.start()..pos.end);
-                }
+                Status::Failure(err, true) => break Status::Failure(err, true),
             }
         }))
     }

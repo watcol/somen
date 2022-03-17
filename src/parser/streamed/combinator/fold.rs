@@ -37,8 +37,6 @@ crate::parser_state! {
         inner: EitherState<Q::State, P::State>,
         #[opt]
         acc: Q::Output,
-        #[opt]
-        start: I::Locator,
         error: Option<Error<I::Ok, I::Locator>>,
     }
 }
@@ -61,13 +59,12 @@ where
     ) -> PolledResult<Self::Output, I> {
         if let EitherState::Left(inner) = &mut state.inner {
             match ready!(self.init.poll_parse(input.as_mut(), cx, inner)?) {
-                (Status::Success(acc, err), pos) => {
+                Status::Success(acc, err) => {
                     state.error = err;
-                    state.start = Some(pos.start);
                     state.inner = EitherState::new_right();
                     state.acc = Some(acc);
                 }
-                res @ (Status::Failure(_, _), _) => return Poll::Ready(Ok(res)),
+                failure => return Poll::Ready(Ok(failure)),
             }
         }
 
@@ -76,27 +73,19 @@ where
                 .inner
                 .poll_parse_next(input.as_mut(), cx, state.inner.right())?)
             {
-                (Status::Success(Some(val), err), _) => {
+                Status::Success(Some(val), err) => {
                     merge_errors(&mut state.error, err);
                     state.acc = Some((self.f)(state.acc(), val));
                 }
-                (Status::Success(None, err), pos) => {
+                Status::Success(None, err) => {
                     merge_errors(&mut state.error, err);
-                    break (
-                        Status::Success(state.acc(), state.error()),
-                        state.start()..pos.end,
-                    );
+                    break Status::Success(state.acc(), state.error());
                 }
-                (Status::Failure(err, false), pos) => {
+                Status::Failure(err, false) => {
                     merge_errors(&mut state.error, Some(err));
-                    break (
-                        Status::Failure(state.error().unwrap(), false),
-                        state.start()..pos.end,
-                    );
+                    break Status::Failure(state.error().unwrap(), false);
                 }
-                (Status::Failure(err, true), pos) => {
-                    break (Status::Failure(err, true), state.start()..pos.end);
-                }
+                Status::Failure(err, true) => break Status::Failure(err, true),
             }
         }))
     }
@@ -126,6 +115,17 @@ impl<P, Q, F> TryFold<P, Q, F> {
     }
 }
 
+crate::parser_state! {
+    pub struct TryFoldState<I, P: StreamedParser, Q: Parser> {
+        inner: EitherState<Q::State, P::State>,
+        #[opt]
+        acc: Q::Output,
+        #[opt(set = set_start)]
+        start: I::Locator,
+        error: Option<Error<I::Ok, I::Locator>>,
+    }
+}
+
 impl<P, Q, F, E, I> Parser<I> for TryFold<P, Q, F>
 where
     P: StreamedParser<I>,
@@ -135,7 +135,7 @@ where
     I: Positioned + ?Sized,
 {
     type Output = Q::Output;
-    type State = FoldState<I, P, Q>;
+    type State = TryFoldState<I, P, Q>;
 
     fn poll_parse(
         &mut self,
@@ -145,55 +145,50 @@ where
     ) -> PolledResult<Self::Output, I> {
         if let EitherState::Left(inner) = &mut state.inner {
             match ready!(self.init.poll_parse(input.as_mut(), cx, inner)?) {
-                (Status::Success(acc, err), pos) => {
+                Status::Success(acc, err) => {
                     state.error = err;
-                    state.start = Some(pos.start);
                     state.inner = EitherState::new_right();
                     state.acc = Some(acc);
                 }
-                res @ (Status::Failure(_, _), _) => return Poll::Ready(Ok(res)),
+                failure => return Poll::Ready(Ok(failure)),
             }
         }
 
         Poll::Ready(Ok(loop {
+            state.set_start(|| input.position());
             match ready!(self
                 .inner
                 .poll_parse_next(input.as_mut(), cx, state.inner.right())?)
             {
-                (Status::Success(Some(val), err), pos) => match (self.f)(state.acc(), val) {
+                Status::Success(Some(val), err) => match (self.f)(state.acc(), val) {
                     Ok(acc) => {
                         merge_errors(&mut state.error, err);
+                        state.start = None;
                         state.acc = Some(acc);
                     }
                     Err(exp) => {
-                        break (
-                            Status::Failure(
-                                Error {
-                                    expects: exp.into(),
-                                    position: pos.start..pos.end.clone(),
-                                },
-                                true,
-                            ),
-                            state.start()..pos.end,
+                        break Status::Failure(
+                            Error {
+                                expects: exp.into(),
+                                position: state.start()..input.position(),
+                            },
+                            true,
                         )
                     }
                 },
-                (Status::Success(None, err), pos) => {
+                Status::Success(None, err) => {
                     merge_errors(&mut state.error, err);
-                    break (
-                        Status::Success(state.acc(), state.error()),
-                        state.start()..pos.end,
-                    );
+                    state.start = None;
+                    break Status::Success(state.acc(), state.error());
                 }
-                (Status::Failure(err, false), pos) => {
+                Status::Failure(err, false) => {
                     merge_errors(&mut state.error, Some(err));
-                    break (
-                        Status::Failure(state.error().unwrap(), false),
-                        state.start()..pos.end,
-                    );
+                    state.start = None;
+                    break Status::Failure(state.error().unwrap(), false);
                 }
-                (Status::Failure(err, true), pos) => {
-                    break (Status::Failure(err, true), state.start()..pos.end);
+                Status::Failure(err, true) => {
+                    state.start = None;
+                    break Status::Failure(err, true);
                 }
             }
         }))

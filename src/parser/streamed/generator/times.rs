@@ -52,8 +52,7 @@ where
     ) -> PolledResult<Option<Self::Item>, I> {
         // Return `None` if the number of items already reached `end_bound`.
         if state.count >= self.count {
-            let pos = input.position();
-            return Poll::Ready(Ok((Status::Success(None, None), pos.clone()..pos)));
+            return Poll::Ready(Ok(Status::Success(None, None)));
         }
 
         Poll::Ready(Ok(
@@ -61,12 +60,12 @@ where
                 .inner
                 .poll_parse(input.as_mut(), cx, &mut state.inner)?)
             {
-                (Status::Success(val, err), pos) => {
+                Status::Success(val, err) => {
                     state.inner = Default::default();
                     state.count += 1;
-                    (Status::Success(Some(val), err), pos)
+                    Status::Success(Some(val), err)
                 }
-                (Status::Failure(err, exclusive), pos) => (Status::Failure(err, exclusive), pos),
+                Status::Failure(err, exclusive) => Status::Failure(err, exclusive),
             },
         ))
     }

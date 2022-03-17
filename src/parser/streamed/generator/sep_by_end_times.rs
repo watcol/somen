@@ -61,38 +61,33 @@ where
     ) -> PolledResult<Option<Self::Item>, I> {
         if state.count >= self.count {
             state.set_marker(|| input.as_mut().mark())?;
+            state.set_start(|| input.position());
             return Poll::Ready(Ok(
                 match ready!(self
                     .sep
                     .poll_parse(input.as_mut(), cx, state.inner.right())?)
                 {
-                    (Status::Success(_, err), pos) => {
+                    Status::Success(_, err) => {
                         input.drop_marker(state.marker())?;
-                        (Status::Success(None, err), pos)
+                        Status::Success(None, err)
                     }
-                    (Status::Failure(err, false), pos) if err.rewindable(&pos.start) => {
+                    Status::Failure(err, false) if err.rewindable(&state.start()) => {
                         input.rewind(state.marker())?;
-                        (
-                            Status::Success(None, Some(err)),
-                            pos.start.clone()..pos.start,
-                        )
+                        Status::Success(None, Some(err))
                     }
-                    (Status::Failure(err, exclusive), pos) => {
-                        (Status::Failure(err, exclusive), pos)
-                    }
+                    Status::Failure(err, exclusive) => Status::Failure(err, exclusive),
                 },
             ));
         }
 
         if let EitherState::Right(inner) = &mut state.inner {
             match ready!(self.sep.poll_parse(input.as_mut(), cx, inner)?) {
-                (Status::Success(_, err), pos) => {
+                Status::Success(_, err) => {
                     state.inner = EitherState::new_left();
                     state.error = err;
-                    state.start = Some(pos.start);
                 }
-                (Status::Failure(err, exclusive), pos) => {
-                    return Poll::Ready(Ok((Status::Failure(err, exclusive), pos)))
+                Status::Failure(err, exclusive) => {
+                    return Poll::Ready(Ok(Status::Failure(err, exclusive)))
                 }
             }
         }
@@ -102,28 +97,17 @@ where
                 .inner
                 .poll_parse(input.as_mut(), cx, state.inner.left())?)
             {
-                (Status::Success(val, err), pos) => {
+                Status::Success(val, err) => {
                     state.count += 1;
                     state.inner = EitherState::new_right();
                     merge_errors(&mut state.error, err);
-                    state.set_start(|| pos.start);
-                    (
-                        Status::Success(Some(val), state.error()),
-                        state.start()..pos.end,
-                    )
+                    Status::Success(Some(val), state.error())
                 }
-                (Status::Failure(err, false), pos) => {
+                Status::Failure(err, false) => {
                     merge_errors(&mut state.error, Some(err));
-                    state.set_start(|| pos.start);
-                    (
-                        Status::Failure(state.error().unwrap(), false),
-                        state.start()..pos.end,
-                    )
+                    Status::Failure(state.error().unwrap(), false)
                 }
-                (Status::Failure(err, true), pos) => {
-                    state.set_start(|| pos.start);
-                    (Status::Failure(err, true), state.start()..pos.end)
-                }
+                Status::Failure(err, true) => Status::Failure(err, true),
             },
         ))
     }

@@ -45,21 +45,16 @@ where
         _state: &mut Self::State,
     ) -> PolledResult<Self::Output, I> {
         let start = input.position();
-        let res = ready!(input.as_mut().try_poll_next(cx)?);
-        let end = input.position();
-        Poll::Ready(Ok((
-            match res {
-                Some(i) if self.set.contains(&i) => Status::Success(i, None),
-                _ => Status::Failure(
-                    Error {
-                        expects: self.set.to_expects(),
-                        position: start.clone()..end.clone(),
-                    },
-                    false,
-                ),
-            },
-            start..end,
-        )))
+        Poll::Ready(Ok(match ready!(input.as_mut().try_poll_next(cx)?) {
+            Some(i) if self.set.contains(&i) => Status::Success(i, None),
+            _ => Status::Failure(
+                Error {
+                    expects: self.set.to_expects(),
+                    position: start..input.position(),
+                },
+                false,
+            ),
+        }))
     }
 }
 
@@ -98,21 +93,16 @@ where
         _state: &mut Self::State,
     ) -> PolledResult<Self::Output, I> {
         let start = input.position();
-        let res = ready!(input.as_mut().try_poll_next(cx)?);
-        let end = input.position();
-        Poll::Ready(Ok((
-            match res {
-                Some(i) if !self.set.contains(&i) => Status::Success(i, None),
-                _ => Status::Failure(
-                    Error {
-                        expects: self.set.to_expects().negate(),
-                        position: start.clone()..end.clone(),
-                    },
-                    false,
-                ),
-            },
-            start..end,
-        )))
+        Poll::Ready(Ok(match ready!(input.as_mut().try_poll_next(cx)?) {
+            Some(i) if !self.set.contains(&i) => Status::Success(i, None),
+            _ => Status::Failure(
+                Error {
+                    expects: self.set.to_expects().negate(),
+                    position: start..input.position(),
+                },
+                false,
+            ),
+        }))
     }
 }
 

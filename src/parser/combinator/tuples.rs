@@ -14,8 +14,6 @@ macro_rules! tuple_parser {
             #[allow(non_snake_case)]
             pub struct $state <I, $( $t: Parser ),*> {
                 $( $t: (Option<$t::Output>, $t::State), )*
-                #[opt(set = set_start)]
-                start: I::Locator,
                 error: Option<Error<I::Ok, I::Locator>>,
             }
         }
@@ -37,40 +35,29 @@ macro_rules! tuple_parser {
                 #[allow(non_snake_case)]
                 let ($($t),*,) = self;
 
-                state.set_start(|| input.position());
-
-                let mut end = None;
-
                 $(
                     if state.$t.0.is_none() {
                         match ready!($t.poll_parse(input.as_mut(), cx, &mut state.$t.1)?) {
-                            (Status::Success(val, err), pos) => {
+                            Status::Success(val, err) => {
                                 state.$t.0 = Some(val);
                                 merge_errors(&mut state.error, err);
-                                end = Some(pos.end);
                             }
-                            (Status::Failure(err, false), pos) => {
+                            Status::Failure(err, false) => {
                                 merge_errors(&mut state.error, Some(err));
-                                return Poll::Ready(Ok((
-                                    Status::Failure(state.error().unwrap(), false),
-                                    state.start()..pos.end,
-                                )))
+                                return Poll::Ready(Ok(
+                                    Status::Failure(state.error().unwrap(), false)
+                                ));
                             },
-                            (Status::Failure(err, true), pos) => return Poll::Ready(Ok((
-                                Status::Failure(err, true),
-                                state.start()..pos.end,
-                            )))
+                            Status::Failure(err, true) => {
+                                return Poll::Ready(Ok(Status::Failure(err, true)));
+                            }
                         }
                     }
                 )*
 
-                let end = end.unwrap();
-                Poll::Ready(Ok((
-                    Status::Success(
-                        ($(mem::take(&mut state.$t.0).unwrap()),*,),
-                        state.error()
-                    ),
-                    state.start()..end,
+                Poll::Ready(Ok(Status::Success(
+                    ($(mem::take(&mut state.$t.0).unwrap()),*,),
+                    state.error()
                 )))
             }
         }

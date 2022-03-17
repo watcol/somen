@@ -33,8 +33,6 @@ impl<P> Discard<P> {
 crate::parser_state! {
     pub struct DiscardState<I, P: StreamedParser> {
         inner: P::State,
-        #[opt(set = set_start)]
-        start: I::Locator,
         error: Option<Error<I::Ok, I::Locator>>,
     }
 }
@@ -58,27 +56,18 @@ where
                 .inner
                 .poll_parse_next(input.as_mut(), cx, &mut state.inner)?)
             {
-                (Status::Success(Some(_), err), pos) => {
+                Status::Success(Some(_), err) => {
                     merge_errors(&mut state.error, err);
-                    state.set_start(|| pos.start);
                 }
-                (Status::Success(None, err), pos) => {
+                Status::Success(None, err) => {
                     merge_errors(&mut state.error, err);
-                    state.set_start(|| pos.start);
-                    break (Status::Success((), state.error()), state.start()..pos.end);
+                    break Status::Success((), state.error());
                 }
-                (Status::Failure(err, false), pos) => {
+                Status::Failure(err, false) => {
                     merge_errors(&mut state.error, Some(err));
-                    state.set_start(|| pos.start);
-                    break (
-                        Status::Failure(state.error().unwrap(), false),
-                        state.start()..pos.end,
-                    );
+                    break Status::Failure(state.error().unwrap(), false);
                 }
-                (Status::Failure(err, true), pos) => {
-                    state.set_start(|| pos.start);
-                    break (Status::Failure(err, true), state.start()..pos.end);
-                }
+                Status::Failure(err, true) => break Status::Failure(err, true),
             }
         }))
     }

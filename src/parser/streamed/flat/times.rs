@@ -33,8 +33,6 @@ crate::parser_state! {
     pub struct FlatTimesState<I, P: StreamedParser> {
         inner: P::State,
         count: usize,
-        #[opt(set = set_start)]
-        start: I::Locator,
         error: Option<Error<I::Ok, I::Locator>>,
     }
 }
@@ -55,42 +53,27 @@ where
     ) -> PolledResult<Option<Self::Item>, I> {
         Poll::Ready(Ok(loop {
             if state.count >= self.count {
-                break (
-                    Status::Success(None, state.error()),
-                    state.start()..input.position(),
-                );
+                break Status::Success(None, state.error());
             }
 
             match ready!(self
                 .inner
                 .poll_parse_next(input.as_mut(), cx, &mut state.inner)?)
             {
-                (Status::Success(Some(val), err), pos) => {
+                Status::Success(Some(val), err) => {
                     merge_errors(&mut state.error, err);
-                    state.set_start(|| pos.start);
-                    break (
-                        Status::Success(Some(val), state.error()),
-                        state.start()..pos.end,
-                    );
+                    break Status::Success(Some(val), state.error());
                 }
-                (Status::Success(None, err), pos) => {
+                Status::Success(None, err) => {
                     merge_errors(&mut state.error, err);
-                    state.set_start(|| pos.start);
                     state.inner = Default::default();
                     state.count += 1;
                 }
-                (Status::Failure(err, false), pos) => {
+                Status::Failure(err, false) => {
                     merge_errors(&mut state.error, Some(err));
-                    state.set_start(|| pos.start);
-                    break (
-                        Status::Failure(state.error().unwrap(), false),
-                        state.start()..pos.end,
-                    );
+                    break Status::Failure(state.error().unwrap(), false);
                 }
-                (Status::Failure(err, true), pos) => {
-                    state.set_start(|| pos.start);
-                    break (Status::Failure(err, true), state.start()..pos.end);
-                }
+                Status::Failure(err, true) => break Status::Failure(err, true),
             }
         }))
     }

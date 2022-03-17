@@ -28,6 +28,14 @@ impl<P, E> Exclusive<P, E> {
     }
 }
 
+crate::parser_state! {
+    pub struct ExclusiveState<I, P: Parser> {
+        inner: P::State,
+        #[opt(set = set_start)]
+        start: I::Locator,
+    }
+}
+
 impl<P, I> Parser<I> for Exclusive<P, Expects<I::Ok>>
 where
     P: Parser<I>,
@@ -35,7 +43,7 @@ where
     I::Ok: Clone,
 {
     type Output = P::Output;
-    type State = P::State;
+    type State = ExclusiveState<I, P>;
 
     fn poll_parse(
         &mut self,
@@ -43,22 +51,18 @@ where
         cx: &mut Context<'_>,
         state: &mut Self::State,
     ) -> PolledResult<Self::Output, I> {
+        state.set_start(|| input.position());
         self.inner
-            .poll_parse(input.as_mut(), cx, state)
-            .map_ok(|(status, pos)| {
-                (
-                    match status {
-                        Status::Failure(_, false) => Status::Failure(
-                            Error {
-                                expects: self.expects.clone(),
-                                position: pos.clone(),
-                            },
-                            true,
-                        ),
-                        res => res,
+            .poll_parse(input.as_mut(), cx, &mut state.inner)
+            .map_ok(|status| match status {
+                Status::Failure(_, false) => Status::Failure(
+                    Error {
+                        expects: self.expects.clone(),
+                        position: state.start()..input.position(),
                     },
-                    pos,
-                )
+                    true,
+                ),
+                res => res,
             })
     }
 }

@@ -1,4 +1,3 @@
-use core::ops::Range;
 use core::pin::Pin;
 use core::task::{Context, Poll};
 use futures_core::ready;
@@ -18,8 +17,6 @@ macro_rules! tuple_parser {
                     $t: ($t::State, bool),
                 )*
                 error: Option<Error<I::Ok, I::Locator>>,
-                #[opt]
-                pos: Range<I::Locator>,
             }
         }
 
@@ -43,10 +40,8 @@ macro_rules! tuple_parser {
 
                 if !state.$h.1 {
                     match ready!($h.poll_parse_next(input.as_mut(), cx, &mut state.$h.0)?) {
-                        (Status::Success(None, err), pos) => {
+                        Status::Success(None, _) => {
                             state.$h.1 = true;
-                            state.error = err;
-                            state.pos = Some(pos);
                         }
                         res => return Poll::Ready(Ok(res)),
                     }
@@ -55,38 +50,24 @@ macro_rules! tuple_parser {
                 $(
                     if !state.$t.1 {
                         match ready!($t.poll_parse_next(input.as_mut(), cx, &mut state.$t.0)?) {
-                            (Status::Success(Some(val), err), pos) if state.pos.is_some() => {
+                            Status::Success(Some(val), err) => {
                                 merge_errors(&mut state.error, err);
-                                return Poll::Ready(Ok((
-                                    Status::Success(Some(val), state.error()),
-                                    state.pos().start..pos.end,
-                                )));
+                                return Poll::Ready(Ok(Status::Success(Some(val), state.error())));
                             }
-                            (Status::Failure(err, false), pos) if state.pos.is_some() => {
-                                merge_errors(&mut state.error, Some(err));
-                                return Poll::Ready(Ok((
-                                    Status::Failure(state.error().unwrap(), false),
-                                    state.pos().start..pos.end,
-                                )));
-                            }
-                            (Status::Success(None, err), pos) => {
+                            Status::Success(None, err) => {
                                 state.$t.1 = true;
                                 merge_errors(&mut state.error, err);
-                                state.pos = Some(if state.pos.is_some() {
-                                    state.pos().start..pos.end
-                                } else {
-                                    pos
-                                });
                             }
-                            res => return Poll::Ready(Ok(res)),
+                            Status::Failure(err, false) => {
+                                merge_errors(&mut state.error, Some(err));
+                                return Poll::Ready(Ok(Status::Failure(state.error().unwrap(), false)));
+                            }
+                            exclusive => return Poll::Ready(Ok(exclusive)),
                         }
                     }
                 )*
 
-                Poll::Ready(Ok((
-                    Status::Success(None, state.error()),
-                    state.pos()
-                )))
+                Poll::Ready(Ok(Status::Success(None, state.error())))
             }
 
             fn size_hint(&self) -> (usize, Option<usize>) {

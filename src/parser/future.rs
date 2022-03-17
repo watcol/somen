@@ -41,8 +41,8 @@ impl<P: Parser<I> + ?Sized, I: Positioned + Unpin + ?Sized> Future
         } = &mut *self;
         Poll::Ready(
             match ready!(parser.poll_parse(Pin::new(input), cx, state)) {
-                Ok((Status::Success(val, _), _)) => Ok(val),
-                Ok((Status::Failure(err, _), _)) => Err(ParseError::Parser(err)),
+                Ok(Status::Success(val, _)) => Ok(val),
+                Ok(Status::Failure(err, _)) => Err(ParseError::Parser(err)),
                 Err(err) => Err(ParseError::Stream(err)),
             },
         )

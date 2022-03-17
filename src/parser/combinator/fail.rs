@@ -33,6 +33,8 @@ crate::parser_state! {
         inner: P::State,
         #[opt(try_set = set_marker)]
         marker: I::Marker,
+        #[opt(set = set_start)]
+        start: I::Locator,
     }
 }
 
@@ -51,29 +53,27 @@ where
         state: &mut Self::State,
     ) -> PolledResult<Self::Output, I> {
         state.set_marker(|| input.as_mut().mark())?;
+        state.set_start(|| input.position());
 
         Poll::Ready(Ok(
             match ready!(self.inner.poll_parse(input.as_mut(), cx, &mut state.inner,))? {
-                (Status::Success(_, _), pos) => {
-                    input.drop_marker(state.marker())?;
-                    (
-                        Status::Failure(
-                            Error {
-                                expects: Expects::from("<failure>"),
-                                position: pos.clone(),
-                            },
-                            false,
-                        ),
-                        pos,
+                Status::Success(_, _) => {
+                    input.as_mut().drop_marker(state.marker())?;
+                    Status::Failure(
+                        Error {
+                            expects: Expects::from("<failure>"),
+                            position: state.start()..input.position(),
+                        },
+                        false,
                     )
                 }
-                (Status::Failure(_, false), pos) => {
+                Status::Failure(_, false) => {
                     input.rewind(state.marker())?;
-                    (Status::Success((), None), pos.start.clone()..pos.start)
+                    Status::Success((), None)
                 }
-                (Status::Failure(err, true), pos) => {
+                Status::Failure(err, true) => {
                     input.drop_marker(state.marker())?;
-                    (Status::Failure(err, true), pos)
+                    Status::Failure(err, true)
                 }
             },
         ))

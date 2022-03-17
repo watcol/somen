@@ -28,6 +28,14 @@ impl<P, E> Expect<P, E> {
     }
 }
 
+crate::parser_state! {
+    pub struct ExpectState<I, P: Parser> {
+        inner: P::State,
+        #[opt(set = set_start, get = get_start)]
+        start: I::Locator,
+    }
+}
+
 impl<P, I> Parser<I> for Expect<P, Expects<I::Ok>>
 where
     P: Parser<I>,
@@ -35,7 +43,7 @@ where
     I::Ok: Clone,
 {
     type Output = P::Output;
-    type State = P::State;
+    type State = ExpectState<I, P>;
 
     fn poll_parse(
         &mut self,
@@ -43,24 +51,20 @@ where
         cx: &mut Context<'_>,
         state: &mut Self::State,
     ) -> PolledResult<Self::Output, I> {
+        state.set_start(|| input.position());
         self.inner
-            .poll_parse(input.as_mut(), cx, state)
-            .map_ok(|(status, pos)| {
-                (
-                    match status {
-                        Status::Failure(err, false) if err.rewindable(&pos.start) => {
-                            Status::Failure(
-                                Error {
-                                    expects: self.expects.clone(),
-                                    position: pos.clone(),
-                                },
-                                false,
-                            )
-                        }
-                        res => res,
-                    },
-                    pos,
-                )
+            .poll_parse(input.as_mut(), cx, &mut state.inner)
+            .map_ok(|status| match status {
+                Status::Failure(err, false) if err.rewindable(state.get_start()) => {
+                    Status::Failure(
+                        Error {
+                            expects: self.expects.clone(),
+                            position: state.start()..input.position(),
+                        },
+                        false,
+                    )
+                }
+                res => res,
             })
     }
 }

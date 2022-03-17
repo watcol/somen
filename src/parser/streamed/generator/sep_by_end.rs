@@ -38,7 +38,7 @@ crate::parser_state! {
         inner: EitherState<P::State, Q::State>,
         #[opt(try_set = set_marker)]
         marker: I::Marker,
-        #[opt]
+        #[opt(set = set_start)]
         start: I::Locator,
         #[opt]
         output: P::Output,
@@ -69,32 +69,29 @@ where
             Bound::Excluded(i) => state.count + 1 >= *i,
             Bound::Unbounded => false,
         } {
-            let pos = input.position();
-            return Poll::Ready(Ok((Status::Success(None, None), pos.clone()..pos)));
+            return Poll::Ready(Ok(Status::Success(None, None)));
         }
 
         state.set_marker(|| input.as_mut().mark())?;
+        state.set_start(|| input.position());
 
         if let EitherState::Left(inner) = &mut state.inner {
             match ready!(self.inner.poll_parse(input.as_mut(), cx, inner)?) {
-                (Status::Success(val, err), pos) => {
+                Status::Success(val, err) => {
                     input.as_mut().drop_marker(state.marker())?;
-                    state.set_marker(|| input.as_mut().mark())?;
+                    state.marker = Some(input.as_mut().mark()?);
+                    state.start = Some(input.position());
                     state.output = Some(val);
                     state.inner = EitherState::new_right();
                     state.error = err;
-                    state.start = Some(pos.start);
                 }
-                (Status::Failure(err, false), pos) if err.rewindable(&pos.start) => {
+                Status::Failure(err, false) if err.rewindable(&state.start()) => {
                     input.rewind(state.marker())?;
-                    return Poll::Ready(Ok((
-                        Status::Success(None, Some(err)),
-                        pos.start.clone()..pos.start,
-                    )));
+                    return Poll::Ready(Ok(Status::Success(None, Some(err))));
                 }
-                (Status::Failure(err, exclusive), pos) => {
+                Status::Failure(err, exclusive) => {
                     input.drop_marker(state.marker())?;
-                    return Poll::Ready(Ok((Status::Failure(err, exclusive), pos)));
+                    return Poll::Ready(Ok(Status::Failure(err, exclusive)));
                 }
             }
         }
@@ -104,37 +101,30 @@ where
                 .sep
                 .poll_parse(input.as_mut(), cx, state.inner.right())?)
             {
-                (Status::Success(_, err), pos) => {
+                Status::Success(_, err) => {
                     input.drop_marker(state.marker())?;
+                    state.start = None;
                     state.count += 1;
                     state.inner = EitherState::new_left();
                     merge_errors(&mut state.error, err);
-                    (
-                        Status::Success(Some(state.output()), state.error()),
-                        state.start()..pos.end,
-                    )
+                    Status::Success(Some(state.output()), state.error())
                 }
-                (Status::Failure(err, false), pos)
-                    if err.rewindable(&pos.start) && self.range.contains(&(state.count + 1)) =>
+                Status::Failure(err, false)
+                    if err.rewindable(&state.start())
+                        && self.range.contains(&(state.count + 1)) =>
                 {
                     input.rewind(state.marker())?;
                     merge_errors(&mut state.error, Some(err));
-                    (
-                        Status::Success(None, state.error()),
-                        state.start()..pos.start,
-                    )
+                    Status::Success(None, state.error())
                 }
-                (Status::Failure(err, false), pos) => {
+                Status::Failure(err, false) => {
                     input.drop_marker(state.marker())?;
                     merge_errors(&mut state.error, Some(err));
-                    (
-                        Status::Failure(state.error().unwrap(), false),
-                        state.start()..pos.end,
-                    )
+                    Status::Failure(state.error().unwrap(), false)
                 }
-                (Status::Failure(err, true), pos) => {
+                Status::Failure(err, true) => {
                     input.drop_marker(state.marker())?;
-                    (Status::Failure(err, true), state.start()..pos.end)
+                    Status::Failure(err, true)
                 }
             },
         ))

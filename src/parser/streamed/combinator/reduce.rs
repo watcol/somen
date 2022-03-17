@@ -35,8 +35,6 @@ crate::parser_state! {
     pub struct ReduceState<I, P: StreamedParser> {
         inner: P::State,
         acc: Option<P::Item>,
-        #[opt(set = set_start)]
-        start: I::Locator,
         error: Option<Error<I::Ok, I::Locator>>,
     }
 }
@@ -61,33 +59,23 @@ where
                 .inner
                 .poll_parse_next(input.as_mut(), cx, &mut state.inner)?)
             {
-                (Status::Success(Some(val), err), pos) => {
+                Status::Success(Some(val), err) => {
                     merge_errors(&mut state.error, err);
-                    state.set_start(|| pos.start);
                     state.acc = Some(match state.acc() {
                         Some(acc) => (self.f)(acc, val),
                         None => val,
                     });
                 }
-                (Status::Success(None, err), pos) => {
+                Status::Success(None, err) => {
                     merge_errors(&mut state.error, err);
-                    state.set_start(|| pos.start);
-                    break (
-                        Status::Success(state.acc(), state.error()),
-                        state.start()..pos.end,
-                    );
+                    break Status::Success(state.acc(), state.error());
                 }
-                (Status::Failure(err, false), pos) => {
+                Status::Failure(err, false) => {
                     merge_errors(&mut state.error, Some(err));
-                    state.set_start(|| pos.start);
-                    break (
-                        Status::Failure(state.error().unwrap(), false),
-                        state.start()..pos.end,
-                    );
+                    break Status::Failure(state.error().unwrap(), false);
                 }
-                (Status::Failure(err, true), pos) => {
-                    state.set_start(|| pos.start);
-                    break (Status::Failure(err, true), state.start()..pos.end);
+                Status::Failure(err, true) => {
+                    break Status::Failure(err, true);
                 }
             }
         }))
@@ -117,6 +105,16 @@ impl<P, F> TryReduce<P, F> {
     }
 }
 
+crate::parser_state! {
+    pub struct TryReduceState<I, P: StreamedParser> {
+        inner: P::State,
+        acc: Option<P::Item>,
+        #[opt(set = set_start)]
+        start: I::Locator,
+        error: Option<Error<I::Ok, I::Locator>>,
+    }
+}
+
 impl<P, F, E, I> Parser<I> for TryReduce<P, F>
 where
     P: StreamedParser<I>,
@@ -125,7 +123,7 @@ where
     I: Positioned + ?Sized,
 {
     type Output = Option<P::Item>;
-    type State = ReduceState<I, P>;
+    type State = TryReduceState<I, P>;
 
     fn poll_parse(
         &mut self,
@@ -134,51 +132,48 @@ where
         state: &mut Self::State,
     ) -> PolledResult<Self::Output, I> {
         Poll::Ready(Ok(loop {
+            state.set_start(|| input.position());
             match ready!(self
                 .inner
                 .poll_parse_next(input.as_mut(), cx, &mut state.inner)?)
             {
-                (Status::Success(Some(val), err), pos) => {
+                Status::Success(Some(val), err) => {
                     merge_errors(&mut state.error, err);
-                    state.set_start(|| pos.start.clone());
                     state.acc = Some(match state.acc() {
                         Some(acc) => match (self.f)(acc, val) {
-                            Ok(res) => res,
+                            Ok(res) => {
+                                state.start = None;
+                                res
+                            }
                             Err(exp) => {
-                                break (
-                                    Status::Failure(
-                                        Error {
-                                            expects: exp.into(),
-                                            position: pos.start..pos.end.clone(),
-                                        },
-                                        true,
-                                    ),
-                                    state.start()..pos.end,
+                                break Status::Failure(
+                                    Error {
+                                        expects: exp.into(),
+                                        position: state.start()..input.position(),
+                                    },
+                                    true,
                                 )
                             }
                         },
-                        None => val,
+                        None => {
+                            state.start = None;
+                            val
+                        }
                     });
                 }
-                (Status::Success(None, err), pos) => {
+                Status::Success(None, err) => {
                     merge_errors(&mut state.error, err);
-                    state.set_start(|| pos.start);
-                    break (
-                        Status::Success(state.acc(), state.error()),
-                        state.start()..pos.end,
-                    );
+                    state.start = None;
+                    break Status::Success(state.acc(), state.error());
                 }
-                (Status::Failure(err, false), pos) => {
+                Status::Failure(err, false) => {
                     merge_errors(&mut state.error, Some(err));
-                    state.set_start(|| pos.start);
-                    break (
-                        Status::Failure(state.error().unwrap(), false),
-                        state.start()..pos.end,
-                    );
+                    state.start = None;
+                    break Status::Failure(state.error().unwrap(), false);
                 }
-                (Status::Failure(err, true), pos) => {
-                    state.set_start(|| pos.start);
-                    break (Status::Failure(err, true), state.start()..pos.end);
+                Status::Failure(err, true) => {
+                    state.start = None;
+                    break Status::Failure(err, true);
                 }
             }
         }))

@@ -40,9 +40,9 @@ impl<P: StreamedParser<I> + ?Sized, I: Positioned + Unpin + ?Sized> Stream
         } = &mut *self;
         Poll::Ready(
             match ready!(parser.poll_parse_next(Pin::new(input), cx, state)) {
-                Ok((Status::Success(Some(val), _), _)) => Some(Ok(val)),
-                Ok((Status::Success(None, _), _)) => None,
-                Ok((Status::Failure(err, _), _)) => Some(Err(ParseError::Parser(err))),
+                Ok(Status::Success(Some(val), _)) => Some(Ok(val)),
+                Ok(Status::Success(None, _)) => None,
+                Ok(Status::Failure(err, _)) => Some(Err(ParseError::Parser(err))),
                 Err(err) => Some(Err(ParseError::Stream(err))),
             },
         )

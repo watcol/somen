@@ -35,13 +35,13 @@ impl<I: Positioned + ?Sized> Parser<I> for Position<I> {
     type Output = I::Locator;
     type State = ();
 
+    #[inline]
     fn poll_parse(
         &mut self,
         input: Pin<&mut I>,
         _cx: &mut Context<'_>,
         _state: &mut Self::State,
     ) -> PolledResult<Self::Output, I> {
-        let pos = input.position();
-        Poll::Ready(Ok((Status::Success(pos.clone(), None), pos.clone()..pos)))
+        Poll::Ready(Ok(Status::Success(input.position(), None)))
     }
 }
