@@ -259,6 +259,17 @@ pub trait ParserExt<I: Positioned + ?Sized>: Parser<I> {
         assert_parser(Either::Right(self))
     }
 
+    /// Parses the input completedly.
+    ///
+    /// This method is a conventional method, and equivalent to `self.skip(eof())`.
+    #[inline]
+    fn complete(self) -> Skip<Self, Eof<I>>
+    where
+        Self: Sized,
+    {
+        assert_parser(self.skip(eof()))
+    }
+
     /// Returns the position of parsed tokens with an output.
     #[inline]
     fn with_position(self) -> WithPosition<Self>

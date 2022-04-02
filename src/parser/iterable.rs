@@ -11,8 +11,8 @@ use core::pin::Pin;
 use core::task::Context;
 
 use super::{
-    assert_parser, ChoiceIterableParser, Either, Map, NoState, Opt, Or, Parser, Prefix, Skip,
-    TryMap,
+    assert_parser, eof, ChoiceIterableParser, Either, Eof, Map, NoState, Opt, Or, Parser, Prefix,
+    Skip, TryMap,
 };
 use crate::error::{Expects, PolledResult};
 use crate::stream::{Input, Positioned};
@@ -125,6 +125,17 @@ pub trait IterableParserExt<I: Positioned + ?Sized>: IterableParser<I> {
         L: IterableParser<I, Item = Self::Item>,
     {
         assert_iterable_parser(Either::Right(self))
+    }
+
+    /// Parses the input completedly.
+    ///
+    /// This method is a conventional method, and equivalent to `self.skip(eof())`.
+    #[inline]
+    fn complete(self) -> Skip<Self, Eof<I>>
+    where
+        Self: Sized,
+    {
+        assert_iterable_parser(self.skip(eof()))
     }
 
     /// Chains two iterable parsers and parses items in sequence.
