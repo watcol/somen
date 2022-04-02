@@ -8,7 +8,7 @@ use crate::stream::{Positioned, Rewind};
 
 pin_project! {
     /// Wraps [`TryStream`], implements [`Positioned`] trait.
-    #[derive(Debug)]
+    #[derive(Clone, Debug, PartialEq, Eq)]
     pub struct PositionedStream<S, L> {
         #[pin]
         inner: S,

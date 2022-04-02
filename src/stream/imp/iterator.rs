@@ -14,7 +14,7 @@ pin_project! {
     /// [`TryStream`]: futures_core::TryStream
     /// [`InfallibleStream`]: crate::stream::InfallibleStream
     /// [`from_iter`]: crate::stream::from_iter
-    #[derive(Debug)]
+    #[derive(Clone, Debug, PartialEq, Eq)]
     pub struct IteratorStream<I> {
         iter: I,
     }

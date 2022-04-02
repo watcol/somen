@@ -3,7 +3,7 @@ use core::fmt;
 /// An error type for [`BufferedRewinder`].
 ///
 /// [`BufferedRewinder`]: crate::stream::rewind::BufferedRewinder
-#[derive(Debug)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 #[cfg_attr(feature = "nightly", doc(cfg(feature = "alloc")))]
 pub enum BufferedError<S> {
     Stream(S),

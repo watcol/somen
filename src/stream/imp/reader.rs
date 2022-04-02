@@ -8,7 +8,7 @@ pin_project! {
     /// Wraps [`AsyncRead`], implements [`TryStream`] trait.
     ///
     /// [`TryStream`]: futures_core::stream::TryStream
-    #[derive(Debug)]
+    #[derive(Clone, Debug, PartialEq, Eq)]
     #[cfg_attr(feature = "nightly", doc(cfg(feature = "std")))]
     pub struct ReaderStream<R> {
         #[pin]

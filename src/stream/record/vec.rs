@@ -9,7 +9,7 @@ use crate::stream::{Positioned, Rewind};
 pin_project! {
     /// Wraps [`TryStream`],  implements [`Positioned`] and [`Rewind`] trait by storing
     /// the stream outputs to [`Vec`].
-    #[derive(Debug)]
+    #[derive(Clone, Debug, PartialEq, Eq)]
     pub struct VecRecorder<S: TryStream> {
         #[pin]
         inner: S,

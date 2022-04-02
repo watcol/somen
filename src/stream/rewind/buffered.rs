@@ -17,7 +17,7 @@ pin_project! {
     /// [`TryStream`]: futures_core::stream::TryStream
     /// [`Positioned`]: crate::stream::position::Positioned
     /// [`Rewind`]: crate::stream::positon::Rewind
-    #[derive(Debug)]
+    #[derive(Clone, Debug, PartialEq, Eq)]
     #[cfg_attr(feature = "nightly", doc(cfg(feature = "alloc")))]
     pub struct BufferedRewinder<S: TryStream> {
         #[pin]

@@ -10,7 +10,7 @@ pin_project! {
     /// Wraps slices, implements [`TryStream`], [`Positioned`] and [`Rewind`] trait.
     ///
     /// [`TryStream`]: futures_core::stream::TryStream
-    #[derive(Debug)]
+    #[derive(Clone, Debug, PartialEq, Eq)]
     pub struct SliceStream<'a, T> {
         slice: &'a [T],
         position: usize,

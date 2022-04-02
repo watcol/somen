@@ -10,7 +10,7 @@ pin_project! {
     /// The [`TryStream`] always returns [`Ok`], and the error type is [`Infallible`].
     ///
     /// [`TryStream`]: futures_core::stream::TryStream
-    #[derive(Debug)]
+    #[derive(Clone, Debug, PartialEq, Eq)]
     pub struct InfallibleStream<S> {
         #[pin]
         inner: S,
