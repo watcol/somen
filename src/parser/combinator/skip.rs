@@ -3,7 +3,7 @@ use core::task::{Context, Poll};
 use futures_core::ready;
 
 use crate::error::{Error, PolledResult, Status};
-use crate::parser::streamed::StreamedParser;
+use crate::parser::iterable::IterableParser;
 use crate::parser::utils::{merge_errors, EitherState};
 use crate::parser::Parser;
 use crate::stream::Positioned;
@@ -83,20 +83,20 @@ where
 }
 
 crate::parser_state! {
-    pub struct SkipStreamedState<I, P: StreamedParser, Q: Parser> {
+    pub struct SkipIterableState<I, P: IterableParser, Q: Parser> {
         inner: EitherState<P::State, Q::State>,
         error: Option<Error<I::Ok, I::Locator>>,
     }
 }
 
-impl<P, Q, I> StreamedParser<I> for Skip<P, Q>
+impl<P, Q, I> IterableParser<I> for Skip<P, Q>
 where
-    P: StreamedParser<I>,
+    P: IterableParser<I>,
     Q: Parser<I>,
     I: Positioned + ?Sized,
 {
     type Item = P::Item;
-    type State = SkipStreamedState<I, P, Q>;
+    type State = SkipIterableState<I, P, Q>;
 
     fn poll_parse_next(
         &mut self,

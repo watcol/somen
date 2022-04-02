@@ -8,7 +8,7 @@ mod skip;
 mod then;
 mod tuples;
 
-pub use choice::{ChoiceParser, ChoiceStreamedParser, Or};
+pub use choice::{ChoiceParser, ChoiceIterableParser, Or};
 pub use fail::Fail;
 pub use opt::Opt;
 pub use peek::Peek;

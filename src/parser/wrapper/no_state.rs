@@ -2,7 +2,7 @@ use core::pin::Pin;
 use core::task::{Context, Poll};
 
 use crate::error::{PolledResult, Status};
-use crate::parser::streamed::StreamedParser;
+use crate::parser::iterable::IterableParser;
 use crate::parser::Parser;
 use crate::stream::Positioned;
 
@@ -59,9 +59,9 @@ where
     }
 }
 
-impl<P, I> StreamedParser<I> for NoState<P, P::State>
+impl<P, I> IterableParser<I> for NoState<P, P::State>
 where
-    P: StreamedParser<I>,
+    P: IterableParser<I>,
     I: Positioned + ?Sized,
 {
     type Item = P::Item;

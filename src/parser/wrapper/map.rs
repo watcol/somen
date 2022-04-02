@@ -2,7 +2,7 @@ use core::pin::Pin;
 use core::task::Context;
 
 use crate::error::{Error, Expects, PolledResult, Status};
-use crate::parser::streamed::StreamedParser;
+use crate::parser::iterable::IterableParser;
 use crate::parser::Parser;
 use crate::stream::Positioned;
 
@@ -53,9 +53,9 @@ where
     }
 }
 
-impl<P, F, T, I> StreamedParser<I> for Map<P, F>
+impl<P, F, T, I> IterableParser<I> for Map<P, F>
 where
-    P: StreamedParser<I>,
+    P: IterableParser<I>,
     F: FnMut(P::Item) -> T,
     I: Positioned + ?Sized,
 {
@@ -144,22 +144,22 @@ where
 }
 
 crate::parser_state! {
-    pub struct TryMapStreamedState<I, P: StreamedParser> {
+    pub struct TryMapIterableState<I, P: IterableParser> {
         inner: P::State,
         #[opt(set = set_start)]
         start: I::Locator,
     }
 }
 
-impl<P, F, T, E, I> StreamedParser<I> for TryMap<P, F>
+impl<P, F, T, E, I> IterableParser<I> for TryMap<P, F>
 where
-    P: StreamedParser<I>,
+    P: IterableParser<I>,
     F: FnMut(P::Item) -> Result<T, E>,
     E: Into<Expects<I::Ok>>,
     I: Positioned + ?Sized,
 {
     type Item = T;
-    type State = TryMapStreamedState<I, P>;
+    type State = TryMapIterableState<I, P>;
 
     fn poll_parse_next(
         &mut self,

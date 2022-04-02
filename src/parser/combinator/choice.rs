@@ -3,7 +3,7 @@ use core::task::{Context, Poll};
 use futures_core::ready;
 
 use crate::error::{Error, PolledResult, Status};
-use crate::parser::streamed::StreamedParser;
+use crate::parser::iterable::IterableParser;
 use crate::parser::utils::{merge_errors, EitherState};
 use crate::parser::Parser;
 use crate::stream::{Input, Positioned};
@@ -100,7 +100,7 @@ where
 }
 
 crate::parser_state! {
-    pub struct OrStreamedState<I: Input, P: StreamedParser, Q: StreamedParser> {
+    pub struct OrIterableState<I: Input, P: IterableParser, Q: IterableParser> {
         inner: EitherState<P::State, Q::State>,
         succeeded: bool,
         #[opt]
@@ -111,14 +111,14 @@ crate::parser_state! {
     }
 }
 
-impl<P, Q, I> StreamedParser<I> for Or<P, Q>
+impl<P, Q, I> IterableParser<I> for Or<P, Q>
 where
-    P: StreamedParser<I>,
-    Q: StreamedParser<I, Item = P::Item>,
+    P: IterableParser<I>,
+    Q: IterableParser<I, Item = P::Item>,
     I: Input + ?Sized,
 {
     type Item = P::Item;
-    type State = OrStreamedState<I, P, Q>;
+    type State = OrIterableState<I, P, Q>;
 
     fn poll_parse_next(
         &mut self,
@@ -198,15 +198,15 @@ pub trait ChoiceParser<I: Positioned + ?Sized> {
     fn into_parser(self) -> Self::Parser;
 }
 
-/// A helper trait for function [`choice_streamed`].
+/// A helper trait for function [`choice_iterable`].
 ///
-/// [`choice_streamed`]: crate::parser::streamed::choice_streamed
-pub trait ChoiceStreamedParser<I: Positioned + ?Sized> {
+/// [`choice_iterable`]: crate::parser::iterable::choice_iterable
+pub trait ChoiceIterableParser<I: Positioned + ?Sized> {
     /// The output parser type.
-    type StreamedParser: StreamedParser<I>;
+    type IterableParser: IterableParser<I>;
 
     /// Generate a choice parser from tuples.
-    fn into_streamed_parser(self) -> Self::StreamedParser;
+    fn into_iterable_parser(self) -> Self::IterableParser;
 }
 
 macro_rules! choice_tuple {
@@ -226,17 +226,17 @@ macro_rules! choice_tuple {
             }
         }
 
-        impl<I, $h> ChoiceStreamedParser<I> for ($h,)
+        impl<I, $h> ChoiceIterableParser<I> for ($h,)
         where
             I: Positioned + ?Sized,
-            $h: StreamedParser<I>,
+            $h: IterableParser<I>,
         {
-            type StreamedParser = $h;
+            type IterableParser = $h;
 
             #[inline]
-            fn into_streamed_parser(
+            fn into_iterable_parser(
                 self,
-            ) -> Self::StreamedParser {
+            ) -> Self::IterableParser {
                 self.0
             }
         }
@@ -261,21 +261,21 @@ macro_rules! choice_tuple {
             }
         }
 
-        impl<I, $h, $($t),*> ChoiceStreamedParser<I> for ($h, $($t),*)
+        impl<I, $h, $($t),*> ChoiceIterableParser<I> for ($h, $($t),*)
         where
             I: Input + ?Sized,
-            $h: StreamedParser<I>,
-            $( $t: StreamedParser<I, Item = $h::Item>, )+
+            $h: IterableParser<I>,
+            $( $t: IterableParser<I, Item = $h::Item>, )+
         {
-            type StreamedParser = Or<$h, <($($t),+,) as ChoiceStreamedParser<I>>::StreamedParser>;
+            type IterableParser = Or<$h, <($($t),+,) as ChoiceIterableParser<I>>::IterableParser>;
 
             #[inline]
-            fn into_streamed_parser(
+            fn into_iterable_parser(
                 self,
-            ) -> Self::StreamedParser {
+            ) -> Self::IterableParser {
                 #[allow(non_snake_case)]
                 let ($h, $($t),+) = self;
-                Or::new($h, ($($t),+,).into_streamed_parser())
+                Or::new($h, ($($t),+,).into_iterable_parser())
             }
         }
     };

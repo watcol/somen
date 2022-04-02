@@ -2,7 +2,7 @@ use core::pin::Pin;
 use core::task::Context;
 
 use crate::error::PolledResult;
-use crate::parser::streamed::StreamedParser;
+use crate::parser::iterable::IterableParser;
 use crate::parser::Parser;
 use crate::stream::Positioned;
 
@@ -66,10 +66,10 @@ where
     }
 }
 
-impl<P, Q, I> StreamedParser<I> for Either<P, Q>
+impl<P, Q, I> IterableParser<I> for Either<P, Q>
 where
-    P: StreamedParser<I>,
-    Q: StreamedParser<I, Item = P::Item>,
+    P: IterableParser<I>,
+    Q: IterableParser<I, Item = P::Item>,
     I: Positioned + ?Sized,
 {
     type Item = P::Item;

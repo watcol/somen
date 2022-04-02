@@ -52,7 +52,7 @@ fn array<'a, I: Input<Ok = char> + 'a>() -> impl Parser<I, Output = Vec<JsonValu
 fn number<'a, I: Input<Ok = char> + 'a>() -> impl Parser<I, Output = f64> + 'a {
     (
         token('-').once().opt(),
-        choice_streamed((
+        choice_iterable((
             token('0').once(),
             (
                 one_of("123456789").expect("a non-zero digit").once(),

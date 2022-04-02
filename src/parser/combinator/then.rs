@@ -3,7 +3,7 @@ use core::task::{Context, Poll};
 use futures_core::ready;
 
 use crate::error::{Error, Expects, PolledResult, Status};
-use crate::parser::streamed::StreamedParser;
+use crate::parser::iterable::IterableParser;
 use crate::parser::utils::{merge_errors, EitherState};
 use crate::parser::Parser;
 use crate::stream::Positioned;
@@ -89,7 +89,7 @@ where
 }
 
 crate::parser_state! {
-    pub struct ThenStreamedState<I, P: Parser, Q: StreamedParser> {
+    pub struct ThenIterableState<I, P: Parser, Q: IterableParser> {
         inner: EitherState<P::State, Q::State>,
         #[opt]
         parser: Q,
@@ -97,15 +97,15 @@ crate::parser_state! {
     }
 }
 
-impl<P, F, Q, I> StreamedParser<I> for Then<P, F>
+impl<P, F, Q, I> IterableParser<I> for Then<P, F>
 where
     P: Parser<I>,
     F: FnMut(P::Output) -> Q,
-    Q: StreamedParser<I>,
+    Q: IterableParser<I>,
     I: Positioned + ?Sized,
 {
     type Item = Q::Item;
-    type State = ThenStreamedState<I, P, Q>;
+    type State = ThenIterableState<I, P, Q>;
 
     fn poll_parse_next(
         &mut self,
@@ -244,7 +244,7 @@ where
 }
 
 crate::parser_state! {
-    pub struct TryThenStreamedState<I, P: Parser, Q: StreamedParser> {
+    pub struct TryThenIterableState<I, P: Parser, Q: IterableParser> {
         inner: EitherState<P::State, Q::State>,
         #[opt]
         parser: Q,
@@ -254,16 +254,16 @@ crate::parser_state! {
     }
 }
 
-impl<P, F, Q, E, I> StreamedParser<I> for TryThen<P, F>
+impl<P, F, Q, E, I> IterableParser<I> for TryThen<P, F>
 where
     P: Parser<I>,
     F: FnMut(P::Output) -> Result<Q, E>,
-    Q: StreamedParser<I>,
+    Q: IterableParser<I>,
     E: Into<Expects<I::Ok>>,
     I: Positioned + ?Sized,
 {
     type Item = Q::Item;
-    type State = TryThenStreamedState<I, P, Q>;
+    type State = TryThenIterableState<I, P, Q>;
 
     fn poll_parse_next(
         &mut self,

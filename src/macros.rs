@@ -2,16 +2,16 @@
 #[macro_export]
 macro_rules! call {
     ($func:expr) => {{
-        use $crate::parser::streamed::StreamedParserExt;
+        use $crate::parser::iterable::IterableParserExt;
         use $crate::parser::ParserExt;
         $crate::parser::lazy(|| ($func)().no_state().boxed())
     }};
 }
 
-/// Automatically generates a [`Parser::State`] or [`StreamedParser::State`].
+/// Automatically generates a [`Parser::State`] or [`IterableParser::State`].
 ///
 /// [`Parser::State`]: crate::parser::Parser::State
-/// [`StreamedParser::State`]: crate::parser::streamed::StreamedParser::State
+/// [`IterableParser::State`]: crate::parser::iterable::IterableParser::State
 #[macro_export]
 macro_rules! parser_state {
     (

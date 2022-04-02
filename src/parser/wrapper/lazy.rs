@@ -2,7 +2,7 @@ use core::pin::Pin;
 use core::task::Context;
 
 use crate::error::PolledResult;
-use crate::parser::streamed::StreamedParser;
+use crate::parser::iterable::IterableParser;
 use crate::parser::Parser;
 use crate::stream::Positioned;
 
@@ -54,21 +54,21 @@ where
 }
 
 crate::parser_state! {
-    pub struct LazyStreamedState<I, P: StreamedParser> {
+    pub struct LazyIterableState<I, P: IterableParser> {
         #[opt]
         parser: P,
         inner: P::State,
     }
 }
 
-impl<F, P, I> StreamedParser<I> for Lazy<F>
+impl<F, P, I> IterableParser<I> for Lazy<F>
 where
     F: FnMut() -> P,
-    P: StreamedParser<I>,
+    P: IterableParser<I>,
     I: Positioned + ?Sized,
 {
     type Item = P::Item;
-    type State = LazyStreamedState<I, P>;
+    type State = LazyIterableState<I, P>;
 
     #[inline]
     fn poll_parse_next(

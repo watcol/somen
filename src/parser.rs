@@ -2,7 +2,7 @@
 
 pub mod atomic;
 pub mod combinator;
-pub mod streamed;
+pub mod iterable;
 pub mod wrapper;
 
 mod future;
@@ -19,8 +19,8 @@ use crate::stream::{Input, Positioned};
 use atomic::*;
 use combinator::*;
 use future::ParseFuture;
-use streamed::assert_streamed_parser;
-use streamed::generator::*;
+use iterable::assert_iterable_parser;
+use iterable::generator::*;
 use wrapper::*;
 
 /// Wraps the function into a parser or a streaned parser.
@@ -34,7 +34,7 @@ where
     assert_parser(Function::new(f))
 }
 
-/// Produces the parser (or streamed parser) at the time of parsing.
+/// Produces the parser (or iterable parser) at the time of parsing.
 #[inline]
 pub fn lazy<F, P>(f: F) -> Lazy<F>
 where
@@ -314,7 +314,7 @@ pub trait ParserExt<I: Positioned + ?Sized>: Parser<I> {
     where
         Self: Sized,
     {
-        // Supports both `Parser` and `StreamedParser`.
+        // Supports both `Parser` and `IterableParser`.
         Prefix::new(self, p)
     }
 
@@ -350,48 +350,48 @@ pub trait ParserExt<I: Positioned + ?Sized>: Parser<I> {
         assert_parser(Opt::new(self))
     }
 
-    /// Returns a [`StreamedParser`] by wrapping the parser to return output exactly once.
+    /// Returns a [`IterableParser`] by wrapping the parser to return output exactly once.
     ///
     /// This method is equivalent to `self.times(1)`.
     ///
-    /// [`StreamedParser`]: streamed::StreamedParser
+    /// [`IterableParser`]: iterable::IterableParser
     #[inline]
     fn once(self) -> Times<Self>
     where
         Self: Sized,
         I: Positioned,
     {
-        assert_streamed_parser(Times::new(self, 1))
+        assert_iterable_parser(Times::new(self, 1))
     }
 
-    /// Returns a [`StreamedParser`] by repeating the parser exactly `n` times.
+    /// Returns a [`IterableParser`] by repeating the parser exactly `n` times.
     ///
-    /// [`StreamedParser`]: streamed::StreamedParser
+    /// [`IterableParser`]: iterable::IterableParser
     #[inline]
     fn times(self, n: usize) -> Times<Self>
     where
         Self: Sized,
         I: Positioned,
     {
-        assert_streamed_parser(Times::new(self, n))
+        assert_iterable_parser(Times::new(self, n))
     }
 
-    /// Returns a fixed-size [`StreamedParser`] of the parser separated by `sep`.
+    /// Returns a fixed-size [`IterableParser`] of the parser separated by `sep`.
     ///
-    /// [`StreamedParser`]: streamed::StreamedParser
+    /// [`IterableParser`]: iterable::IterableParser
     #[inline]
     fn sep_by_times<P, R>(self, sep: P, count: usize) -> SepByTimes<Self, P>
     where
         Self: Sized,
         P: Parser<I>,
     {
-        assert_streamed_parser(SepByTimes::new(self, sep, count))
+        assert_iterable_parser(SepByTimes::new(self, sep, count))
     }
 
-    /// Returns a fixed-size [`StreamedParser`] of the parser separated by `sep` (trailing
+    /// Returns a fixed-size [`IterableParser`] of the parser separated by `sep` (trailing
     /// separater is allowed).
     ///
-    /// [`StreamedParser`]: streamed::StreamedParser
+    /// [`IterableParser`]: iterable::IterableParser
     #[inline]
     fn sep_by_end_times<P, R>(self, sep: P, count: usize) -> SepByEndTimes<Self, P>
     where
@@ -399,12 +399,12 @@ pub trait ParserExt<I: Positioned + ?Sized>: Parser<I> {
         I: Input,
         P: Parser<I>,
     {
-        assert_streamed_parser(SepByEndTimes::new(self, sep, count))
+        assert_iterable_parser(SepByEndTimes::new(self, sep, count))
     }
 
-    /// Returns a [`StreamedParser`] by repeating the parser while succeeding.
+    /// Returns a [`IterableParser`] by repeating the parser while succeeding.
     ///
-    /// [`StreamedParser`]: streamed::StreamedParser
+    /// [`IterableParser`]: iterable::IterableParser
     #[inline]
     fn repeat<R>(self, range: R) -> Repeat<Self, R>
     where
@@ -412,12 +412,12 @@ pub trait ParserExt<I: Positioned + ?Sized>: Parser<I> {
         R: RangeBounds<usize>,
         I: Input,
     {
-        assert_streamed_parser(Repeat::new(self, range))
+        assert_iterable_parser(Repeat::new(self, range))
     }
 
-    /// Returns a [`StreamedParser`] of the parser separated by `sep`.
+    /// Returns a [`IterableParser`] of the parser separated by `sep`.
     ///
-    /// [`StreamedParser`]: streamed::StreamedParser
+    /// [`IterableParser`]: iterable::IterableParser
     #[inline]
     fn sep_by<P, R>(self, sep: P, range: R) -> SepBy<Self, P, R>
     where
@@ -426,13 +426,13 @@ pub trait ParserExt<I: Positioned + ?Sized>: Parser<I> {
         R: RangeBounds<usize>,
         I: Input,
     {
-        assert_streamed_parser(SepBy::new(self, sep, range))
+        assert_iterable_parser(SepBy::new(self, sep, range))
     }
 
-    /// Returns a [`StreamedParser`] of the parser separated by `sep` (trailing separater is
+    /// Returns a [`IterableParser`] of the parser separated by `sep` (trailing separater is
     /// allowed).
     ///
-    /// [`StreamedParser`]: streamed::StreamedParser
+    /// [`IterableParser`]: iterable::IterableParser
     #[inline]
     fn sep_by_end<P, R>(self, sep: P, range: R) -> SepByEnd<Self, P, R>
     where
@@ -441,27 +441,27 @@ pub trait ParserExt<I: Positioned + ?Sized>: Parser<I> {
         R: RangeBounds<usize>,
         I: Input,
     {
-        assert_streamed_parser(SepByEnd::new(self, sep, range))
+        assert_iterable_parser(SepByEnd::new(self, sep, range))
     }
 
     /// Parses with `self`, passes output to the function `f` and parses with a returned [`Parser`] or
-    /// [`StreamedParser`].
+    /// [`IterableParser`].
     ///
-    /// [`StreamedParser`]: streamed::StreamedParser
+    /// [`IterableParser`]: iterable::IterableParser
     #[inline]
     fn then<F, Q>(self, f: F) -> Then<Self, F>
     where
         Self: Sized,
         F: FnMut(Self::Output) -> Q,
     {
-        // Supports both `Parser` and `StreamedParser`.
+        // Supports both `Parser` and `IterableParser`.
         Then::new(self, f)
     }
 
     /// Parses with `self`, passes output to the failable function `f` and parses with a returned
-    /// [`Parser`] or [`StreamedParser`].
+    /// [`Parser`] or [`IterableParser`].
     ///
-    /// [`StreamedParser`]: streamed::StreamedParser
+    /// [`IterableParser`]: iterable::IterableParser
     #[inline]
     fn try_then<F, Q, E>(self, f: F) -> TryThen<Self, F>
     where
@@ -469,13 +469,13 @@ pub trait ParserExt<I: Positioned + ?Sized>: Parser<I> {
         F: FnMut(Self::Output) -> Result<Q, E>,
         E: Into<Expects<I::Ok>>,
     {
-        // Supports both `Parser` and `StreamedParser`.
+        // Supports both `Parser` and `IterableParser`.
         TryThen::new(self, f)
     }
 
-    /// Returns a [`StreamedParser`] by repeating the parser until the parser `end` succeeds.
+    /// Returns a [`IterableParser`] by repeating the parser until the parser `end` succeeds.
     ///
-    /// [`StreamedParser`]: streamed::StreamedParser
+    /// [`IterableParser`]: iterable::IterableParser
     #[inline]
     fn until<P>(self, end: P) -> Until<Self, P>
     where
@@ -483,7 +483,7 @@ pub trait ParserExt<I: Positioned + ?Sized>: Parser<I> {
         P: Parser<I>,
         I: Input,
     {
-        assert_streamed_parser(Until::new(self, end))
+        assert_iterable_parser(Until::new(self, end))
     }
 
     /// Discards the parse results.

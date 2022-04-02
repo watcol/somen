@@ -3,7 +3,7 @@ use core::pin::Pin;
 use core::task::Context;
 
 use crate::error::PolledResult;
-use crate::parser::streamed::StreamedParser;
+use crate::parser::iterable::IterableParser;
 use crate::parser::Parser;
 use crate::stream::Positioned;
 
@@ -47,7 +47,7 @@ where
     }
 }
 
-impl<F, I, T, C> StreamedParser<I> for Function<F, I, C>
+impl<F, I, T, C> IterableParser<I> for Function<F, I, C>
 where
     F: FnMut(Pin<&mut I>, &mut Context<'_>, &mut C) -> PolledResult<Option<T>, I>,
     I: Positioned + ?Sized,
