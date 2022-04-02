@@ -126,7 +126,7 @@ impl<I: ?Sized, F> IsSome<I, F> {
 impl<I, F, O> Parser<I> for IsSome<I, F>
 where
     I: Positioned + ?Sized,
-    F: FnMut(&I::Ok) -> Option<O>,
+    F: FnMut(I::Ok) -> Option<O>,
 {
     type Output = O;
     type State = ();
@@ -140,7 +140,7 @@ where
         let start = input.position();
         Poll::Ready(Ok(match ready!(input.as_mut().try_poll_next(cx)?) {
             // TODO: fix it on "if_let_guard" are stabilized.
-            Some(i) => match (self.cond)(&i) {
+            Some(i) => match (self.cond)(i) {
                 Some(val) => Status::Success(val, None),
                 None => Status::Failure(
                     Error {

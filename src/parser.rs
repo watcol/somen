@@ -138,7 +138,7 @@ where
 pub fn is_some<I, F, O>(cond: F) -> IsSome<I, F>
 where
     I: Positioned + ?Sized,
-    F: FnMut(&I::Ok) -> Option<O>,
+    F: FnMut(I::Ok) -> Option<O>,
 {
     assert_parser(IsSome::new(cond))
 }
