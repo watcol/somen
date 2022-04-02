@@ -7,16 +7,16 @@ use crate::error::{ParseError, ParseResult, Status};
 use crate::stream::{Input, Positioned, Rewind};
 
 #[derive(Debug)]
-pub struct ParserStream<'a, 'b, P: ?Sized, I: ?Sized, C> {
+pub struct IterableParserStream<'a, 'b, P: ?Sized, I: ?Sized, C> {
     parser: &'a mut P,
     input: &'b mut I,
     state: C,
 }
 
-impl<P: ?Sized, I: Unpin + ?Sized, C> Unpin for ParserStream<'_, '_, P, I, C> {}
+impl<P: ?Sized, I: Unpin + ?Sized, C> Unpin for IterableParserStream<'_, '_, P, I, C> {}
 
 impl<'a, 'b, P: IterableParser<I> + ?Sized, I: Positioned + Unpin + ?Sized>
-    ParserStream<'a, 'b, P, I, P::State>
+    IterableParserStream<'a, 'b, P, I, P::State>
 {
     pub fn new(parser: &'a mut P, input: &'b mut I) -> Self {
         Self {
@@ -28,7 +28,7 @@ impl<'a, 'b, P: IterableParser<I> + ?Sized, I: Positioned + Unpin + ?Sized>
 }
 
 impl<P: IterableParser<I> + ?Sized, I: Positioned + Unpin + ?Sized> Stream
-    for ParserStream<'_, '_, P, I, P::State>
+    for IterableParserStream<'_, '_, P, I, P::State>
 {
     type Item = ParseResult<P::Item, I>;
 
@@ -55,7 +55,7 @@ impl<P: IterableParser<I> + ?Sized, I: Positioned + Unpin + ?Sized> Stream
 }
 
 impl<P: IterableParser<I> + ?Sized, I: Positioned + Unpin + ?Sized> Positioned
-    for ParserStream<'_, '_, P, I, P::State>
+    for IterableParserStream<'_, '_, P, I, P::State>
 {
     type Locator = I::Locator;
 
@@ -66,7 +66,7 @@ impl<P: IterableParser<I> + ?Sized, I: Positioned + Unpin + ?Sized> Positioned
 }
 
 impl<P: IterableParser<I> + ?Sized, I: Input + Unpin + ?Sized> Rewind
-    for ParserStream<'_, '_, P, I, P::State>
+    for IterableParserStream<'_, '_, P, I, P::State>
 {
     type Marker = I::Marker;
 

@@ -18,7 +18,7 @@ use crate::error::{Expects, PolledResult};
 use crate::stream::{Input, Positioned};
 use combinator::*;
 use flat::*;
-use stream::ParserStream;
+use stream::IterableParserStream;
 
 #[cfg(feature = "alloc")]
 use alloc::boxed::Box;
@@ -78,11 +78,11 @@ pub trait IterableParserExt<I: Positioned + ?Sized>: IterableParser<I> {
     fn parse_iterable<'a, 'b>(
         &'a mut self,
         input: &'b mut I,
-    ) -> ParserStream<'a, 'b, Self, I, Self::State>
+    ) -> IterableParserStream<'a, 'b, Self, I, Self::State>
     where
         I: Unpin,
     {
-        ParserStream::new(self, input)
+        IterableParserStream::new(self, input)
     }
 
     /// Wraps the parser into a [`Box`].
