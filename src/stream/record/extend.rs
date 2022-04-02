@@ -7,7 +7,7 @@ use crate::stream::Positioned;
 
 pin_project! {
     /// Wraps [`TryStream`], storing the stream outputs to any types implementing [`Extend`].
-    #[derive(Clone, Debug, PartialEq, Eq)]
+    #[derive(Debug, PartialEq, Eq)]
     pub struct ExtendRecorder<'a, S: TryStream, E: ?Sized> {
         #[pin]
         inner: S,
@@ -19,10 +19,7 @@ impl<'a, S: TryStream, E: ?Sized> ExtendRecorder<'a, S, E> {
     /// Creates new instance.
     #[inline]
     pub fn new(inner: S, output: &'a mut E) -> Self {
-        Self {
-            inner,
-            output,
-        }
+        Self { inner, output }
     }
 
     /// Extracts the original stream.
