@@ -23,7 +23,7 @@ use iterable::assert_iterable_parser;
 use iterable::generator::*;
 use wrapper::*;
 
-/// Wraps the function into a parser or a streaned parser.
+/// Wraps the function into a parser or an iterable parser.
 #[inline]
 pub fn function<F, I, O, E, C>(f: F) -> Function<F, I, C>
 where
@@ -34,7 +34,7 @@ where
     assert_parser(Function::new(f))
 }
 
-/// Produces the parser (or iterable parser) at the time of parsing.
+/// Produces a parser (or an iterable parser) from the function at the time of parsing.
 #[inline]
 pub fn lazy<F, P>(f: F) -> Lazy<F>
 where
@@ -164,7 +164,7 @@ where
     assert_parser(Tag::new(tag))
 }
 
-/// A conventional function to produce [`or`] parser from tuples.
+/// A conventional function to produce a nested [`or`] parser from a tuple of parsers.
 ///
 /// For example, `choice((a, b, c))` is equivalent to `a.or(b).or(c)`.
 ///

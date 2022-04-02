@@ -23,7 +23,7 @@ use stream::ParserStream;
 #[cfg(feature = "alloc")]
 use alloc::boxed::Box;
 
-/// A conventional function to produce [`or`] iterable parser from tuples.
+/// A conventional function to produce a nested [`or`] parser from a tuple of iterable parsers.
 ///
 /// For example, `choice_iterable((a, b, c))` is equivalent to `a.or(b).or(c)`.
 ///
@@ -127,7 +127,7 @@ pub trait IterableParserExt<I: Positioned + ?Sized>: IterableParser<I> {
         assert_iterable_parser(Either::Right(self))
     }
 
-    /// Chains two streams and parses items in sequence.
+    /// Chains two iterable parsers and parses items in sequence.
     #[inline]
     fn chain<P>(self, p: P) -> (Self, P)
     where
