@@ -40,7 +40,7 @@ macro_rules! parser_state {
             $(, $Ps: $trait<$I>)*
             $($(, $Ts $(: core::default::$def)?)*)?
             $($(, const $Cs: $C_ty)*)?
-        > core::default::Default for $name <
+        > ::core::default::Default for $name <
             $I
             $(, $Ps)*
             $($(, $Ts)*)?
@@ -49,7 +49,7 @@ macro_rules! parser_state {
             #[inline]
             fn default() -> Self {
                 Self {
-                    $($field: core::default::Default::default()),*
+                    $($field: ::core::default::Default::default()),*
                 }
             }
         }
@@ -57,7 +57,7 @@ macro_rules! parser_state {
         impl <
             $I: $crate::stream::Positioned $(+ $Itrait)? + ?Sized
             $(, $Ps: $trait<$I>)*
-            $($(, $Ts $(: core::default::$def)?)*)?
+            $($(, $Ts $(: ::core::default::$def)?)*)?
             $($(, const $Cs: $C_ty)*)?
         > $name <
             $I
@@ -77,20 +77,20 @@ macro_rules! parser_state_inner {
         $ty
     };
     (@type; {opt} $ty:ty) => {
-        core::option::Option<$ty>
+        ::core::option::Option<$ty>
     };
     (@impl; $field:ident : $ty:ty) => {
         #[allow(dead_code, non_snake_case)]
         #[inline]
         fn $field(&mut self) -> $ty {
-            core::mem::take(&mut self.$field)
+            ::core::mem::take(&mut self.$field)
         }
     };
     (@impl; {} $field:ident : $ty:ty) => {
         #[allow(dead_code, non_snake_case)]
         #[inline]
         fn $field(&mut self) -> $ty {
-            core::mem::take(&mut self.$field).unwrap()
+            ::core::mem::take(&mut self.$field).unwrap()
         }
     };
     (@impl; {[set = $func:ident]$([$key:ident = $value:ident])*} $field:ident : $ty:ty) => {
@@ -106,25 +106,25 @@ macro_rules! parser_state_inner {
     (@impl; {[try_set = $func:ident]$([$key:ident = $value:ident])*} $field:ident : $ty:ty) => {
         #[cfg(feature = "nightly")]
         #[inline]
-        fn $func<F: FnOnce() -> R, R: core::ops::Try<Output = $ty>>(&mut self, f: F)
-            -> <R::Residual as core::ops::Residual<()>>::TryType
-        where R::Residual: core::ops::Residual<()>,
+        fn $func<F: FnOnce() -> R, R: ::core::ops::Try<Output = $ty>>(&mut self, f: F)
+            -> <R::Residual as ::core::ops::Residual<()>>::TryType
+        where R::Residual: ::core::ops::Residual<()>,
         {
             if self.$field.is_none() {
                 self.$field = Some(f()?);
             }
-            core::ops::Try::from_output(())
+            ::core::ops::Try::from_output(())
         }
 
         #[cfg(not(feature = "nightly"))]
         #[inline]
-        fn $func<F: FnOnce() -> core::result::Result<$ty, E>, E>(&mut self, f: F)
-            -> core::result::Result<(), E>
+        fn $func<F: FnOnce() -> ::core::result::Result<$ty, E>, E>(&mut self, f: F)
+            -> ::core::result::Result<(), E>
         {
             if self.$field.is_none() {
                 self.$field = Some(f()?);
             }
-            core::result::Result::Ok(())
+            ::core::result::Result::Ok(())
         }
 
         $crate::parser_state_inner! {@impl; {$([$key = $value])*} $field: $ty}
