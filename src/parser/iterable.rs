@@ -397,7 +397,7 @@ pub trait IterableParserExt<I: Positioned + ?Sized>: IterableParser<I> {
     where
         Self: Sized,
         F: FnMut(Self::Item) -> Result<O, E>,
-        E: Into<Expects<I::Ok>>,
+        E: Into<Expects>,
     {
         assert_iterable_parser(TryMap::new(self, f))
     }
@@ -451,7 +451,7 @@ pub trait IterableParserExt<I: Positioned + ?Sized>: IterableParser<I> {
         Self: Sized,
         Q: Parser<I>,
         F: FnMut(Q::Output, Self::Item) -> Result<Q::Output, E>,
-        E: Into<Expects<I::Ok>>,
+        E: Into<Expects>,
     {
         assert_parser(TryFold::new(self, init, f))
     }
@@ -472,7 +472,7 @@ pub trait IterableParserExt<I: Positioned + ?Sized>: IterableParser<I> {
     where
         Self: Sized,
         F: FnMut(Self::Item, Self::Item) -> Result<Self::Item, E>,
-        E: Into<Expects<I::Ok>>,
+        E: Into<Expects>,
     {
         assert_parser(TryReduce::new(self, f))
     }
@@ -497,7 +497,7 @@ pub trait IterableParserExt<I: Positioned + ?Sized>: IterableParser<I> {
         Self: Sized,
         Q: Parser<I>,
         F: FnMut(&mut Q::Output, Self::Item) -> Result<Option<T>, E>,
-        E: Into<Expects<I::Ok>>,
+        E: Into<Expects>,
     {
         assert_iterable_parser(TryScan::new(self, init, f))
     }

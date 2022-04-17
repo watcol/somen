@@ -14,47 +14,44 @@ use crate::stream::Positioned;
 /// The result type for [`poll_parse`].
 ///
 /// [`poll_parse`]: crate::parser::Parser::poll_parse
-pub type PolledResult<O, I> = Poll<
-    Result<Status<O, <I as TryStream>::Ok, <I as Positioned>::Locator>, <I as TryStream>::Error>,
->;
+pub type PolledResult<O, I> =
+    Poll<Result<Status<O, <I as Positioned>::Locator>, <I as TryStream>::Error>>;
 
 /// The result type for [`parse`].
 ///
 /// [`parse`]: crate::parser::ParserExt::parse
-pub type ParseResult<O, I> = Result<
-    O,
-    ParseError<<I as TryStream>::Ok, <I as Positioned>::Locator, <I as TryStream>::Error>,
->;
+pub type ParseResult<O, I> =
+    Result<O, ParseError<<I as Positioned>::Locator, <I as TryStream>::Error>>;
 
 /// The parsed status for method [`poll_parse`].
 ///
 /// [`poll_parse`]: crate::parser::Parser::poll_parse
 #[derive(Clone, Debug, PartialEq, Eq)]
-pub enum Status<O, T, L> {
+pub enum Status<O, L> {
     /// Succeeded parsing.
     ///
     /// If the second elements is [`Some`], it represents that an error has occured, but the parser
     /// discarded the error by rewinding the input stream.
-    Success(O, Option<Error<T, L>>),
+    Success(O, Option<Error<L>>),
 
     /// Failed parsing.
     ///
     /// If the second elements is `true`, it represents that this error is exclusive and merging
     /// other errors are disallowed.
-    Failure(Error<T, L>, bool),
+    Failure(Error<L>, bool),
 }
 
 /// Errors while parsing streams.
 #[derive(Clone, Debug, PartialEq, Eq)]
-pub struct Error<T, L> {
+pub struct Error<L> {
     /// Expected tokens.
-    pub expects: Expects<T>,
+    pub expects: Expects,
 
     /// The position where the error has occured.
     pub position: Range<L>,
 }
 
-impl<T, L> Error<T, L> {
+impl<L> Error<L> {
     /// Checks if the parser can rewind input to `pos` discarding this error, or not.
     #[inline]
     pub fn rewindable(&self, pos: &L) -> bool
@@ -63,27 +60,9 @@ impl<T, L> Error<T, L> {
     {
         self.position.start == *pos
     }
-
-    /// Sorts and removes duplicates in the expected tokens.
-    #[inline]
-    pub fn sort_expects(&mut self)
-    where
-        T: Ord,
-    {
-        self.expects.sort()
-    }
-
-    /// Converts [`ExpectKind::Token`] of each expects.
-    #[inline]
-    pub fn map_tokens<F: FnMut(T) -> U, U>(self, f: F) -> Error<U, L> {
-        Error {
-            expects: self.expects.map_tokens(f),
-            position: self.position,
-        }
-    }
 }
 
-impl<T: fmt::Display, L> fmt::Display for Error<T, L> {
+impl<L> fmt::Display for Error<L> {
     #[inline]
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "expected {}.", self.expects)
@@ -92,36 +71,35 @@ impl<T: fmt::Display, L> fmt::Display for Error<T, L> {
 
 #[cfg(feature = "std")]
 #[cfg_attr(feature = "nightly", doc(cfg(feature = "std")))]
-impl<T: fmt::Debug + fmt::Display, L: fmt::Debug> std::error::Error for Error<T, L> {}
+impl<L: fmt::Debug> std::error::Error for Error<L> {}
 
 /// The error type for this crate.
 #[derive(Clone, Debug, PartialEq, Eq)]
-pub enum ParseError<T, L, E> {
+pub enum ParseError<L, E> {
     /// A parsing error.
-    Parser(Error<T, L>),
+    Parser(Error<L>),
 
     /// An error while reading streams.
     Stream(E),
 }
 
-impl<T, L, E> From<E> for ParseError<T, L, E> {
+impl<L, E> From<E> for ParseError<L, E> {
     #[inline]
     fn from(error: E) -> Self {
         Self::Stream(error)
     }
 }
 
-impl<T, U, L, E> ParseError<T, L, ParseError<U, L, E>> {
-    pub fn flatten(self) -> ParseError<Result<T, U>, L, E> {
+impl<L, E> ParseError<L, ParseError<L, E>> {
+    pub fn flatten(self) -> ParseError<L, E> {
         match self {
-            Self::Parser(err) => ParseError::Parser(err.map_tokens(Ok)),
-            Self::Stream(ParseError::Parser(err)) => ParseError::Parser(err.map_tokens(Err)),
+            Self::Parser(err) | Self::Stream(ParseError::Parser(err)) => ParseError::Parser(err),
             Self::Stream(ParseError::Stream(e)) => ParseError::Stream(e),
         }
     }
 }
 
-impl<T: fmt::Display, L, E: fmt::Display> fmt::Display for ParseError<T, L, E> {
+impl<L, E: fmt::Display> fmt::Display for ParseError<L, E> {
     #[inline]
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
@@ -133,9 +111,8 @@ impl<T: fmt::Display, L, E: fmt::Display> fmt::Display for ParseError<T, L, E> {
 
 #[cfg(feature = "std")]
 #[cfg_attr(feature = "nightly", doc(cfg(feature = "std")))]
-impl<T, L, E> std::error::Error for ParseError<T, L, E>
+impl<L, E> std::error::Error for ParseError<L, E>
 where
-    T: fmt::Debug + fmt::Display + 'static,
     L: fmt::Debug + 'static,
     E: std::error::Error + 'static,
 {

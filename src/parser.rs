@@ -10,6 +10,8 @@ mod utils;
 
 #[cfg(feature = "alloc")]
 use alloc::boxed::Box;
+#[cfg(feature = "alloc")]
+use core::fmt::Display;
 use core::ops::RangeBounds;
 use core::pin::Pin;
 use core::task::Context;
@@ -75,20 +77,44 @@ pub fn position<I: Positioned + ?Sized>() -> Position<I> {
 
 /// Parses a token.
 #[inline]
+#[cfg(feature = "alloc")]
 pub fn token<I>(token: I::Ok) -> Token<I, I::Ok>
 where
     I: Positioned + ?Sized,
-    I::Ok: Clone + PartialEq,
+    I::Ok: PartialEq + Display,
+{
+    assert_parser(Token::new(token))
+}
+
+/// Parses a token.
+#[inline]
+#[cfg(not(feature = "alloc"))]
+pub fn token<I>(token: I::Ok) -> Token<I, I::Ok>
+where
+    I: Positioned + ?Sized,
+    I::Ok: PartialEq,
 {
     assert_parser(Token::new(token))
 }
 
 /// Parses any token except `token`.
 #[inline]
+#[cfg(feature = "alloc")]
 pub fn not<I>(token: I::Ok) -> Not<I, I::Ok>
 where
     I: Positioned + ?Sized,
-    I::Ok: Clone + PartialEq,
+    I::Ok: PartialEq + Display,
+{
+    assert_parser(Not::new(token))
+}
+
+/// Parses any token except `token`.
+#[inline]
+#[cfg(not(feature = "alloc"))]
+pub fn not<I>(token: I::Ok) -> Not<I, I::Ok>
+where
+    I: Positioned + ?Sized,
+    I::Ok: PartialEq,
 {
     assert_parser(Not::new(token))
 }
@@ -478,7 +504,7 @@ pub trait ParserExt<I: Positioned + ?Sized>: Parser<I> {
     where
         Self: Sized,
         F: FnMut(Self::Output) -> Result<Q, E>,
-        E: Into<Expects<I::Ok>>,
+        E: Into<Expects>,
     {
         // Supports both `Parser` and `IterableParser`.
         TryThen::new(self, f)
@@ -522,7 +548,7 @@ pub trait ParserExt<I: Positioned + ?Sized>: Parser<I> {
     where
         Self: Sized,
         F: FnMut(Self::Output) -> Result<O, E>,
-        E: Into<Expects<I::Ok>>,
+        E: Into<Expects>,
     {
         assert_parser(TryMap::new(self, f))
     }
@@ -542,15 +568,15 @@ pub trait ParserExt<I: Positioned + ?Sized>: Parser<I> {
     fn map_err<F, E>(self, f: F) -> MapErr<Self, F>
     where
         Self: Sized,
-        F: FnMut(Expects<I::Ok>) -> E,
-        E: Into<Expects<I::Ok>>,
+        F: FnMut(Expects) -> Expects,
+        E: Into<Expects>,
     {
         assert_parser(MapErr::new(self, f))
     }
 
     /// Overrides expected values.
     #[inline]
-    fn expect<E: Into<Expects<I::Ok>>>(self, expected: E) -> Expect<Self, Expects<I::Ok>>
+    fn expect<E: Into<Expects>>(self, expected: E) -> Expect<Self>
     where
         Self: Sized,
         I::Ok: Clone,
@@ -560,7 +586,7 @@ pub trait ParserExt<I: Positioned + ?Sized>: Parser<I> {
 
     /// Overrides parsing errors as "exclusive".
     #[inline]
-    fn exclusive<E: Into<Expects<I::Ok>>>(self, expected: E) -> Exclusive<Self, Expects<I::Ok>>
+    fn exclusive<E: Into<Expects>>(self, expected: E) -> Exclusive<Self>
     where
         Self: Sized,
         I::Ok: Clone,

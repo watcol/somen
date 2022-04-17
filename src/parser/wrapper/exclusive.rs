@@ -9,15 +9,15 @@ use crate::stream::Positioned;
 ///
 /// [`exclusive`]: crate::parser::ParserExt::exclusive
 #[derive(Clone, Debug, PartialEq, Eq)]
-pub struct Exclusive<P, E> {
+pub struct Exclusive<P> {
     inner: P,
-    expects: E,
+    expects: Expects,
 }
 
-impl<P, E> Exclusive<P, E> {
+impl<P> Exclusive<P> {
     /// Creates a new instance.
     #[inline]
-    pub fn new(inner: P, expects: E) -> Self {
+    pub fn new(inner: P, expects: Expects) -> Self {
         Self { inner, expects }
     }
 
@@ -36,11 +36,10 @@ crate::parser_state! {
     }
 }
 
-impl<P, I> Parser<I> for Exclusive<P, Expects<I::Ok>>
+impl<P, I> Parser<I> for Exclusive<P>
 where
     P: Parser<I>,
     I: Positioned + ?Sized,
-    I::Ok: Clone,
 {
     type Output = P::Output;
     type State = ExclusiveState<I, P>;

@@ -16,7 +16,7 @@ macro_rules! tuple_parser {
                 $(
                     $t: ($t::State, bool),
                 )*
-                error: Option<Error<I::Ok, I::Locator>>,
+                error: Option<Error<I::Locator>>,
             }
         }
 

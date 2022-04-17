@@ -3,7 +3,7 @@ use core::pin::Pin;
 use core::task::{Context, Poll};
 use futures_core::ready;
 
-use crate::error::{Error, ExpectKind, Expects, PolledResult, Status};
+use crate::error::{Error, Expects, PolledResult, Status};
 use crate::parser::Parser;
 use crate::stream::Positioned;
 
@@ -43,7 +43,7 @@ impl<I: Positioned + ?Sized> Parser<I> for Any<I> {
             Some(i) => Status::Success(i, None),
             None => Status::Failure(
                 Error {
-                    expects: Expects::new(ExpectKind::Any),
+                    expects: Expects::from("a token"),
                     position: start..input.position(),
                 },
                 false,

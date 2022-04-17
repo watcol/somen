@@ -36,7 +36,7 @@ crate::parser_state! {
         inner: EitherState<P::State, Q::State>,
         #[opt]
         parser: Q,
-        error: Option<Error<I::Ok, I::Locator>>,
+        error: Option<Error<I::Locator>>,
     }
 }
 
@@ -93,7 +93,7 @@ crate::parser_state! {
         inner: EitherState<P::State, Q::State>,
         #[opt]
         parser: Q,
-        error: Option<Error<I::Ok, I::Locator>>,
+        error: Option<Error<I::Locator>>,
     }
 }
 
@@ -175,7 +175,7 @@ crate::parser_state! {
         parser: Q,
         #[opt]
         start: I::Locator,
-        error: Option<Error<I::Ok, I::Locator>>,
+        error: Option<Error<I::Locator>>,
     }
 }
 
@@ -184,7 +184,7 @@ where
     P: Parser<I>,
     F: FnMut(P::Output) -> Result<Q, E>,
     Q: Parser<I>,
-    E: Into<Expects<I::Ok>>,
+    E: Into<Expects>,
     I: Positioned + ?Sized,
 {
     type Output = Q::Output;
@@ -250,7 +250,7 @@ crate::parser_state! {
         parser: Q,
         #[opt]
         start: I::Locator,
-        error: Option<Error<I::Ok, I::Locator>>,
+        error: Option<Error<I::Locator>>,
     }
 }
 
@@ -259,7 +259,7 @@ where
     P: Parser<I>,
     F: FnMut(P::Output) -> Result<Q, E>,
     Q: IterableParser<I>,
-    E: Into<Expects<I::Ok>>,
+    E: Into<Expects>,
     I: Positioned + ?Sized,
 {
     type Item = Q::Item;

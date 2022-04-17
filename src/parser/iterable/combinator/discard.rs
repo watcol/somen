@@ -33,7 +33,7 @@ impl<P> Discard<P> {
 crate::parser_state! {
     pub struct DiscardState<I, P: IterableParser> {
         inner: P::State,
-        error: Option<Error<I::Ok, I::Locator>>,
+        error: Option<Error<I::Locator>>,
     }
 }
 

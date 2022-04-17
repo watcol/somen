@@ -37,7 +37,7 @@ crate::parser_state! {
         inner: EitherState<Q::State, P::State>,
         #[opt]
         acc: Q::Output,
-        error: Option<Error<I::Ok, I::Locator>>,
+        error: Option<Error<I::Locator>>,
     }
 }
 
@@ -122,7 +122,7 @@ crate::parser_state! {
         acc: Q::Output,
         #[opt(set = set_start)]
         start: I::Locator,
-        error: Option<Error<I::Ok, I::Locator>>,
+        error: Option<Error<I::Locator>>,
     }
 }
 
@@ -131,7 +131,7 @@ where
     P: IterableParser<I>,
     Q: Parser<I>,
     F: FnMut(Q::Output, P::Item) -> Result<Q::Output, E>,
-    E: Into<Expects<I::Ok>>,
+    E: Into<Expects>,
     I: Positioned + ?Sized,
 {
     type Output = Q::Output;

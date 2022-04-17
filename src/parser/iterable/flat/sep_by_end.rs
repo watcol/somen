@@ -41,7 +41,7 @@ crate::parser_state! {
         streaming: bool,
         #[opt(set = set_start)]
         start: I::Locator,
-        error: Option<Error<I::Ok, I::Locator>>,
+        error: Option<Error<I::Locator>>,
         count: usize,
     }
 }

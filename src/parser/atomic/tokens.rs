@@ -3,7 +3,7 @@ use core::pin::Pin;
 use core::task::{Context, Poll};
 use futures_core::ready;
 
-use crate::error::{Error, ExpectKind, Expects, PolledResult, Status};
+use crate::error::{Error, Expects, PolledResult, Status};
 use crate::parser::Parser;
 use crate::stream::Positioned;
 
@@ -71,7 +71,7 @@ where
                 _ => {
                     break Status::Failure(
                         Error {
-                            expects: Expects::new(ExpectKind::Static("<tokens>")),
+                            expects: Expects::from("<tokens>"),
                             position: state.start()..state.next(),
                         },
                         false,

@@ -34,7 +34,7 @@ impl<P, Q> Prefix<P, Q> {
 crate::parser_state! {
     pub struct PrefixedByState<I, P: Parser, Q: Parser> {
         inner: EitherState<P::State, Q::State>,
-        error: Option<Error<I::Ok, I::Locator>>,
+        error: Option<Error<I::Locator>>,
     }
 }
 
@@ -85,7 +85,7 @@ crate::parser_state! {
     pub struct PrefixedByIterableState<I, P: Parser, Q: IterableParser> {
         inner: EitherState<P::State, Q::State>,
         succeeded: bool,
-        error: Option<Error<I::Ok, I::Locator>>,
+        error: Option<Error<I::Locator>>,
     }
 }
 

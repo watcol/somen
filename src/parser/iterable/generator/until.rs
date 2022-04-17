@@ -38,7 +38,7 @@ crate::parser_state! {
         marker: I::Marker,
         #[opt]
         start: I::Locator,
-        error: Option<Error<I::Ok, I::Locator>>,
+        error: Option<Error<I::Locator>>,
     }
 }
 

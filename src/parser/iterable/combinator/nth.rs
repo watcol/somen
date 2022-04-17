@@ -36,7 +36,7 @@ crate::parser_state! {
         inner: P::State,
         count: usize,
         output: Option<P::Item>,
-        error: Option<Error<I::Ok, I::Locator>>,
+        error: Option<Error<I::Locator>>,
     }
 }
 

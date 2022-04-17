@@ -31,8 +31,8 @@ impl<P, F> MapErr<P, F> {
 impl<P, F, E, I> Parser<I> for MapErr<P, F>
 where
     P: Parser<I>,
-    F: FnMut(Expects<I::Ok>) -> E,
-    E: Into<Expects<I::Ok>>,
+    F: FnMut(Expects) -> E,
+    E: Into<Expects>,
     I: Positioned + ?Sized,
 {
     type Output = P::Output;

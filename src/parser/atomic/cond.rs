@@ -94,7 +94,7 @@ where
             Some(val) if !(self.cond)(&val) => Status::Success(val, None),
             _ => Status::Failure(
                 Error {
-                    expects: Expects::from("<cond>").negate(),
+                    expects: Expects::from("<not cond>"),
                     position: start..input.position(),
                 },
                 false,

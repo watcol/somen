@@ -1,38 +1,49 @@
+use alloc::borrow::Cow;
+use alloc::collections::BTreeSet;
 use alloc::string::String;
-use alloc::vec::Vec;
 use core::fmt;
 
-use super::{Expect, ExpectKind};
+/// A expected token.
+pub type Expect = Cow<'static, str>;
 
 /// A set of expected tokens.
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct Expects<T>(Vec<Expect<T>>);
+pub struct Expects(BTreeSet<Expect>);
 
-impl<T> From<Expect<T>> for Expects<T> {
+impl From<Expect> for Expects {
     #[inline]
-    fn from(inner: Expect<T>) -> Self {
-        Self(alloc::vec![inner])
+    fn from(msg: Cow<'static, str>) -> Self {
+        Self(BTreeSet::from([msg]))
     }
 }
 
-impl<T> From<String> for Expects<T> {
+impl From<&'static str> for Expects {
+    #[inline]
+    fn from(msg: &'static str) -> Self {
+        Self(BTreeSet::from([Expect::from(msg)]))
+    }
+}
+
+impl From<String> for Expects {
     #[inline]
     fn from(msg: String) -> Self {
-        Expects::from(ExpectKind::Owned(msg))
+        Self(BTreeSet::from([Expect::from(msg)]))
     }
 }
 
-impl<T: fmt::Display> fmt::Display for Expects<T> {
+impl fmt::Display for Expects {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let len = self.0.len();
         if len == 0 {
             Ok(())
+        } else if len == 1 {
+            write!(f, "{}", self.0.iter().next().unwrap())
         } else {
             for (c, i) in self.0.iter().enumerate() {
                 if c == 0 {
-                    write!(f, "{}", i)?;
+                    write!(f, "one of {}", i)?;
                 } else if c == len - 1 {
-                    write!(f, " or {}", i)?;
+                    write!(f, ", or {}", i)?;
                 } else {
                     write!(f, ", {}", i)?;
                 }
@@ -42,39 +53,43 @@ impl<T: fmt::Display> fmt::Display for Expects<T> {
     }
 }
 
-impl<T> FromIterator<Expect<T>> for Expects<T> {
-    fn from_iter<I: IntoIterator<Item = Expect<T>>>(iter: I) -> Self {
+impl FromIterator<Expect> for Expects {
+    fn from_iter<I: IntoIterator<Item = Expect>>(iter: I) -> Self {
         Self(iter.into_iter().collect())
     }
 }
 
-impl<T> IntoIterator for Expects<T> {
-    type Item = Expect<T>;
-    type IntoIter = alloc::vec::IntoIter<Expect<T>>;
+impl FromIterator<&'static str> for Expects {
+    fn from_iter<I: IntoIterator<Item = &'static str>>(iter: I) -> Self {
+        Self(iter.into_iter().map(Expect::from).collect())
+    }
+}
 
+impl FromIterator<String> for Expects {
+    fn from_iter<I: IntoIterator<Item = String>>(iter: I) -> Self {
+        Self(iter.into_iter().map(Expect::from).collect())
+    }
+}
+
+impl IntoIterator for Expects {
+    type Item = Expect;
+    type IntoIter = alloc::collections::btree_set::IntoIter<Expect>;
+
+    #[inline]
     fn into_iter(self) -> Self::IntoIter {
         self.0.into_iter()
     }
 }
 
-impl<T> Expects<T> {
+impl Expects {
     /// Merges two sets.
-    pub fn merge(mut self, mut other: Expects<T>) -> Self {
+    pub fn merge(mut self, mut other: Expects) -> Self {
         self.0.append(&mut other.0);
         self
     }
 
     /// Converts each elements.
-    pub fn map<F: FnMut(Expect<T>) -> Expect<U>, U>(self, mut f: F) -> Expects<U> {
+    pub fn map<F: FnMut(Expect) -> Expect>(self, mut f: F) -> Self {
         Expects(self.into_iter().map(&mut f).collect())
-    }
-
-    /// Sorts and removes duplicates.
-    pub fn sort(&mut self)
-    where
-        T: Ord,
-    {
-        self.0.sort_unstable();
-        self.0.dedup();
     }
 }

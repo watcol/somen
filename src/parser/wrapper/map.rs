@@ -112,7 +112,7 @@ impl<P, F, O, E, I> Parser<I> for TryMap<P, F>
 where
     P: Parser<I>,
     F: FnMut(P::Output) -> Result<O, E>,
-    E: Into<Expects<I::Ok>>,
+    E: Into<Expects>,
     I: Positioned + ?Sized,
 {
     type Output = O;
@@ -155,7 +155,7 @@ impl<P, F, T, E, I> IterableParser<I> for TryMap<P, F>
 where
     P: IterableParser<I>,
     F: FnMut(P::Item) -> Result<T, E>,
-    E: Into<Expects<I::Ok>>,
+    E: Into<Expects>,
     I: Positioned + ?Sized,
 {
     type Item = T;

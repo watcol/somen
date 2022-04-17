@@ -36,7 +36,7 @@ crate::parser_state! {
     pub struct FlatSepByTimesState<I, P: IterableParser, Q: Parser> {
         inner: EitherState<P::State, Q::State>,
         count: usize,
-        error: Option<Error<I::Ok, I::Locator>>,
+        error: Option<Error<I::Locator>>,
     }
 }
 

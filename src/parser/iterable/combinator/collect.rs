@@ -40,7 +40,7 @@ crate::parser_state! {
         inner: P::State,
         collection: E,
         reserved: bool,
-        error: Option<Error<I::Ok, I::Locator>>,
+        error: Option<Error<I::Locator>>,
     }
 }
 

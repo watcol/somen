@@ -33,7 +33,7 @@ crate::parser_state! {
     pub struct FlattenState<I, P: IterableParser; T> {
         inner: P::State,
         iter: Option<T>,
-        error: Option<Error<I::Ok, I::Locator>>,
+        error: Option<Error<I::Locator>>,
     }
 }
 

@@ -36,7 +36,7 @@ crate::parser_state! {
         inner: EitherState<P::State, Q::State>,
         #[opt]
         output: P::Output,
-        error: Option<Error<I::Ok, I::Locator>>,
+        error: Option<Error<I::Locator>>,
     }
 }
 
@@ -85,7 +85,7 @@ where
 crate::parser_state! {
     pub struct SkipIterableState<I, P: IterableParser, Q: Parser> {
         inner: EitherState<P::State, Q::State>,
-        error: Option<Error<I::Ok, I::Locator>>,
+        error: Option<Error<I::Locator>>,
     }
 }
 

@@ -9,15 +9,15 @@ use crate::stream::Positioned;
 ///
 /// [`expect`]: crate::parser::ParserExt::expect
 #[derive(Clone, Debug, PartialEq, Eq)]
-pub struct Expect<P, E> {
+pub struct Expect<P> {
     inner: P,
-    expects: E,
+    expects: Expects,
 }
 
-impl<P, E> Expect<P, E> {
+impl<P> Expect<P> {
     /// Creates a new instance.
     #[inline]
-    pub fn new(inner: P, expects: E) -> Self {
+    pub fn new(inner: P, expects: Expects) -> Self {
         Self { inner, expects }
     }
 
@@ -36,11 +36,10 @@ crate::parser_state! {
     }
 }
 
-impl<P, I> Parser<I> for Expect<P, Expects<I::Ok>>
+impl<P, I> Parser<I> for Expect<P>
 where
     P: Parser<I>,
     I: Positioned + ?Sized,
-    I::Ok: Clone,
 {
     type Output = P::Output;
     type State = ExpectState<I, P>;

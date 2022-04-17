@@ -1,60 +1,52 @@
 use core::fmt;
 
-use super::{Expect, ExpectKind};
+pub type Expect = &'static str;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct Expects<T>(Expect<T>);
+pub struct Expects(Expect);
 
-impl<T> From<Expect<T>> for Expects<T> {
+impl From<Expect> for Expects {
     #[inline]
-    fn from(inner: Expect<T>) -> Self {
+    fn from(inner: Expect) -> Self {
         Self(inner)
     }
 }
 
-impl<T: fmt::Display> fmt::Display for Expects<T> {
+impl fmt::Display for Expects {
     #[inline]
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         self.0.fmt(f)
     }
 }
 
-impl<T> IntoIterator for Expects<T> {
-    type Item = Expect<T>;
-    type IntoIter = core::iter::Once<Expect<T>>;
+impl IntoIterator for Expects {
+    type Item = Expect;
+    type IntoIter = core::iter::Once<Expect>;
 
     fn into_iter(self) -> Self::IntoIter {
         core::iter::once(self.0)
     }
 }
 
-impl<T> FromIterator<Expect<T>> for Expects<T> {
-    fn from_iter<I: IntoIterator<Item = Expect<T>>>(iter: I) -> Self {
+impl FromIterator<Expect> for Expects {
+    fn from_iter<I: IntoIterator<Item = Expect>>(iter: I) -> Self {
         let mut iter = iter.into_iter();
         match iter.next() {
             Some(ex) if iter.next().is_none() => Self(ex),
-            _ => Self(Expect::Positive(ExpectKind::Other)),
+            _ => Self("something"),
         }
     }
 }
 
-impl<T> Expects<T> {
+impl Expects {
     #[inline]
     #[allow(unused_variables)]
-    pub fn merge(self, other: Expects<T>) -> Self {
-        Self(Expect::Positive(ExpectKind::Other))
+    pub fn merge(self, other: Self) -> Self {
+        Self("something")
     }
 
-    /// Converting each elements.
     #[inline]
-    pub fn map<F: FnMut(Expect<T>) -> Expect<U>, U>(self, mut f: F) -> Expects<U> {
+    pub fn map<F: FnMut(Expect) -> Expect>(self, mut f: F) -> Self {
         Expects(f(self.0))
-    }
-
-    #[inline]
-    pub fn sort(&mut self)
-    where
-        T: Ord,
-    {
     }
 }

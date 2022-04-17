@@ -4,7 +4,7 @@ use core::str::Chars;
 use core::task::{Context, Poll};
 use futures_core::ready;
 
-use crate::error::{Error, ExpectKind, Expects, PolledResult, Status};
+use crate::error::{Error, Expects, PolledResult, Status};
 use crate::parser::Parser;
 use crate::stream::Positioned;
 
@@ -68,7 +68,7 @@ where
                 _ => {
                     break Status::Failure(
                         Error {
-                            expects: Expects::new(ExpectKind::Static(self.tag)),
+                            expects: Expects::from(self.tag),
                             position: state.start()..state.next(),
                         },
                         false,

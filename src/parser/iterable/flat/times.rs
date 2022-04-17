@@ -33,7 +33,7 @@ crate::parser_state! {
     pub struct FlatTimesState<I, P: IterableParser> {
         inner: P::State,
         count: usize,
-        error: Option<Error<I::Ok, I::Locator>>,
+        error: Option<Error<I::Locator>>,
     }
 }
 

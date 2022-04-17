@@ -3,7 +3,7 @@ use core::pin::Pin;
 use core::task::{Context, Poll};
 use futures_core::ready;
 
-use crate::error::{Error, ExpectKind, Expects, PolledResult, Status};
+use crate::error::{Error, Expects, PolledResult, Status};
 use crate::parser::Parser;
 use crate::stream::Positioned;
 
@@ -42,7 +42,7 @@ impl<I: Positioned + ?Sized> Parser<I> for Eof<I> {
         Poll::Ready(Ok(match ready!(input.as_mut().try_poll_next(cx)?) {
             Some(_) => Status::Failure(
                 Error {
-                    expects: Expects::new_neg(ExpectKind::Any),
+                    expects: Expects::from("eof"),
                     position: start..input.position(),
                 },
                 false,

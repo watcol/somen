@@ -54,7 +54,7 @@ crate::parser_state! {
         count: usize,
         buf: UninitBuffer<P::Item, N>,
         end: bool,
-        error: Option<Error<I::Ok, I::Locator>>,
+        error: Option<Error<I::Locator>>,
     }
 }
 

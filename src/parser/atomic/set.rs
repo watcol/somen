@@ -1,3 +1,7 @@
+#[cfg(feature = "alloc")]
+use alloc::{format, string::ToString};
+#[cfg(feature = "alloc")]
+use core::fmt::Display;
 use core::marker::PhantomData;
 use core::ops::{
     Bound, Range, RangeBounds, RangeFrom, RangeFull, RangeInclusive, RangeTo, RangeToInclusive,
@@ -6,7 +10,7 @@ use core::pin::Pin;
 use core::task::{Context, Poll};
 use futures_core::ready;
 
-use crate::error::{Error, Expect, ExpectKind, Expects, PolledResult, Status};
+use crate::error::{Error, Expects, PolledResult, Status};
 use crate::parser::Parser;
 use crate::stream::Positioned;
 
@@ -97,7 +101,15 @@ where
             Some(i) if !self.set.contains(&i) => Status::Success(i, None),
             _ => Status::Failure(
                 Error {
-                    expects: self.set.to_expects().negate(),
+                    #[cfg(feature = "alloc")]
+                    expects: Expects::from_iter(
+                        self.set
+                            .to_expects()
+                            .into_iter()
+                            .map(|exp| alloc::borrow::Cow::from(format!("not {}", exp))),
+                    ),
+                    #[cfg(not(feature = "alloc"))]
+                    expects: Expects::from("<none of set>"),
                     position: start..input.position(),
                 },
                 false,
@@ -116,7 +128,7 @@ pub trait Set<T> {
 
     /// Express the set by [`Expects`].
     #[inline]
-    fn to_expects(&self) -> Expects<T> {
+    fn to_expects(&self) -> Expects {
         Expects::from("<set>")
     }
 }
@@ -128,40 +140,45 @@ impl<'a, T, S: Set<T> + ?Sized> Set<T> for &'a S {
     }
 
     #[inline]
-    fn to_expects(&self) -> Expects<T> {
+    fn to_expects(&self) -> Expects {
         (**self).to_expects()
     }
 }
 
-impl<T: PartialEq + Clone> Set<T> for [T] {
+impl<
+        #[cfg(not(feature = "alloc"))] T: PartialEq,
+        #[cfg(feature = "alloc")] T: PartialEq + Display,
+    > Set<T> for [T]
+{
     #[inline]
     fn contains(&self, token: &T) -> bool {
         <[T]>::contains(self, token)
     }
 
     #[inline]
-    fn to_expects(&self) -> Expects<T> {
-        Expects::from_iter(
-            self.iter()
-                .cloned()
-                .map(|t| Expect::Positive(ExpectKind::Token(t))),
-        )
+    #[cfg(feature = "alloc")]
+    #[cfg_attr(feature = "nightly", doc(cfg(feature = "alloc")))]
+    fn to_expects(&self) -> Expects {
+        Expects::from_iter(self.iter().map(|t| t.to_string()))
     }
 }
 
-impl<T: PartialEq + Clone, const N: usize> Set<T> for [T; N] {
+impl<
+        #[cfg(not(feature = "alloc"))] T: PartialEq,
+        #[cfg(feature = "alloc")] T: PartialEq + Display,
+        const N: usize,
+    > Set<T> for [T; N]
+{
     #[inline]
     fn contains(&self, token: &T) -> bool {
         <[T]>::contains(self, token)
     }
 
     #[inline]
-    fn to_expects(&self) -> Expects<T> {
-        Expects::from_iter(
-            self.iter()
-                .cloned()
-                .map(|t| Expect::Positive(ExpectKind::Token(t))),
-        )
+    #[cfg(feature = "alloc")]
+    #[cfg_attr(feature = "nightly", doc(cfg(feature = "alloc")))]
+    fn to_expects(&self) -> Expects {
+        Expects::from_iter(self.iter().map(|t| t.to_string()))
     }
 }
 
@@ -172,8 +189,10 @@ impl Set<char> for str {
     }
 
     #[inline]
-    fn to_expects(&self) -> Expects<char> {
-        Expects::from_iter(self.chars().map(|t| Expect::Positive(ExpectKind::Token(t))))
+    #[cfg(feature = "alloc")]
+    #[cfg_attr(feature = "nightly", doc(cfg(feature = "alloc")))]
+    fn to_expects(&self) -> Expects {
+        Expects::from_iter(self.chars().map(|t| t.to_string()))
     }
 }
 
@@ -224,73 +243,57 @@ set_impl_range! { RangeToInclusive }
 
 #[cfg(feature = "alloc")]
 #[cfg_attr(feature = "nightly", doc(cfg(feature = "alloc")))]
-impl<T: PartialEq + Clone> Set<T> for alloc::vec::Vec<T> {
+impl<T: PartialEq + Display> Set<T> for alloc::vec::Vec<T> {
     #[inline]
     fn contains(&self, token: &T) -> bool {
         <[T]>::contains(self, token)
     }
 
     #[inline]
-    fn to_expects(&self) -> Expects<T> {
-        Expects::from_iter(
-            self.iter()
-                .cloned()
-                .map(|t| Expect::Positive(ExpectKind::Token(t))),
-        )
+    fn to_expects(&self) -> Expects {
+        Expects::from_iter(self.iter().map(|t| t.to_string()))
     }
 }
 
 #[cfg(feature = "alloc")]
 #[cfg_attr(feature = "nightly", doc(cfg(feature = "alloc")))]
-impl<T: PartialEq + Clone> Set<T> for alloc::collections::VecDeque<T> {
+impl<T: PartialEq + Display> Set<T> for alloc::collections::VecDeque<T> {
     #[inline]
     fn contains(&self, token: &T) -> bool {
         alloc::collections::VecDeque::contains(self, token)
     }
 
     #[inline]
-    fn to_expects(&self) -> Expects<T> {
-        Expects::from_iter(
-            self.iter()
-                .cloned()
-                .map(|t| Expect::Positive(ExpectKind::Token(t))),
-        )
+    fn to_expects(&self) -> Expects {
+        Expects::from_iter(self.iter().map(|t| t.to_string()))
     }
 }
 
 #[cfg(feature = "alloc")]
 #[cfg_attr(feature = "nightly", doc(cfg(feature = "alloc")))]
-impl<T: Ord + Clone> Set<T> for alloc::collections::BTreeSet<T> {
+impl<T: Ord + Display> Set<T> for alloc::collections::BTreeSet<T> {
     #[inline]
     fn contains(&self, token: &T) -> bool {
         alloc::collections::BTreeSet::contains(self, token)
     }
 
     #[inline]
-    fn to_expects(&self) -> Expects<T> {
-        Expects::from_iter(
-            self.iter()
-                .cloned()
-                .map(|t| Expect::Positive(ExpectKind::Token(t))),
-        )
+    fn to_expects(&self) -> Expects {
+        Expects::from_iter(self.iter().map(|t| t.to_string()))
     }
 }
 
 #[cfg(feature = "alloc")]
 #[cfg_attr(feature = "nightly", doc(cfg(feature = "alloc")))]
-impl<T: PartialEq + Clone> Set<T> for alloc::collections::LinkedList<T> {
+impl<T: PartialEq + Display> Set<T> for alloc::collections::LinkedList<T> {
     #[inline]
     fn contains(&self, token: &T) -> bool {
         alloc::collections::LinkedList::contains(self, token)
     }
 
     #[inline]
-    fn to_expects(&self) -> Expects<T> {
-        Expects::from_iter(
-            self.iter()
-                .cloned()
-                .map(|t| Expect::Positive(ExpectKind::Token(t))),
-        )
+    fn to_expects(&self) -> Expects {
+        Expects::from_iter(self.iter().map(|t| t.to_string()))
     }
 }
 
@@ -303,25 +306,21 @@ impl Set<char> for alloc::string::String {
     }
 
     #[inline]
-    fn to_expects(&self) -> Expects<char> {
-        Expects::from_iter(self.chars().map(|t| Expect::Positive(ExpectKind::Token(t))))
+    fn to_expects(&self) -> Expects {
+        Expects::from_iter(self.chars().map(|t| t.to_string()))
     }
 }
 
 #[cfg(feature = "std")]
 #[cfg_attr(feature = "nightly", doc(cfg(feature = "std")))]
-impl<T: Eq + core::hash::Hash + Clone> Set<T> for std::collections::HashSet<T> {
+impl<T: Eq + core::hash::Hash + Display> Set<T> for std::collections::HashSet<T> {
     #[inline]
     fn contains(&self, token: &T) -> bool {
         std::collections::HashSet::contains(self, token)
     }
 
     #[inline]
-    fn to_expects(&self) -> Expects<T> {
-        Expects::from_iter(
-            self.iter()
-                .cloned()
-                .map(|t| Expect::Positive(ExpectKind::Token(t))),
-        )
+    fn to_expects(&self) -> Expects {
+        Expects::from_iter(self.iter().map(|t| t.to_string()))
     }
 }

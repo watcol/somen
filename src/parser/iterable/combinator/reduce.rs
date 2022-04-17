@@ -35,7 +35,7 @@ crate::parser_state! {
     pub struct ReduceState<I, P: IterableParser> {
         inner: P::State,
         acc: Option<P::Item>,
-        error: Option<Error<I::Ok, I::Locator>>,
+        error: Option<Error<I::Locator>>,
     }
 }
 
@@ -111,7 +111,7 @@ crate::parser_state! {
         acc: Option<P::Item>,
         #[opt(set = set_start)]
         start: I::Locator,
-        error: Option<Error<I::Ok, I::Locator>>,
+        error: Option<Error<I::Locator>>,
     }
 }
 
@@ -119,7 +119,7 @@ impl<P, F, E, I> Parser<I> for TryReduce<P, F>
 where
     P: IterableParser<I>,
     F: FnMut(P::Item, P::Item) -> Result<P::Item, E>,
-    E: Into<Expects<I::Ok>>,
+    E: Into<Expects>,
     I: Positioned + ?Sized,
 {
     type Output = Option<P::Item>;

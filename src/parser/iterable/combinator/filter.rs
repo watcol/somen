@@ -33,7 +33,7 @@ impl<P, F> Filter<P, F> {
 crate::parser_state! {
     pub struct FilterState<I, P: IterableParser> {
         inner: P::State,
-        error: Option<Error<I::Ok, I::Locator>>,
+        error: Option<Error<I::Locator>>,
     }
 }
 

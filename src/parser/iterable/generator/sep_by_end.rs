@@ -42,7 +42,7 @@ crate::parser_state! {
         start: I::Locator,
         #[opt]
         output: P::Output,
-        error: Option<Error<I::Ok, I::Locator>>,
+        error: Option<Error<I::Locator>>,
         count: usize,
     }
 }
