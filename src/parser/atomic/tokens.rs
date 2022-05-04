@@ -38,14 +38,14 @@ crate::parser_state! {
     }
 }
 
-impl<'a, I, T> Parser<I> for Tokens<'a, I, T>
+impl<'a, I, B, T> Parser<I> for Tokens<'a, I, B>
 where
     I: Positioned + ?Sized,
-    I::Ok: PartialEq,
-    T: IntoIterator<Item = &'a I::Ok> + Clone,
+    B: IntoIterator<Item = &'a T> + Clone,
+    T: PartialEq<I::Ok> + 'a,
 {
-    type Output = T;
-    type State = TokensState<I, T::IntoIter>;
+    type Output = B;
+    type State = TokensState<I, B::IntoIter>;
 
     fn poll_parse(
         &mut self,
@@ -67,7 +67,7 @@ where
             state.next.get_or_insert_with(|| input.position());
 
             match parsed {
-                Some(i) if i == *val => continue,
+                Some(i) if *val == i => continue,
                 _ => {
                     break Status::Failure(
                         Error {

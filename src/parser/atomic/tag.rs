@@ -41,7 +41,8 @@ crate::parser_state! {
 
 impl<I> Parser<I> for Tag<I>
 where
-    I: Positioned<Ok = char> + ?Sized,
+    I: Positioned + ?Sized,
+    I::Ok: PartialEq<char>,
 {
     type Output = &'static str;
     type State = TagState<I>;

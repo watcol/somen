@@ -146,13 +146,14 @@ impl<'a, T, S: Set<T> + ?Sized> Set<T> for &'a S {
 }
 
 impl<
-        #[cfg(not(feature = "alloc"))] T: PartialEq,
-        #[cfg(feature = "alloc")] T: PartialEq + Display,
-    > Set<T> for [T]
+        T,
+        #[cfg(not(feature = "alloc"))] U: PartialEq<T>,
+        #[cfg(feature = "alloc")] U: PartialEq<T> + Display,
+    > Set<T> for [U]
 {
     #[inline]
     fn contains(&self, token: &T) -> bool {
-        <[T]>::contains(self, token)
+        self.iter().any(|i| i == token)
     }
 
     #[inline]
@@ -164,14 +165,15 @@ impl<
 }
 
 impl<
-        #[cfg(not(feature = "alloc"))] T: PartialEq,
-        #[cfg(feature = "alloc")] T: PartialEq + Display,
+        T,
+        #[cfg(not(feature = "alloc"))] U: PartialEq<T>,
+        #[cfg(feature = "alloc")] U: PartialEq<T> + Display,
         const N: usize,
-    > Set<T> for [T; N]
+    > Set<T> for [U; N]
 {
     #[inline]
     fn contains(&self, token: &T) -> bool {
-        <[T]>::contains(self, token)
+        self.iter().any(|i| i == token)
     }
 
     #[inline]
@@ -182,10 +184,10 @@ impl<
     }
 }
 
-impl Set<char> for str {
+impl<T: PartialEq<char>> Set<T> for str {
     #[inline]
-    fn contains(&self, token: &char) -> bool {
-        str::contains(self, *token)
+    fn contains(&self, token: &T) -> bool {
+        self.chars().any(|c| *token == c)
     }
 
     #[inline]
@@ -203,14 +205,7 @@ impl<T> Set<T> for RangeFull {
     }
 }
 
-impl<T: PartialOrd> Set<T> for (Bound<T>, Bound<T>) {
-    #[inline]
-    fn contains(&self, token: &T) -> bool {
-        RangeBounds::contains(self, token)
-    }
-}
-
-impl<'a, T: PartialOrd> Set<T> for (Bound<&'a T>, Bound<&'a T>) {
+impl<T: PartialOrd<U>, U: PartialOrd<T>> Set<T> for (Bound<U>, Bound<U>) {
     #[inline]
     fn contains(&self, token: &T) -> bool {
         RangeBounds::contains(self, token)
@@ -219,14 +214,7 @@ impl<'a, T: PartialOrd> Set<T> for (Bound<&'a T>, Bound<&'a T>) {
 
 macro_rules! set_impl_range {
     ($t:tt) => {
-        impl<T: PartialOrd> Set<T> for $t<T> {
-            #[inline]
-            fn contains(&self, token: &T) -> bool {
-                RangeBounds::contains(self, token)
-            }
-        }
-
-        impl<T: PartialOrd> Set<T> for $t<&T> {
+        impl<T: PartialOrd<U>, U: PartialOrd<T>> Set<T> for $t<U> {
             #[inline]
             fn contains(&self, token: &T) -> bool {
                 RangeBounds::contains(self, token)
@@ -243,10 +231,10 @@ set_impl_range! { RangeToInclusive }
 
 #[cfg(feature = "alloc")]
 #[cfg_attr(feature = "nightly", doc(cfg(feature = "alloc")))]
-impl<T: PartialEq + Display> Set<T> for alloc::vec::Vec<T> {
+impl<T, U: PartialEq<T> + Display> Set<T> for alloc::vec::Vec<U> {
     #[inline]
     fn contains(&self, token: &T) -> bool {
-        <[T]>::contains(self, token)
+        self.iter().any(|i| i == token)
     }
 
     #[inline]
@@ -257,10 +245,10 @@ impl<T: PartialEq + Display> Set<T> for alloc::vec::Vec<T> {
 
 #[cfg(feature = "alloc")]
 #[cfg_attr(feature = "nightly", doc(cfg(feature = "alloc")))]
-impl<T: PartialEq + Display> Set<T> for alloc::collections::VecDeque<T> {
+impl<T, U: PartialEq<T> + Display> Set<T> for alloc::collections::VecDeque<U> {
     #[inline]
     fn contains(&self, token: &T) -> bool {
-        alloc::collections::VecDeque::contains(self, token)
+        self.iter().any(|i| i == token)
     }
 
     #[inline]
@@ -271,10 +259,10 @@ impl<T: PartialEq + Display> Set<T> for alloc::collections::VecDeque<T> {
 
 #[cfg(feature = "alloc")]
 #[cfg_attr(feature = "nightly", doc(cfg(feature = "alloc")))]
-impl<T: Ord + Display> Set<T> for alloc::collections::BTreeSet<T> {
+impl<T, U: PartialEq<T> + Ord + Display> Set<T> for alloc::collections::BTreeSet<U> {
     #[inline]
     fn contains(&self, token: &T) -> bool {
-        alloc::collections::BTreeSet::contains(self, token)
+        self.iter().any(|i| i == token)
     }
 
     #[inline]
@@ -285,10 +273,10 @@ impl<T: Ord + Display> Set<T> for alloc::collections::BTreeSet<T> {
 
 #[cfg(feature = "alloc")]
 #[cfg_attr(feature = "nightly", doc(cfg(feature = "alloc")))]
-impl<T: PartialEq + Display> Set<T> for alloc::collections::LinkedList<T> {
+impl<T, U: PartialEq<T> + Display> Set<T> for alloc::collections::LinkedList<U> {
     #[inline]
     fn contains(&self, token: &T) -> bool {
-        alloc::collections::LinkedList::contains(self, token)
+        self.iter().any(|i| i == token)
     }
 
     #[inline]
@@ -299,10 +287,10 @@ impl<T: PartialEq + Display> Set<T> for alloc::collections::LinkedList<T> {
 
 #[cfg(feature = "alloc")]
 #[cfg_attr(feature = "nightly", doc(cfg(feature = "alloc")))]
-impl Set<char> for alloc::string::String {
+impl<T: PartialEq<char>> Set<T> for alloc::string::String {
     #[inline]
-    fn contains(&self, token: &char) -> bool {
-        str::contains(self, *token)
+    fn contains(&self, token: &T) -> bool {
+        self.chars().any(|c| *token == c)
     }
 
     #[inline]
@@ -313,10 +301,10 @@ impl Set<char> for alloc::string::String {
 
 #[cfg(feature = "std")]
 #[cfg_attr(feature = "nightly", doc(cfg(feature = "std")))]
-impl<T: Eq + core::hash::Hash + Display> Set<T> for std::collections::HashSet<T> {
+impl<T, U: PartialEq<T> + Eq + core::hash::Hash + Display> Set<T> for std::collections::HashSet<U> {
     #[inline]
     fn contains(&self, token: &T) -> bool {
-        std::collections::HashSet::contains(self, token)
+        self.iter().any(|i| i == token)
     }
 
     #[inline]

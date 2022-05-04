@@ -31,11 +31,11 @@ impl<I: ?Sized, T> Token<I, T> {
     }
 }
 
-#[cfg(feature = "alloc")]
-impl<I> Parser<I> for Token<I, I::Ok>
+impl<I, #[cfg(feature = "alloc")] T: Display, #[cfg(not(feature = "alloc"))] T> Parser<I>
+    for Token<I, T>
 where
     I: Positioned + ?Sized,
-    I::Ok: PartialEq + Display,
+    T: PartialEq<I::Ok>,
 {
     type Output = I::Ok;
     type State = ();
@@ -48,38 +48,12 @@ where
     ) -> PolledResult<Self::Output, I> {
         let start = input.position();
         Poll::Ready(Ok(match ready!(input.as_mut().try_poll_next(cx)?) {
-            Some(i) if i == self.token => Status::Success(i, None),
+            Some(i) if self.token == i => Status::Success(i, None),
             _ => Status::Failure(
                 Error {
+                    #[cfg(feature = "alloc")]
                     expects: Expects::from(self.token.to_string()),
-                    position: start..input.position(),
-                },
-                false,
-            ),
-        }))
-    }
-}
-
-#[cfg(not(feature = "alloc"))]
-impl<I> Parser<I> for Token<I, I::Ok>
-where
-    I: Positioned + ?Sized,
-    I::Ok: PartialEq,
-{
-    type Output = I::Ok;
-    type State = ();
-
-    fn poll_parse(
-        &mut self,
-        mut input: Pin<&mut I>,
-        cx: &mut Context<'_>,
-        _state: &mut Self::State,
-    ) -> PolledResult<Self::Output, I> {
-        let start = input.position();
-        Poll::Ready(Ok(match ready!(input.as_mut().try_poll_next(cx)?) {
-            Some(i) if i == self.token => Status::Success(i, None),
-            _ => Status::Failure(
-                Error {
+                    #[cfg(not(feature = "alloc"))]
                     expects: Expects::from("<token>"),
                     position: start..input.position(),
                 },
@@ -109,11 +83,11 @@ impl<I: ?Sized, T> Not<I, T> {
     }
 }
 
-#[cfg(feature = "alloc")]
-impl<I> Parser<I> for Not<I, I::Ok>
+impl<I, #[cfg(feature = "alloc")] T: Display, #[cfg(not(feature = "alloc"))] T> Parser<I>
+    for Not<I, T>
 where
     I: Positioned + ?Sized,
-    I::Ok: PartialEq + Display,
+    T: PartialEq<I::Ok>,
 {
     type Output = I::Ok;
     type State = ();
@@ -126,38 +100,12 @@ where
     ) -> PolledResult<Self::Output, I> {
         let start = input.position();
         Poll::Ready(Ok(match ready!(input.as_mut().try_poll_next(cx)?) {
-            Some(i) if i != self.token => Status::Success(i, None),
+            Some(i) if self.token != i => Status::Success(i, None),
             _ => Status::Failure(
                 Error {
+                    #[cfg(feature = "alloc")]
                     expects: Expects::from(format!("not {}", self.token)),
-                    position: start..input.position(),
-                },
-                false,
-            ),
-        }))
-    }
-}
-
-#[cfg(not(feature = "alloc"))]
-impl<I> Parser<I> for Not<I, I::Ok>
-where
-    I: Positioned + ?Sized,
-    I::Ok: PartialEq,
-{
-    type Output = I::Ok;
-    type State = ();
-
-    fn poll_parse(
-        &mut self,
-        mut input: Pin<&mut I>,
-        cx: &mut Context<'_>,
-        _state: &mut Self::State,
-    ) -> PolledResult<Self::Output, I> {
-        let start = input.position();
-        Poll::Ready(Ok(match ready!(input.as_mut().try_poll_next(cx)?) {
-            Some(i) if i != self.token => Status::Success(i, None),
-            _ => Status::Failure(
-                Error {
+                    #[cfg(not(feature = "alloc"))]
                     expects: Expects::from("<not token>"),
                     position: start..input.position(),
                 },
