@@ -9,16 +9,16 @@ use crate::parser::utils::merge_errors;
 use crate::parser::Parser;
 use crate::stream::Positioned;
 
-/// A parser for method [`indexes`].
+/// A parser for method [`indices`].
 ///
-/// [`indexes`]: crate::parser::iterable::IterableParserExt::indexes
+/// [`indices`]: crate::parser::iterable::IterableParserExt::indices
 #[derive(Clone, Debug, PartialEq, Eq)]
-pub struct Indexes<P, const N: usize> {
+pub struct Indices<P, const N: usize> {
     inner: P,
     ns: [usize; N],
 }
 
-impl<P, const N: usize> Indexes<P, N> {
+impl<P, const N: usize> Indices<P, N> {
     /// Creates a new instance.
     #[inline]
     pub fn new(inner: P, ns: [usize; N]) -> Self {
@@ -58,7 +58,7 @@ crate::parser_state! {
     }
 }
 
-impl<P, I, const N: usize> Parser<I> for Indexes<P, N>
+impl<P, I, const N: usize> Parser<I> for Indices<P, N>
 where
     P: IterableParser<I>,
     I: Positioned + ?Sized,

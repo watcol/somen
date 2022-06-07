@@ -262,26 +262,26 @@ pub trait IterableParserExt<I: Positioned + ?Sized>: IterableParser<I> {
     ///
     /// [`Parser`]: super::Parser
     #[inline]
-    fn fill<const N: usize>(self, start: usize) -> Indexes<Self, N>
+    fn fill<const N: usize>(self, start: usize) -> Indices<Self, N>
     where
         Self: Sized,
     {
-        assert_parser(Indexes::new_fill(self, start))
+        assert_parser(Indices::new_fill(self, start))
     }
 
     /// Consumes all outputs, returns multiple elements specified by `ns`, an ascending ordered array of
-    /// indexes.
+    /// indices.
     ///
     /// Note that `n` starts from `0` and if the length of stream less than `n`, it returns `None`.
     ///
     /// # Panics
     /// if `ns` is not ascending ordered.
     #[inline]
-    fn indexes<const N: usize>(self, ns: [usize; N]) -> Indexes<Self, N>
+    fn indices<const N: usize>(self, ns: [usize; N]) -> Indices<Self, N>
     where
         Self: Sized,
     {
-        assert_parser(Indexes::new(self, ns))
+        assert_parser(Indices::new(self, ns))
     }
 
     /// Repeats the iterable parser like [`ParserExt::repeat`], and flattens into one iterable
