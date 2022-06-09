@@ -16,6 +16,9 @@ include = [
   "src/**/*.rs"
 ]
 
+[package.metadata.docs.rs]
+all-features = true
+
 [features]
 nightly = []
 default = ['std']
