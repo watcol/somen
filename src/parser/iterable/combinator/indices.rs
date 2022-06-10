@@ -81,7 +81,7 @@ where
                     let index = self.ns[state.buf.index()];
                     if state.count == index {
                         state.buf.push(val);
-                        if self.ns[state.buf.index()] <= index {
+                        if !state.buf.is_filled() && self.ns[state.buf.index()] <= index {
                             panic!("ns must be ascending ordered.");
                         }
                     }
