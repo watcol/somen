@@ -584,6 +584,15 @@ pub trait ParserExt<I: Positioned + ?Sized>: Parser<I> {
         assert_parser(Expect::new(self, expected.into()))
     }
 
+    /// Overrides the error position by the span of the parse.
+    #[inline]
+    fn spanned(self) -> Spanned<Self>
+    where
+        Self: Sized,
+    {
+        assert_parser(Spanned::new(self))
+    }
+
     /// Overrides parsing errors as "exclusive".
     #[inline]
     fn exclusive<E: Into<Expects>>(self, expected: E) -> Exclusive<Self>

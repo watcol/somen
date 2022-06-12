@@ -9,6 +9,7 @@ mod map_err;
 mod no_state;
 mod rewindable;
 mod satisfy;
+mod spanned;
 mod with_position;
 
 pub use discard::Discard;
@@ -21,4 +22,5 @@ pub use map_err::MapErr;
 pub use no_state::NoState;
 pub use rewindable::Rewindable;
 pub use satisfy::Satisfy;
+pub use spanned::Spanned;
 pub use with_position::WithPosition;
