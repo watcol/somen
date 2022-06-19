@@ -43,6 +43,7 @@ crate::parser_state! {
         #[opt]
         output: P::Output,
         error: Option<Error<I::Locator>>,
+        end: bool,
         count: usize,
     }
 }
@@ -68,7 +69,8 @@ where
             Bound::Included(i) => state.count + 1 > *i,
             Bound::Excluded(i) => state.count + 1 >= *i,
             Bound::Unbounded => false,
-        } {
+        } || state.end
+        {
             return Poll::Ready(Ok(Status::Success(None, None)));
         }
 
@@ -115,7 +117,8 @@ where
                 {
                     input.rewind(state.marker())?;
                     merge_errors(&mut state.error, Some(err));
-                    Status::Success(None, state.error())
+                    state.end = true;
+                    Status::Success(Some(state.output()), state.error())
                 }
                 Status::Failure(err, false) => {
                     input.drop_marker(state.marker())?;
