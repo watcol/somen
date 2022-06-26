@@ -13,13 +13,13 @@ Somen is an asynchronous LL(k) parser combinator.
 Add to your `Cargo.toml`:
 ```toml
 [dependencies]
-somen = "0.3.0"
+somen = "0.3"
 ```
 
 If you are in the `no_std` environment:
 ```toml
 [dependencies.somen]
-version = "0.3.0"
+version = "0.3"
 default-features = false
 features = ["alloc"]   # If you have an allocator implementation
 ```
